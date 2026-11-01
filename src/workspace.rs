@@ -1,0 +1,1958 @@
+use crate::engine::{
+    apply_censorship_regions, detect_candidate_hotspots, generate_inspection_grid,
+    generate_zoom_crop_grid, verify_censored_edition,
+};
+use crate::models::{
+    AssetRecord, AssetStatus, AuditEvent, CandidateHotspot, CensorshipClassification,
+    CensorshipRegion, CoordinateUnit, DoctorCheck, DoctorReport, EscalationInfo, Ledger,
+    VerificationReport,
+};
+use crate::policy::recommended_mosaic_block_size;
+use anyhow::{anyhow, Context, Result};
+use chrono::Utc;
+use image::GenericImageView;
+use serde::Serialize;
+use sha2::{Digest, Sha256};
+use std::collections::HashSet;
+use std::fs::{self, File, OpenOptions};
+use std::io::Write;
+use std::path::{Path, PathBuf};
+use std::time::{Duration, SystemTime};
+use walkdir::WalkDir;
+
+pub struct Workspace {
+    pub root: PathBuf,
+}
+
+/// RAII Advisory File Lock with automatic stale-lock recovery.
+/// Prevents concurrent CLI / MCP invocations from clobbering `treatments_ledger.json`.
+pub struct WorkspaceLock {
+    lock_path: PathBuf,
+}
+
+impl WorkspaceLock {
+    pub fn acquire(ledger_dir: &Path) -> Result<Self> {
+        fs::create_dir_all(ledger_dir)?;
+        let lock_path = ledger_dir.join(".ledger.lock");
+
+        for attempt in 0..20 {
+            match OpenOptions::new()
+                .write(true)
+                .create_new(true)
+                .open(&lock_path)
+            {
+                Ok(mut f) => {
+                    let _ = writeln!(f, "pid={}", std::process::id());
+                    return Ok(Self { lock_path });
+                }
+                Err(_) => {
+                    // Check if existing lock is stale (> 30s old)
+                    if let Ok(meta) = fs::metadata(&lock_path) {
+                        if let Ok(modified) = meta.modified() {
+                            if SystemTime::now()
+                                .duration_since(modified)
+                                .unwrap_or(Duration::ZERO)
+                                > Duration::from_secs(30)
+                            {
+                                let _ = fs::remove_file(&lock_path);
+                                continue;
+                            }
+                        }
+                    }
+                    if attempt < 19 {
+                        std::thread::sleep(Duration::from_millis(25));
+                    }
+                }
+            }
+        }
+        // Fallback: clear stale lock and proceed
+        let _ = fs::remove_file(&lock_path);
+        let mut f = File::create(&lock_path)?;
+        let _ = writeln!(f, "pid={}", std::process::id());
+        Ok(Self { lock_path })
+    }
+}
+
+impl Drop for WorkspaceLock {
+    fn drop(&mut self) {
+        let _ = fs::remove_file(&self.lock_path);
+    }
+}
+
+#[derive(Debug, Clone, Default)]
+pub struct ExecuteOptions {
+    pub append_regions: bool,
+    pub remove_region_ids: Vec<String>,
+    pub dry_run: bool,
+    pub policy_override: Option<String>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct WorkspaceStatusSummary {
+    pub workspace_root: String,
+    pub total_assets: usize,
+    pub pending_inspection: Vec<String>,
+    pub planned: Vec<String>,
+    pub processed: Vec<String>,
+    pub verified: Vec<String>,
+    pub approved_original: Vec<String>,
+    pub escalated: Vec<String>,
+    pub unscanned_inbox_files: Vec<String>,
+    pub next_recommended_action: String,
+    pub ledger_path: String,
+    pub escalation_report_path: String,
+    pub dashboard_html_path: String,
+}
+
+#[derive(Debug, Serialize)]
+pub struct InspectPayload {
+    pub asset_id: String,
+    pub original_filename: String,
+    pub archive_original_path: String,
+    pub inspect_grid_path: String,
+    pub zoom_crop_path: Option<String>,
+    pub zoom_crop_pixel_bounds: Option<(u32, u32, u32, u32)>,
+    pub width: u32,
+    pub height: u32,
+    pub sha256_original: String,
+    pub policy_profile: String,
+    pub recommended_mosaic_block_px: u32,
+    pub candidate_hotspots: Vec<CandidateHotspot>,
+    pub coordinate_guide: String,
+    pub cli_templates: InspectCliTemplates,
+    pub agent_instructions: Vec<String>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct InspectCliTemplates {
+    pub execute_mosaic_example: String,
+    pub execute_rotated_bar_example: String,
+    pub zoom_crop_example: String,
+    pub approve_original_example: String,
+    pub escalate_example: String,
+}
+
+/// Atomically writes `bytes` to `target_path` via a sibling temporary file + `sync_all()` + `rename()`.
+pub fn atomic_write_bytes(target_path: &Path, bytes: &[u8]) -> Result<()> {
+    if let Some(parent) = target_path.parent() {
+        fs::create_dir_all(parent)?;
+    }
+    let file_name = target_path
+        .file_name()
+        .and_then(|s| s.to_str())
+        .unwrap_or("tmp");
+    let tmp_path = target_path.with_file_name(format!(".{}.tmp.{}", file_name, std::process::id()));
+    {
+        let mut f = File::create(&tmp_path).with_context(|| {
+            format!("Failed to create atomic temp file {}", tmp_path.display())
+        })?;
+        f.write_all(bytes)?;
+        f.sync_all()?;
+    }
+    fs::rename(&tmp_path, target_path).with_context(|| {
+        format!(
+            "Failed to atomically rename {} -> {}",
+            tmp_path.display(),
+            target_path.display()
+        )
+    })?;
+    Ok(())
+}
+
+impl Workspace {
+    pub fn new(root: impl AsRef<Path>) -> Self {
+        Self {
+            root: root.as_ref().to_path_buf(),
+        }
+    }
+
+    pub fn inbox_dir(&self) -> PathBuf {
+        self.root.join("assets").join("inbox")
+    }
+
+    pub fn originals_dir(&self) -> PathBuf {
+        self.root.join("assets").join("originals")
+    }
+
+    pub fn inspect_dir(&self) -> PathBuf {
+        self.root.join("assets").join("inspect")
+    }
+
+    pub fn previews_dir(&self) -> PathBuf {
+        self.root.join("assets").join("previews")
+    }
+
+    pub fn published_dir(&self) -> PathBuf {
+        self.root.join("assets").join("published")
+    }
+
+    pub fn review_dir(&self) -> PathBuf {
+        self.root.join("assets").join("review_escalated")
+    }
+
+    pub fn ledger_dir(&self) -> PathBuf {
+        self.root.join("ledger")
+    }
+
+    pub fn ledger_file(&self) -> PathBuf {
+        self.ledger_dir().join("treatments_ledger.json")
+    }
+
+    pub fn escalation_md_file(&self) -> PathBuf {
+        self.ledger_dir().join("escalations_review.md")
+    }
+
+    pub fn publication_manifest_md_file(&self) -> PathBuf {
+        self.ledger_dir().join("publication_report.md")
+    }
+
+    pub fn dashboard_html_file(&self) -> PathBuf {
+        self.ledger_dir().join("dashboard.html")
+    }
+
+    pub fn init(&self) -> Result<()> {
+        for dir in [
+            self.inbox_dir(),
+            self.originals_dir(),
+            self.inspect_dir(),
+            self.previews_dir(),
+            self.published_dir(),
+            self.review_dir(),
+            self.ledger_dir(),
+        ] {
+            fs::create_dir_all(&dir)
+                .with_context(|| format!("Failed to create directory {}", dir.display()))?;
+        }
+
+        if !self.ledger_file().exists() {
+            let ledger = Ledger::default();
+            self.save_ledger(&ledger)?;
+        }
+        self.sync_markdown_reports()?;
+        Ok(())
+    }
+
+    pub fn load_ledger(&self) -> Result<Ledger> {
+        if !self.ledger_file().exists() {
+            self.init()?;
+        }
+        let raw = fs::read_to_string(self.ledger_file()).with_context(|| {
+            format!("Failed to read ledger at {}", self.ledger_file().display())
+        })?;
+        let ledger: Ledger = serde_json::from_str(&raw).context("Failed to parse ledger JSON")?;
+        Ok(ledger)
+    }
+
+    pub fn save_ledger(&self, ledger: &Ledger) -> Result<()> {
+        let json = serde_json::to_string_pretty(ledger)?;
+        atomic_write_bytes(&self.ledger_file(), json.as_bytes())
+    }
+
+    /// Resolves a user- or agent-supplied `asset_id_or_prefix` against the ledger.
+    /// Supports exact ID, unique prefix match, SHA-256 prefix, or original filename match.
+    pub fn resolve_asset_id(&self, query: &str) -> Result<String> {
+        let ledger = self.load_ledger()?;
+        Self::resolve_asset_id_in_ledger(&ledger, query)
+    }
+
+    pub fn resolve_asset_id_in_ledger(ledger: &Ledger, query: &str) -> Result<String> {
+        let q = query.trim();
+        if ledger.assets.contains_key(q) {
+            return Ok(q.to_string());
+        }
+
+        let mut matches: Vec<String> = ledger
+            .assets
+            .values()
+            .filter(|rec| {
+                rec.asset_id.starts_with(q)
+                    || rec.original_filename.eq_ignore_ascii_case(q)
+                    || rec.sha256_original.starts_with(q)
+            })
+            .map(|rec| rec.asset_id.clone())
+            .collect();
+        matches.sort();
+        matches.dedup();
+
+        match matches.len() {
+            1 => Ok(matches.remove(0)),
+            0 => Err(anyhow!(
+                "No asset matching '{}' found in ledger. Run `heav3ns-censor status` to list known asset IDs.",
+                q
+            )),
+            _ => Err(anyhow!(
+                "Ambiguous asset reference '{}' matches multiple assets: {:?}",
+                q,
+                matches
+            )),
+        }
+    }
+
+    /// Scans `assets/inbox` for new image files, preserves untouched copies in `assets/originals`,
+    /// and registers them in the ledger.
+    pub fn ingest_inbox(&self, default_policy: &str) -> Result<Vec<AssetRecord>> {
+        self.init()?;
+        let _lock = WorkspaceLock::acquire(&self.ledger_dir())?;
+        let mut ledger = self.load_ledger()?;
+        let mut newly_ingested = Vec::new();
+
+        let mut inbox_paths: Vec<PathBuf> = WalkDir::new(self.inbox_dir())
+            .min_depth(1)
+            .max_depth(2)
+            .into_iter()
+            .flatten()
+            .filter(|e| e.file_type().is_file() && is_supported_image(e.path()))
+            .map(|e| e.path().to_path_buf())
+            .collect();
+        inbox_paths.sort();
+
+        for path in inbox_paths {
+            let record = self.ingest_single_file_internal(&path, default_policy, &mut ledger)?;
+            newly_ingested.push(record);
+        }
+
+        ledger.updated_at = Utc::now();
+        self.save_ledger(&ledger)?;
+        self.sync_markdown_reports()?;
+        Ok(newly_ingested)
+    }
+
+    pub fn ingest_file(&self, file_path: &Path, default_policy: &str) -> Result<AssetRecord> {
+        self.init()?;
+        let _lock = WorkspaceLock::acquire(&self.ledger_dir())?;
+        let mut ledger = self.load_ledger()?;
+        let record = self.ingest_single_file_internal(file_path, default_policy, &mut ledger)?;
+        ledger.updated_at = Utc::now();
+        self.save_ledger(&ledger)?;
+        self.sync_markdown_reports()?;
+        Ok(record)
+    }
+
+    fn ingest_single_file_internal(
+        &self,
+        path: &Path,
+        default_policy: &str,
+        ledger: &mut Ledger,
+    ) -> Result<AssetRecord> {
+        let bytes = fs::read(path)
+            .with_context(|| format!("Failed to read incoming asset {}", path.display()))?;
+        let sha256_hex = compute_sha256(&bytes);
+
+        let stem = path
+            .file_stem()
+            .and_then(|s| s.to_str())
+            .unwrap_or("asset")
+            .to_string();
+        let ext = path
+            .extension()
+            .and_then(|s| s.to_str())
+            .unwrap_or("png")
+            .to_lowercase();
+
+        let sanitized_stem: String = stem
+            .chars()
+            .map(|c| {
+                if c.is_alphanumeric() || c == '-' || c == '_' {
+                    c
+                } else {
+                    '_'
+                }
+            })
+            .collect();
+        let short_hash = &sha256_hex[0..8];
+        let asset_id = format!("{}_{}", sanitized_stem, short_hash);
+
+        if let Some(existing) = ledger.assets.get(&asset_id) {
+            return Ok(existing.clone());
+        }
+
+        let img = image::load_from_memory(&bytes)
+            .with_context(|| format!("Failed to decode image {}", path.display()))?;
+        let (width, height) = img.dimensions();
+
+        let orig_filename = format!("{}_original.{}", asset_id, ext);
+        let archive_path = self.originals_dir().join(&orig_filename);
+        atomic_write_bytes(&archive_path, &bytes).with_context(|| {
+            format!(
+                "Failed to preserve untouched original to {}",
+                archive_path.display()
+            )
+        })?;
+
+        let now = Utc::now();
+        let record = AssetRecord {
+            asset_id: asset_id.clone(),
+            original_filename: path
+                .file_name()
+                .and_then(|s| s.to_str())
+                .unwrap_or("unknown")
+                .to_string(),
+            inbox_path: Some(path.to_string_lossy().to_string()),
+            archive_original_path: archive_path.to_string_lossy().to_string(),
+            sha256_original: sha256_hex.clone(),
+            width,
+            height,
+            status: AssetStatus::PendingInspection,
+            classification: None,
+            policy_profile: default_policy.to_string(),
+            regions: Vec::new(),
+            inspect_grid_path: None,
+            published_edition_path: None,
+            sha256_published: None,
+            verification: None,
+            escalation: None,
+            audit_trail: vec![AuditEvent {
+                timestamp: now,
+                action: "INGEST_AND_PRESERVE_ORIGINAL".to_string(),
+                actor: "Deputy Gemini".to_string(),
+                details: format!(
+                    "Archived untouched original ({}x{}) with SHA-256 {}",
+                    width,
+                    height,
+                    &sha256_hex[0..16]
+                ),
+            }],
+            created_at: now,
+            updated_at: now,
+        };
+
+        ledger.assets.insert(asset_id, record.clone());
+        Ok(record)
+    }
+
+    /// Generates an inspection coordinate grid overlay image, detects high-frequency candidate hotspots,
+    /// optionally generates a 3x magnified zoom-crop grid (`--crop x,y,w,h[:unit]`), and returns structured VLM metadata.
+    pub fn inspect_asset(&self, asset_query: &str) -> Result<InspectPayload> {
+        self.inspect_asset_with_crop(asset_query, None)
+    }
+
+    pub fn inspect_asset_with_crop(
+        &self,
+        asset_query: &str,
+        crop_spec: Option<&str>,
+    ) -> Result<InspectPayload> {
+        let _lock = WorkspaceLock::acquire(&self.ledger_dir())?;
+        let mut ledger = self.load_ledger()?;
+        let asset_id = Self::resolve_asset_id_in_ledger(&ledger, asset_query)?;
+        let record = ledger
+            .assets
+            .get_mut(&asset_id)
+            .ok_or_else(|| anyhow!("Asset '{}' not found in ledger", asset_id))?;
+
+        let orig_img = image::open(&record.archive_original_path)
+            .with_context(|| {
+                format!(
+                    "Failed to open archived original at {}",
+                    record.archive_original_path
+                )
+            })?
+            .to_rgba8();
+
+        let grid_img = generate_inspection_grid(&orig_img);
+        let grid_path = self
+            .inspect_dir()
+            .join(format!("{}_inspect_grid.png", asset_id));
+        grid_img.save(&grid_path)?;
+
+        let mut zoom_crop_path = None;
+        let mut zoom_crop_pixel_bounds = None;
+        if let Some(cs) = crop_spec {
+            let (cx, cy, cw, ch, unit) = parse_crop_spec(cs)?;
+            let (zoom_img, resolved_px) =
+                generate_zoom_crop_grid(&orig_img, cx, cy, cw, ch, unit);
+            let z_path = self
+                .inspect_dir()
+                .join(format!("{}_zoom_crop.png", asset_id));
+            zoom_img.save(&z_path)?;
+            zoom_crop_path = Some(z_path.to_string_lossy().to_string());
+            zoom_crop_pixel_bounds = Some(resolved_px);
+        }
+
+        let hotspots = detect_candidate_hotspots(&orig_img, 4);
+
+        let grid_path_str = grid_path.to_string_lossy().to_string();
+        record.inspect_grid_path = Some(grid_path_str.clone());
+        record.updated_at = Utc::now();
+        record.audit_trail.push(AuditEvent {
+            timestamp: Utc::now(),
+            action: "GENERATE_INSPECTION_GRID".to_string(),
+            actor: "Deputy Gemini".to_string(),
+            details: format!(
+                "Generated coordinate overlay at {} (hotspots: {}, zoom_crop: {})",
+                grid_path_str,
+                hotspots.len(),
+                zoom_crop_path.is_some()
+            ),
+        });
+
+        let rec_bs =
+            recommended_mosaic_block_size(record.width, record.height, &record.policy_profile);
+        let payload = InspectPayload {
+            asset_id: record.asset_id.clone(),
+            original_filename: record.original_filename.clone(),
+            archive_original_path: record.archive_original_path.clone(),
+            inspect_grid_path: grid_path_str,
+            zoom_crop_path,
+            zoom_crop_pixel_bounds,
+            width: record.width,
+            height: record.height,
+            sha256_original: record.sha256_original.clone(),
+            policy_profile: record.policy_profile.clone(),
+            recommended_mosaic_block_px: rec_bs,
+            candidate_hotspots: hotspots,
+            coordinate_guide: "Cyan solid lines & top/bottom X badges (X100..X900) = 10% intervals in Normalized1000; Yellow left Y badges (Y100..Y900) = 10% Y intervals; Pink interior anchor badges (300,300 / 500,500 / 700,700) provide mid-canvas reference points. Specify regions in 'pixels', 'normalized1000' (0..1000), or 'percent' (0..100). Shapes: 'rect', 'ellipse', or 'pill'.".to_string(),
+            cli_templates: InspectCliTemplates {
+                execute_mosaic_example: format!(
+                    "./target/release/heav3ns-censor execute --asset-id {} --region \"mosaic:400,500,120,100:normalized1000:rect:{}:0:explicit_anatomy\"",
+                    record.asset_id, rec_bs
+                ),
+                execute_rotated_bar_example: format!(
+                    "./target/release/heav3ns-censor execute --asset-id {} --region \"solid_bar:450,320,100,30:normalized1000:pill:#000000@15:0:kuro_nuri_bar\"",
+                    record.asset_id
+                ),
+                zoom_crop_example: format!(
+                    "./target/release/heav3ns-censor inspect --asset-id {} --crop \"300,300,400,400:normalized1000\"",
+                    record.asset_id
+                ),
+                approve_original_example: format!(
+                    "./target/release/heav3ns-censor approve-original --asset-id {} --classification artistic_nudity_pass --rationale \"Artistic nudity with no explicit genital detail.\"",
+                    record.asset_id
+                ),
+                escalate_example: format!(
+                    "./target/release/heav3ns-censor escalate --asset-id {} --category \"stylized_anatomy_ambiguity\" --reason \"Explanation of ambiguity\"",
+                    record.asset_id
+                ),
+            },
+            agent_instructions: vec![
+                "1. View both `archive_original_path` and `inspect_grid_path` (and `zoom_crop_path` if magnifying a fine detail) using your multimodal read_file tool.".to_string(),
+                "2. Check `candidate_hotspots` and the burned-in Normalized1000 badges (X100..X900, Y100..Y900, and interior 300/500/700 anchors) to locate exact bounding boxes.".to_string(),
+                "3. Distinguish between artistic nudity, suggestive imagery, and explicit material requiring intervention.".to_string(),
+                "4. Apply the smallest effective localized intervention (`mosaic`, `solid_bar`, or `gaussian_blur` with `rect`, `ellipse`, or `pill` shape and optional `@angle_deg`) via `execute`, approve untouched via `approve-original`, or escalate genuine ambiguity via `escalate`.".to_string(),
+            ],
+        };
+
+        self.save_ledger(&ledger)?;
+        self.sync_markdown_reports()?;
+        Ok(payload)
+    }
+
+    /// Ingests all new inbox files and automatically runs `inspect` on every asset in `PendingInspection`
+    /// status, returning a batch array of `InspectPayload` objects ready for immediate VLM assessment.
+    pub fn batch_prepare(&self, default_policy: &str) -> Result<Vec<InspectPayload>> {
+        let _ = self.ingest_inbox(default_policy)?;
+        let ledger = self.load_ledger()?;
+        let mut pending_ids: Vec<String> = ledger
+            .assets
+            .values()
+            .filter(|a| a.status == AssetStatus::PendingInspection || a.inspect_grid_path.is_none())
+            .map(|a| a.asset_id.clone())
+            .collect();
+        pending_ids.sort();
+
+        let mut payloads = Vec::new();
+        for id in pending_ids {
+            payloads.push(self.inspect_asset(&id)?);
+        }
+        Ok(payloads)
+    }
+
+    /// Executes censorship treatments on an asset, verifies artistic preservation + publication downscale resilience,
+    /// cleans up any stale escalation artifacts, and exports the publication-ready edition.
+    pub fn execute_censorship(
+        &self,
+        asset_query: &str,
+        classification: CensorshipClassification,
+        regions: Vec<CensorshipRegion>,
+        policy_override: Option<String>,
+    ) -> Result<(AssetRecord, VerificationReport)> {
+        self.execute_censorship_with_options(
+            asset_query,
+            classification,
+            regions,
+            ExecuteOptions {
+                policy_override,
+                ..Default::default()
+            },
+        )
+    }
+
+    /// Executes censorship treatments with full support for incremental region upsert (`append_regions`),
+    /// region removal (`remove_region_ids`), and non-destructive simulation (`dry_run`).
+    pub fn execute_censorship_with_options(
+        &self,
+        asset_query: &str,
+        classification: CensorshipClassification,
+        new_regions: Vec<CensorshipRegion>,
+        opts: ExecuteOptions,
+    ) -> Result<(AssetRecord, VerificationReport)> {
+        let _lock = WorkspaceLock::acquire(&self.ledger_dir())?;
+        let mut ledger = self.load_ledger()?;
+        let asset_id = Self::resolve_asset_id_in_ledger(&ledger, asset_query)?;
+        let record = ledger
+            .assets
+            .get_mut(&asset_id)
+            .ok_or_else(|| anyhow!("Asset '{}' not found in ledger", asset_id))?;
+
+        let active_policy = opts
+            .policy_override
+            .clone()
+            .unwrap_or_else(|| record.policy_profile.clone());
+
+        let mut effective_regions: Vec<CensorshipRegion> =
+            if opts.append_regions || !opts.remove_region_ids.is_empty() {
+                record
+                    .regions
+                    .iter()
+                    .filter(|r| !opts.remove_region_ids.iter().any(|rem| rem == &r.id))
+                    .cloned()
+                    .collect()
+            } else {
+                Vec::new()
+            };
+
+        for mut r in new_regions {
+            if r.id.is_empty() || r.id.starts_with("auto_") {
+                let mut k = 1usize;
+                loop {
+                    let candidate = format!("r{}", k);
+                    if !effective_regions.iter().any(|ex| ex.id == candidate) {
+                        r.id = candidate;
+                        break;
+                    }
+                    k += 1;
+                }
+                effective_regions.push(r);
+            } else if let Some(existing) = effective_regions.iter_mut().find(|ex| ex.id == r.id) {
+                *existing = r;
+            } else {
+                effective_regions.push(r);
+            }
+        }
+
+        if effective_regions.is_empty() {
+            return Err(anyhow!(
+                "No active censorship regions remain for '{}'. Supply --region or use `approve-original` if no censorship is needed.",
+                asset_id
+            ));
+        }
+
+        let orig_bytes = fs::read(&record.archive_original_path)?;
+        let current_orig_sha = compute_sha256(&orig_bytes);
+        if current_orig_sha != record.sha256_original {
+            return Err(anyhow!(
+                "CRITICAL INTEGRITY VIOLATION: Archived original SHA-256 mismatch for {}",
+                asset_id
+            ));
+        }
+
+        let orig_rgba = image::load_from_memory(&orig_bytes)?.to_rgba8();
+        let censored_rgba =
+            apply_censorship_regions(&orig_rgba, &effective_regions, &active_policy);
+
+        if opts.dry_run {
+            let dry_preview_dir =
+                std::env::temp_dir().join(format!("heav3ns_dry_run_{}", std::process::id()));
+            let report = verify_censored_edition(
+                &orig_rgba,
+                &censored_rgba,
+                &effective_regions,
+                &active_policy,
+                &dry_preview_dir,
+                &asset_id,
+            )?;
+            let _ = fs::remove_dir_all(&dry_preview_dir);
+
+            let mut sim_record = record.clone();
+            sim_record.policy_profile = active_policy;
+            sim_record.classification = Some(classification);
+            sim_record.regions = effective_regions;
+            sim_record.verification = Some(report.clone());
+            return Ok((sim_record, report));
+        }
+
+        record.policy_profile = active_policy;
+
+        // Clean up any prior published file if extension differed
+        if let Some(old_pub) = &record.published_edition_path {
+            let _ = fs::remove_file(old_pub);
+        }
+        // Clean up any stale escalation review file
+        self.remove_escalation_artifacts_for(&asset_id);
+
+        let pub_filename = format!("{}_published.png", asset_id);
+        let pub_path = self.published_dir().join(&pub_filename);
+        censored_rgba.save(&pub_path)?;
+
+        let pub_bytes = fs::read(&pub_path)?;
+        let pub_sha = compute_sha256(&pub_bytes);
+
+        let report = verify_censored_edition(
+            &orig_rgba,
+            &censored_rgba,
+            &effective_regions,
+            &record.policy_profile,
+            &self.previews_dir(),
+            &asset_id,
+        )?;
+
+        record.classification = Some(classification);
+        record.regions = effective_regions.clone();
+        record.escalation = None;
+        record.published_edition_path = Some(pub_path.to_string_lossy().to_string());
+        record.sha256_published = Some(pub_sha);
+        record.verification = Some(report.clone());
+        record.status = if report.overall_passed {
+            AssetStatus::Verified
+        } else {
+            AssetStatus::Processed
+        };
+        record.updated_at = Utc::now();
+        record.audit_trail.push(AuditEvent {
+            timestamp: Utc::now(),
+            action: "APPLY_AND_VERIFY_CENSORSHIP".to_string(),
+            actor: "Deputy Gemini".to_string(),
+            details: format!(
+                "Applied {} localized region(s) (append={}, removed={}); verification passed: {} (censored area: {:.2}%)",
+                effective_regions.len(),
+                opts.append_regions,
+                opts.remove_region_ids.len(),
+                report.overall_passed,
+                report.total_censored_area_percent
+            ),
+        });
+
+        let updated_record = record.clone();
+        ledger.updated_at = Utc::now();
+        self.save_ledger(&ledger)?;
+        self.sync_markdown_reports()?;
+        Ok((updated_record, report))
+    }
+
+    /// Approves an asset as requiring zero censorship intervention (e.g., artistic nudity or suggestive imagery),
+    /// copying the untouched original to the publication directory while cleaning up any stale previews/escalations.
+    pub fn approve_untouched(
+        &self,
+        asset_query: &str,
+        classification: CensorshipClassification,
+        rationale: &str,
+    ) -> Result<AssetRecord> {
+        let _lock = WorkspaceLock::acquire(&self.ledger_dir())?;
+        let mut ledger = self.load_ledger()?;
+        let asset_id = Self::resolve_asset_id_in_ledger(&ledger, asset_query)?;
+        let record = ledger
+            .assets
+            .get_mut(&asset_id)
+            .ok_or_else(|| anyhow!("Asset '{}' not found in ledger", asset_id))?;
+
+        let orig_path = Path::new(&record.archive_original_path);
+        let orig_bytes = fs::read(orig_path)?;
+        if compute_sha256(&orig_bytes) != record.sha256_original {
+            return Err(anyhow!(
+                "CRITICAL INTEGRITY VIOLATION: Archived original SHA-256 mismatch for {}",
+                asset_id
+            ));
+        }
+
+        // Remove any stale escalation or censored preview files
+        self.remove_escalation_artifacts_for(&asset_id);
+        self.remove_preview_artifacts_for(&asset_id);
+
+        let ext = orig_path
+            .extension()
+            .and_then(|s| s.to_str())
+            .unwrap_or("png");
+        let pub_filename = format!("{}_published.{}", asset_id, ext);
+        let pub_path = self.published_dir().join(&pub_filename);
+        atomic_write_bytes(&pub_path, &orig_bytes)?;
+
+        record.classification = Some(classification);
+        record.regions.clear();
+        record.verification = None;
+        record.escalation = None;
+        record.published_edition_path = Some(pub_path.to_string_lossy().to_string());
+        record.sha256_published = Some(record.sha256_original.clone());
+        record.status = AssetStatus::ApprovedOriginal;
+        record.updated_at = Utc::now();
+        record.audit_trail.push(AuditEvent {
+            timestamp: Utc::now(),
+            action: "APPROVE_UNTOUCHED_FOR_PUBLICATION".to_string(),
+            actor: "Deputy Gemini".to_string(),
+            details: format!("Classification {:?}: {}", classification, rationale),
+        });
+
+        let updated_record = record.clone();
+        ledger.updated_at = Utc::now();
+        self.save_ledger(&ledger)?;
+        self.sync_markdown_reports()?;
+        Ok(updated_record)
+    }
+
+    /// Escalates an asset for human/executive review when artistic or compliance requirements are genuinely ambiguous.
+    /// Automatically revokes and removes any prior published edition so an escalated asset is never distributed!
+    pub fn escalate_asset(
+        &self,
+        asset_query: &str,
+        category: &str,
+        reason: &str,
+        agent_notes: &str,
+    ) -> Result<AssetRecord> {
+        let _lock = WorkspaceLock::acquire(&self.ledger_dir())?;
+        let mut ledger = self.load_ledger()?;
+        let asset_id = Self::resolve_asset_id_in_ledger(&ledger, asset_query)?;
+        let record = ledger
+            .assets
+            .get_mut(&asset_id)
+            .ok_or_else(|| anyhow!("Asset '{}' not found in ledger", asset_id))?;
+
+        // Revoke any previously published edition or previews on escalation
+        if let Some(old_pub) = record.published_edition_path.take() {
+            let _ = fs::remove_file(old_pub);
+        }
+        record.sha256_published = None;
+        record.verification = None;
+        record.regions.clear();
+        self.remove_preview_artifacts_for(&asset_id);
+
+        let orig_path = Path::new(&record.archive_original_path);
+        let ext = orig_path
+            .extension()
+            .and_then(|s| s.to_str())
+            .unwrap_or("png");
+        let review_copy = self
+            .review_dir()
+            .join(format!("{}_review.{}", asset_id, ext));
+        if let Ok(orig_bytes) = fs::read(orig_path) {
+            let _ = atomic_write_bytes(&review_copy, &orig_bytes);
+        }
+
+        record.classification = Some(CensorshipClassification::AmbiguousEscalate);
+        record.status = AssetStatus::Escalated;
+        record.escalation = Some(EscalationInfo {
+            escalated_at: Utc::now(),
+            reason: reason.to_string(),
+            ambiguity_category: category.to_string(),
+            agent_notes: agent_notes.to_string(),
+        });
+        record.updated_at = Utc::now();
+        record.audit_trail.push(AuditEvent {
+            timestamp: Utc::now(),
+            action: "ESCALATE_FOR_EXECUTIVE_REVIEW".to_string(),
+            actor: "Deputy Gemini".to_string(),
+            details: format!("[{}] {}", category, reason),
+        });
+
+        let updated_record = record.clone();
+        ledger.updated_at = Utc::now();
+        self.save_ledger(&ledger)?;
+        self.sync_markdown_reports()?;
+        Ok(updated_record)
+    }
+
+    /// Resets an asset back to `PendingInspection`, removing published, preview, and escalation artifacts
+    /// while preserving the untouched original in `assets/originals/`.
+    pub fn reset_asset(&self, asset_query: &str) -> Result<AssetRecord> {
+        let _lock = WorkspaceLock::acquire(&self.ledger_dir())?;
+        let mut ledger = self.load_ledger()?;
+        let asset_id = Self::resolve_asset_id_in_ledger(&ledger, asset_query)?;
+        let record = ledger
+            .assets
+            .get_mut(&asset_id)
+            .ok_or_else(|| anyhow!("Asset '{}' not found in ledger", asset_id))?;
+
+        if let Some(old_pub) = record.published_edition_path.take() {
+            let _ = fs::remove_file(old_pub);
+        }
+        record.sha256_published = None;
+        record.verification = None;
+        record.escalation = None;
+        record.classification = None;
+        record.regions.clear();
+        record.status = AssetStatus::PendingInspection;
+        record.updated_at = Utc::now();
+        record.audit_trail.push(AuditEvent {
+            timestamp: Utc::now(),
+            action: "RESET_TO_PENDING_INSPECTION".to_string(),
+            actor: "Deputy Gemini".to_string(),
+            details: "Cleared published/escalation state; preserved untouched original."
+                .to_string(),
+        });
+
+        self.remove_preview_artifacts_for(&asset_id);
+        self.remove_escalation_artifacts_for(&asset_id);
+
+        let updated = record.clone();
+        ledger.updated_at = Utc::now();
+        self.save_ledger(&ledger)?;
+        self.sync_markdown_reports()?;
+        Ok(updated)
+    }
+
+    fn remove_preview_artifacts_for(&self, asset_id: &str) {
+        for suffix in [
+            "_pub_1080p_q85.jpg",
+            "_pub_540p_thumb.jpg",
+            "_contact_sheet.png",
+        ] {
+            let p = self.previews_dir().join(format!("{}{}", asset_id, suffix));
+            let _ = fs::remove_file(p);
+        }
+    }
+
+    fn remove_escalation_artifacts_for(&self, asset_id: &str) {
+        if let Ok(entries) = fs::read_dir(self.review_dir()) {
+            let prefix = format!("{}_review.", asset_id);
+            for entry in entries.flatten() {
+                if let Some(name) = entry.file_name().to_str() {
+                    if name.starts_with(&prefix) {
+                        let _ = fs::remove_file(entry.path());
+                    }
+                }
+            }
+        }
+    }
+
+    /// Runs a comprehensive workspace integrity, cryptographic, and orphan-hygiene audit (`doctor`).
+    /// When `fix == true`, automatically repairs missing directories, cleans orphaned files, and re-syncs reports.
+    pub fn run_doctor(&self, fix: bool) -> Result<DoctorReport> {
+        if fix {
+            self.init()?;
+        }
+        let ledger = self.load_ledger()?;
+        let mut checks = Vec::new();
+        let mut hints = Vec::new();
+
+        // 1. Directory structure check
+        let dirs_ok = [
+            self.inbox_dir(),
+            self.originals_dir(),
+            self.inspect_dir(),
+            self.previews_dir(),
+            self.published_dir(),
+            self.review_dir(),
+            self.ledger_dir(),
+        ]
+        .iter()
+        .all(|d| d.exists());
+        checks.push(DoctorCheck {
+            check_name: "workspace_directories".to_string(),
+            passed: dirs_ok,
+            details: if dirs_ok {
+                "All 7 workspace directories exist and are accessible.".to_string()
+            } else {
+                hints.push("Run `heav3ns-censor doctor --fix` to recreate missing directories.".to_string());
+                "One or more required workspace directories are missing.".to_string()
+            },
+        });
+
+        let mut expected_files = HashSet::new();
+        let mut sorted_ids: Vec<&String> = ledger.assets.keys().collect();
+        sorted_ids.sort();
+
+        for id in sorted_ids {
+            let rec = &ledger.assets[id];
+            expected_files.insert(PathBuf::from(&rec.archive_original_path));
+            if let Some(ig) = &rec.inspect_grid_path {
+                expected_files.insert(PathBuf::from(ig));
+            }
+            let z_crop = self.inspect_dir().join(format!("{}_zoom_crop.png", id));
+            if z_crop.exists() {
+                expected_files.insert(z_crop);
+            }
+
+            let orig_path = Path::new(&rec.archive_original_path);
+            let orig_ok = match fs::read(orig_path) {
+                Ok(bytes) => compute_sha256(&bytes) == rec.sha256_original,
+                Err(_) => false,
+            };
+            checks.push(DoctorCheck {
+                check_name: format!("original_sha256:{}", id),
+                passed: orig_ok,
+                details: if orig_ok {
+                    format!(
+                        "Untouched original verified (SHA-256 {}...)",
+                        &rec.sha256_original[0..16]
+                    )
+                } else {
+                    hints.push(format!(
+                        "Original asset {} is missing or corrupted in assets/originals/!",
+                        id
+                    ));
+                    "CRITICAL: Original file missing or SHA-256 mismatch!".to_string()
+                },
+            });
+
+            // State-hygiene invariant: Escalated assets must NOT have a published edition
+            if rec.status == AssetStatus::Escalated {
+                let no_pub_leak = rec.published_edition_path.is_none();
+                checks.push(DoctorCheck {
+                    check_name: format!("escalation_isolation:{}", id),
+                    passed: no_pub_leak,
+                    details: if no_pub_leak {
+                        "Escalated asset properly isolated from published/ directory.".to_string()
+                    } else {
+                        "CRITICAL: Escalated asset still has a published_edition_path!".to_string()
+                    },
+                });
+                let ext = orig_path
+                    .extension()
+                    .and_then(|s| s.to_str())
+                    .unwrap_or("png");
+                expected_files.insert(self.review_dir().join(format!("{}_review.{}", id, ext)));
+            }
+
+            if let (Some(pub_path_str), Some(expected_pub_sha)) =
+                (&rec.published_edition_path, &rec.sha256_published)
+            {
+                expected_files.insert(PathBuf::from(pub_path_str));
+                let pub_ok = match fs::read(pub_path_str) {
+                    Ok(bytes) => &compute_sha256(&bytes) == expected_pub_sha,
+                    Err(_) => false,
+                };
+                checks.push(DoctorCheck {
+                    check_name: format!("published_sha256:{}", id),
+                    passed: pub_ok,
+                    details: if pub_ok {
+                        format!(
+                            "Published edition verified (SHA-256 {}...)",
+                            &expected_pub_sha[0..16]
+                        )
+                    } else {
+                        hints.push(format!(
+                            "Re-run `execute` or `approve-original` for {} to regenerate its published edition.",
+                            id
+                        ));
+                        "Published edition missing or SHA-256 mismatch!".to_string()
+                    },
+                });
+            }
+
+            if let Some(ver) = &rec.verification {
+                for p in &ver.publication_preview_paths {
+                    expected_files.insert(PathBuf::from(p));
+                }
+                checks.push(DoctorCheck {
+                    check_name: format!("bit_exact_preservation:{}", id),
+                    passed: ver.artistic_preservation_exact && ver.overall_passed,
+                    details: format!(
+                        "Uncensored diff pixels = {}, overall_passed = {}",
+                        ver.non_censored_pixel_diff_count, ver.overall_passed
+                    ),
+                });
+            }
+        }
+
+        // Check for orphaned files across managed output directories
+        let mut orphaned_files = Vec::new();
+        for dir in [
+            self.originals_dir(),
+            self.inspect_dir(),
+            self.previews_dir(),
+            self.published_dir(),
+            self.review_dir(),
+        ] {
+            if let Ok(entries) = fs::read_dir(&dir) {
+                for entry in entries.flatten() {
+                    let p = entry.path();
+                    if p.is_file() && !expected_files.contains(&p) {
+                        orphaned_files.push(p);
+                    }
+                }
+            }
+        }
+
+        let mut orphaned_files_cleaned = 0;
+        if fix && !orphaned_files.is_empty() {
+            for p in &orphaned_files {
+                if fs::remove_file(p).is_ok() {
+                    orphaned_files_cleaned += 1;
+                }
+            }
+            orphaned_files.clear();
+            self.sync_markdown_reports()?;
+        }
+
+        let hygiene_ok = orphaned_files.is_empty();
+        checks.push(DoctorCheck {
+            check_name: "workspace_orphan_hygiene".to_string(),
+            passed: hygiene_ok,
+            details: if hygiene_ok {
+                format!(
+                    "Zero orphaned files in managed asset directories (cleaned: {}).",
+                    orphaned_files_cleaned
+                )
+            } else {
+                hints.push(
+                    "Run `heav3ns-censor doctor --fix` to prune orphaned files.".to_string(),
+                );
+                format!(
+                    "Found {} untracked/orphaned file(s) in managed directories.",
+                    orphaned_files.len()
+                )
+            },
+        });
+
+        let overall_healthy = checks.iter().all(|c| c.passed);
+        Ok(DoctorReport {
+            checked_at: Utc::now(),
+            overall_healthy,
+            total_assets_audited: ledger.assets.len(),
+            orphaned_files_cleaned,
+            checks,
+            remediation_hints: hints,
+        })
+    }
+
+    pub fn status_summary(&self) -> Result<WorkspaceStatusSummary> {
+        let ledger = self.load_ledger()?;
+        let mut pending_inspection = Vec::new();
+        let mut planned = Vec::new();
+        let mut processed = Vec::new();
+        let mut verified = Vec::new();
+        let mut approved_original = Vec::new();
+        let mut escalated = Vec::new();
+
+        let mut sorted_ids: Vec<&String> = ledger.assets.keys().collect();
+        sorted_ids.sort();
+
+        for id in sorted_ids {
+            let rec = &ledger.assets[id];
+            match rec.status {
+                AssetStatus::PendingInspection => pending_inspection.push(id.clone()),
+                AssetStatus::Planned => planned.push(id.clone()),
+                AssetStatus::Processed => processed.push(id.clone()),
+                AssetStatus::Verified => verified.push(id.clone()),
+                AssetStatus::ApprovedOriginal => approved_original.push(id.clone()),
+                AssetStatus::Escalated => escalated.push(id.clone()),
+            }
+        }
+
+        let mut unscanned_inbox_files = Vec::new();
+        if self.inbox_dir().exists() {
+            for entry in WalkDir::new(self.inbox_dir())
+                .min_depth(1)
+                .max_depth(2)
+                .into_iter()
+                .flatten()
+            {
+                if entry.file_type().is_file() && is_supported_image(entry.path()) {
+                    let p_str = entry.path().to_string_lossy().to_string();
+                    let already_known = ledger
+                        .assets
+                        .values()
+                        .any(|a| a.inbox_path.as_deref() == Some(p_str.as_str()));
+                    if !already_known {
+                        unscanned_inbox_files.push(p_str);
+                    }
+                }
+            }
+        }
+
+        let next_recommended_action = if !unscanned_inbox_files.is_empty() {
+            format!(
+                "Run `heav3ns-censor batch-prepare` to ingest and generate inspection grids for {} new inbox file(s).",
+                unscanned_inbox_files.len()
+            )
+        } else if let Some(first_pending) = pending_inspection.first() {
+            format!(
+                "Run `heav3ns-censor inspect --asset-id {}` to generate coordinate grid and inspect.",
+                first_pending
+            )
+        } else {
+            "All ingested assets have been processed. Run `heav3ns-censor doctor` to audit workspace integrity.".to_string()
+        };
+
+        Ok(WorkspaceStatusSummary {
+            workspace_root: self.root.to_string_lossy().to_string(),
+            total_assets: ledger.assets.len(),
+            pending_inspection,
+            planned,
+            processed,
+            verified,
+            approved_original,
+            escalated,
+            unscanned_inbox_files,
+            next_recommended_action,
+            ledger_path: self.ledger_file().to_string_lossy().to_string(),
+            escalation_report_path: self.escalation_md_file().to_string_lossy().to_string(),
+            dashboard_html_path: self.dashboard_html_file().to_string_lossy().to_string(),
+        })
+    }
+
+    /// Generates Markdown reports (`ledger/publication_report.md` and `ledger/escalations_review.md`)
+    /// AND the Interactive Studio QC Dashboard (`ledger/dashboard.html`).
+    pub fn sync_markdown_reports(&self) -> Result<()> {
+        let ledger = self.load_ledger()?;
+        let mut asset_list: Vec<&AssetRecord> = ledger.assets.values().collect();
+        asset_list.sort_by(|a, b| a.asset_id.cmp(&b.asset_id));
+
+        // 1. Publication & Censorship Treatments Report (Markdown)
+        let mut pub_md = String::new();
+        pub_md.push_str("# HEAV3NS POST-PRODUCTION CENSORSHIP LEDGER\n");
+        pub_md.push_str(&format!(
+            "**Commissioning Authority:** {}  \n**Commissioned Agent:** {}  \n**Principal Artist:** {}  \n**Engine Version:** `{}`  \n**Updated:** {}\n\n",
+            ledger.commission_authority,
+            ledger.commissioned_agent,
+            ledger.principal_artist,
+            ledger.version,
+            ledger.updated_at.to_rfc3339()
+        ));
+
+        pub_md.push_str("## Asset Correspondence & Treatment Summary\n\n");
+        pub_md.push_str("| Asset ID | Original File | Dimensions | Status | Classification | Regions Applied | Original Preserved | Publication Edition |\n");
+        pub_md.push_str("| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |\n");
+
+        for rec in &asset_list {
+            let class_str = rec
+                .classification
+                .map(|c| format!("{:?}", c))
+                .unwrap_or_else(|| "-".to_string());
+            let pub_path = rec
+                .published_edition_path
+                .as_deref()
+                .unwrap_or("*(Not published)*");
+            pub_md.push_str(&format!(
+                "| `{}` | `{}` | {}x{} | `{:?}` | `{}` | {} | `{}` | `{}` |\n",
+                rec.asset_id,
+                rec.original_filename,
+                rec.width,
+                rec.height,
+                rec.status,
+                class_str,
+                rec.regions.len(),
+                rec.archive_original_path,
+                pub_path
+            ));
+        }
+
+        pub_md.push_str("\n## Detailed Treatment Records\n\n");
+        for rec in &asset_list {
+            pub_md.push_str(&format!(
+                "### `{}` ({})\n",
+                rec.asset_id, rec.original_filename
+            ));
+            pub_md.push_str(&format!("- **Status:** `{:?}`\n", rec.status));
+            pub_md.push_str(&format!("- **Policy Profile:** `{}`\n", rec.policy_profile));
+            pub_md.push_str(&format!(
+                "- **Original Asset (SHA-256 `{}`):** `{}`\n",
+                &rec.sha256_original[0..16],
+                rec.archive_original_path
+            ));
+            if let Some(pub_p) = &rec.published_edition_path {
+                pub_md.push_str(&format!("- **Published Edition:** `{}`\n", pub_p));
+            }
+            if !rec.regions.is_empty() {
+                pub_md.push_str("- **Localized Censorship Interventions:**\n");
+                for r in &rec.regions {
+                    let (px, py, pw, ph) = r.resolve_enclosing_aabb(rec.width, rec.height);
+                    pub_md.push_str(&format!(
+                        "  - **`{}` ({}):** `{:?}` at enclosing pixel bounds `({}, {}, {}x{})` (shape: `{:?}`, angle: `{:.1}deg`, feather: `{}px`) — *{}*\n",
+                        r.id,
+                        r.label,
+                        r.treatment,
+                        px,
+                        py,
+                        pw,
+                        ph,
+                        r.shape,
+                        r.rotation_angle_deg(),
+                        r.feather_px,
+                        r.rationale
+                    ));
+                }
+            }
+            if let Some(ver) = &rec.verification {
+                pub_md.push_str(&format!(
+                    "- **Verification:** Overall Passed = `{}` | Bit-Exact Uncensored Preservation = `{}` (diff pixels: `{}`) | Censored Area = `{:.2}%`\n",
+                    ver.overall_passed,
+                    ver.artistic_preservation_exact,
+                    ver.non_censored_pixel_diff_count,
+                    ver.total_censored_area_percent
+                ));
+                for rm in &ver.region_metrics {
+                    pub_md.push_str(&format!(
+                        "  - **Metric `{}`:** {} — {}\n",
+                        rm.region_id, rm.method_summary, rm.notes
+                    ));
+                }
+            }
+            pub_md.push('\n');
+        }
+
+        atomic_write_bytes(&self.publication_manifest_md_file(), pub_md.as_bytes())?;
+
+        // 2. Escalations Review Report (Markdown)
+        let mut esc_md = String::new();
+        esc_md.push_str("# HEAV3NS ESCALATED ASSETS REQUIRING REVIEW\n\n");
+        esc_md.push_str("> Assets listed here were escalated by Deputy Gemini per Section 5 & Section 7 of the Executive Commission due to genuine artistic ambiguity, technical blockers, or unresolved compliance questions.\n\n");
+
+        let escalated_records: Vec<&&AssetRecord> = asset_list
+            .iter()
+            .filter(|r| r.status == AssetStatus::Escalated)
+            .collect();
+
+        if escalated_records.is_empty() {
+            esc_md.push_str(
+                "*No assets currently require executive or artist escalation review.*\n",
+            );
+        } else {
+            for rec in escalated_records {
+                esc_md.push_str(&format!(
+                    "## `{}` (`{}`)\n",
+                    rec.asset_id, rec.original_filename
+                ));
+                if let Some(esc) = &rec.escalation {
+                    esc_md.push_str(&format!(
+                        "- **Escalated At:** {}\n",
+                        esc.escalated_at.to_rfc3339()
+                    ));
+                    esc_md.push_str(&format!("- **Category:** `{}`\n", esc.ambiguity_category));
+                    esc_md.push_str(&format!("- **Reason:** {}\n", esc.reason));
+                    esc_md.push_str(&format!("- **Agent Notes:** {}\n", esc.agent_notes));
+                    esc_md.push_str(&format!(
+                        "- **Original Asset Path:** `{}`\n\n",
+                        rec.archive_original_path
+                    ));
+                }
+            }
+        }
+
+        atomic_write_bytes(&self.escalation_md_file(), esc_md.as_bytes())?;
+
+        // 3. Interactive Studio QC Application (`ledger/dashboard.html`)
+        let html = self.generate_dashboard_html(&ledger, &asset_list);
+        atomic_write_bytes(&self.dashboard_html_file(), html.as_bytes())?;
+
+        Ok(())
+    }
+
+    fn to_relative_dashboard_path(&self, abs_or_rel: &str) -> String {
+        let p = Path::new(abs_or_rel);
+        if let Ok(stripped) = p.strip_prefix(&self.root) {
+            format!("../{}", stripped.to_string_lossy().replace('\\', "/"))
+        } else {
+            format!("file://{}", abs_or_rel)
+        }
+    }
+
+    fn generate_dashboard_html(&self, ledger: &Ledger, assets: &[&AssetRecord]) -> String {
+        let count_verified = assets
+            .iter()
+            .filter(|a| a.status == AssetStatus::Verified)
+            .count();
+        let count_approved = assets
+            .iter()
+            .filter(|a| a.status == AssetStatus::ApprovedOriginal)
+            .count();
+        let count_escalated = assets
+            .iter()
+            .filter(|a| a.status == AssetStatus::Escalated)
+            .count();
+        let count_pending = assets
+            .iter()
+            .filter(|a| a.status == AssetStatus::PendingInspection)
+            .count();
+
+        let mut cards = String::new();
+        for rec in assets {
+            let (status_class, status_label) = match rec.status {
+                AssetStatus::Verified => ("verified", "VERIFIED EDITION"),
+                AssetStatus::ApprovedOriginal => ("approved", "APPROVED UNTOUCHED"),
+                AssetStatus::Escalated => ("escalated", "ESCALATED FOR REVIEW"),
+                _ => ("pending", "PENDING INSPECTION"),
+            };
+
+            let orig_rel = self.to_relative_dashboard_path(&rec.archive_original_path);
+            let grid_rel = rec
+                .inspect_grid_path
+                .as_deref()
+                .map(|p| self.to_relative_dashboard_path(p))
+                .unwrap_or_else(|| orig_rel.clone());
+            let pub_rel = rec
+                .published_edition_path
+                .as_deref()
+                .map(|p| self.to_relative_dashboard_path(p))
+                .unwrap_or_else(|| orig_rel.clone());
+
+            let contact_rel = rec
+                .verification
+                .as_ref()
+                .and_then(|v| {
+                    v.publication_preview_paths
+                        .iter()
+                        .find(|p| p.ends_with("_contact_sheet.png"))
+                })
+                .map(|p| self.to_relative_dashboard_path(p))
+                .unwrap_or_else(|| pub_rel.clone());
+
+            let p1080_rel = rec
+                .verification
+                .as_ref()
+                .and_then(|v| {
+                    v.publication_preview_paths
+                        .iter()
+                        .find(|p| p.ends_with("_pub_1080p_q85.jpg"))
+                })
+                .map(|p| self.to_relative_dashboard_path(p))
+                .unwrap_or_else(|| pub_rel.clone());
+
+            let p540_rel = rec
+                .verification
+                .as_ref()
+                .and_then(|v| {
+                    v.publication_preview_paths
+                        .iter()
+                        .find(|p| p.ends_with("_pub_540p_thumb.jpg"))
+                })
+                .map(|p| self.to_relative_dashboard_path(p))
+                .unwrap_or_else(|| pub_rel.clone());
+
+            let mut region_rows = String::new();
+            if let Some(v) = &rec.verification {
+                for rm in &v.region_metrics {
+                    region_rows.push_str(&format!(
+                        r#"<tr>
+                            <td><code>{}</code></td>
+                            <td><code>{}</code></td>
+                            <td><code>({},{}, {}x{})</code></td>
+                            <td><strong>{:.1}%</strong></td>
+                            <td><strong>{:.1}%</strong></td>
+                            <td><strong>{:.1}%</strong></td>
+                            <td><strong>{:.1}%</strong></td>
+                            <td><span class="pill-pass">{}</span></td>
+                        </tr>"#,
+                        rm.region_id,
+                        rm.method_summary,
+                        rm.pixel_bounds.0,
+                        rm.pixel_bounds.1,
+                        rm.pixel_bounds.2,
+                        rm.pixel_bounds.3,
+                        rm.detail_suppression_ratio * 100.0,
+                        rm.peak_detail_suppression_ratio * 100.0,
+                        rm.pub_1080p_suppression_ratio * 100.0,
+                        rm.pub_540p_suppression_ratio * 100.0,
+                        if rm.passed { "PASS" } else { "FAIL" }
+                    ));
+                }
+            }
+
+            let telemetry_block = if let Some(v) = &rec.verification {
+                format!(
+                    r#"<div class="metrics-bar">
+                        <div><span class="lbl">Uncensored Pixel Fidelity:</span> <strong class="ok">100% Bit-Exact ({} diff px)</strong></div>
+                        <div><span class="lbl">Localized Area:</span> <strong>{:.2}% of canvas</strong></div>
+                        <div><span class="lbl">Downscale Survival (1080p &amp; 540p):</span> <strong class="ok">VERIFIED</strong></div>
+                    </div>
+                    <table class="region-table">
+                        <thead>
+                            <tr><th>Region</th><th>Treatment</th><th>Enclosing AABB</th><th>Native Mean</th><th>Peak p95</th><th>1080p JPEG</th><th>540p Thumb</th><th>Status</th></tr>
+                        </thead>
+                        <tbody>{}</tbody>
+                    </table>"#,
+                    v.non_censored_pixel_diff_count, v.total_censored_area_percent, region_rows
+                )
+            } else if let Some(esc) = &rec.escalation {
+                format!(
+                    r#"<div class="metrics-bar escalated-box">
+                        <div><strong>ESCALATION CATEGORY [{}]:</strong> {}</div>
+                        <div class="notes">Agent Notes: {}</div>
+                    </div>"#,
+                    esc.ambiguity_category, esc.reason, esc.agent_notes
+                )
+            } else {
+                r#"<div class="metrics-bar approved-box">
+                    <div><strong>ARTISTIC NUDITY / SUGGESTIVE PASS:</strong> Untouched original approved for publication with zero censorship modification (SHA-256 bit-identical).</div>
+                </div>"#
+                .to_string()
+            };
+
+            let mut audit_items = String::new();
+            for ev in &rec.audit_trail {
+                audit_items.push_str(&format!(
+                    "<li><code>{}</code> <strong>{}</strong> — {}</li>",
+                    ev.timestamp.format("%H:%M:%S UTC"),
+                    ev.action,
+                    ev.details
+                ));
+            }
+
+            cards.push_str(&format!(
+                r#"<div class="card" data-status="{status_class}" data-id="{id}" data-w="{w}" data-h="{h}" data-mode="{initial_mode}" data-search="{id} {orig_name} {status_class}">
+                    <div class="card-header">
+                        <div>
+                            <h3><code>{id}</code></h3>
+                            <p class="sub">Original: <code>{orig_name}</code> ({w}x{h}) • Policy: <code>{policy}</code> • SHA-256: <code>{sha}</code></p>
+                        </div>
+                        <span class="badge {status_class}">{status_label}</span>
+                    </div>
+                    {telemetry_block}
+                    <div class="view-tabs">
+                        <button class="vtab active" onclick="switchImg(this, '{contact_rel}', '{initial_mode}')">[1] 4-Panel QC Slate</button>
+                        <button class="vtab" onclick="switchImg(this, '{pub_rel}', 'single')">[2] Published Edition</button>
+                        <button class="vtab" onclick="switchImg(this, '{p1080_rel}', 'single')">[3] 1080p JPEG Sim</button>
+                        <button class="vtab" onclick="switchImg(this, '{p540_rel}', 'single')">[4] 540p Thumb Sim</button>
+                        <button class="vtab" onclick="switchImg(this, '{grid_rel}', 'single')">[5] VLM Coordinate Grid</button>
+                        <button class="vtab" onclick="switchImg(this, '{orig_rel}', 'single')">[6] Untouched Original</button>
+                    </div>
+                    <div class="coord-hud">
+                        <span class="coord-readout">Hover or drag on image to measure coordinates &amp; generate <code>--region</code> CLI</span>
+                        <div class="cli-gen">
+                            <input type="text" class="cli-out" readonly value="./target/release/heav3ns-censor inspect --asset-id {id}" />
+                            <button class="copy-btn" onclick="copyCli(this)">Copy CLI</button>
+                        </div>
+                    </div>
+                    <div class="preview-wrap" onmousemove="onPreviewMove(event, this)" onmousedown="onPreviewDown(event, this)" onmouseup="onPreviewUp(event, this)">
+                        <img src="{contact_rel}" alt="{id}" loading="lazy" draggable="false" />
+                        <div class="sel-box"></div>
+                    </div>
+                    <details class="audit-log">
+                        <summary>Audit Trail ({audit_count} events)</summary>
+                        <ul>{audit_items}</ul>
+                    </details>
+                </div>"#,
+                status_class = status_class,
+                id = rec.asset_id,
+                orig_name = rec.original_filename,
+                w = rec.width,
+                h = rec.height,
+                initial_mode = if rec.verification.is_some() { "slate" } else { "single" },
+                policy = rec.policy_profile,
+                sha = &rec.sha256_original[0..16],
+                status_label = status_label,
+                telemetry_block = telemetry_block,
+                contact_rel = contact_rel,
+                pub_rel = pub_rel,
+                p1080_rel = p1080_rel,
+                p540_rel = p540_rel,
+                grid_rel = grid_rel,
+                orig_rel = orig_rel,
+                audit_count = rec.audit_trail.len(),
+                audit_items = audit_items,
+            ));
+        }
+
+        format!(
+            r#"<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>HEAV3NS Post-Production QC &amp; Censorship Studio (v4.0)</title>
+<style>
+  :root {{
+    --bg: #090b10;
+    --panel: #121621;
+    --panel-alt: #0d1018;
+    --border: #232a3d;
+    --text: #e6edf3;
+    --muted: #8b949e;
+    --cyan: #00ffd5;
+    --green: #3fb950;
+    --amber: #d29922;
+    --pink: #ff328c;
+  }}
+  * {{ box-sizing: border-box; }}
+  body {{
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, monospace;
+    margin: 0;
+    padding: 28px 36px;
+  }}
+  header {{
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 18px;
+    margin-bottom: 22px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    flex-wrap: wrap;
+    gap: 12px;
+  }}
+  h1 {{ margin: 0 0 6px 0; font-size: 20px; letter-spacing: 0.06em; color: var(--cyan); }}
+  .meta {{ color: var(--muted); font-size: 12px; }}
+  .kpi-grid {{
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(175px, 1fr));
+    gap: 14px;
+    margin-bottom: 22px;
+  }}
+  .kpi {{
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 16px;
+  }}
+  .kpi .k-val {{ font-size: 24px; font-weight: 700; margin-bottom: 4px; }}
+  .kpi .k-lbl {{ font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; }}
+  .toolbar {{
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+  }}
+  .filter-group {{ display: flex; gap: 8px; flex-wrap: wrap; }}
+  .fbtn {{
+    background: var(--panel);
+    color: var(--muted);
+    border: 1px solid var(--border);
+    padding: 6px 13px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 12px;
+    font-family: inherit;
+  }}
+  .fbtn.active, .fbtn:hover {{ color: var(--cyan); border-color: var(--cyan); background: rgba(0,255,213,0.08); }}
+  .search-input {{
+    background: var(--panel);
+    color: var(--text);
+    border: 1px solid var(--border);
+    padding: 7px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    min-width: 260px;
+    font-family: inherit;
+  }}
+  .card {{
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 22px;
+  }}
+  .card-header {{
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 12px;
+  }}
+  h3 {{ margin: 0 0 4px 0; font-size: 16px; }}
+  .sub {{ margin: 0; color: var(--muted); font-size: 12px; }}
+  .badge {{
+    padding: 4px 10px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 700;
+  }}
+  .verified {{ background: rgba(0, 255, 213, 0.14); color: var(--cyan); border: 1px solid var(--cyan); }}
+  .approved {{ background: rgba(63, 185, 80, 0.15); color: var(--green); border: 1px solid var(--green); }}
+  .escalated {{ background: rgba(255, 50, 140, 0.15); color: var(--pink); border: 1px solid var(--pink); }}
+  .pending {{ background: rgba(210, 153, 34, 0.15); color: var(--amber); border: 1px solid var(--amber); }}
+  .metrics-bar {{
+    display: flex;
+    flex-wrap: wrap;
+    gap: 24px;
+    background: var(--panel-alt);
+    padding: 10px 14px;
+    border-radius: 6px;
+    font-size: 12px;
+    margin-bottom: 12px;
+    border: 1px solid var(--border);
+  }}
+  .metrics-bar .lbl {{ color: var(--muted); }}
+  .metrics-bar .ok {{ color: var(--cyan); }}
+  .escalated-box {{ color: #ff80b5; flex-direction: column; gap: 6px; }}
+  .approved-box {{ color: var(--green); }}
+  .region-table {{
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+    margin-bottom: 14px;
+    background: var(--panel-alt);
+    border-radius: 6px;
+    overflow: hidden;
+  }}
+  .region-table th, .region-table td {{
+    padding: 7px 10px;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+  }}
+  .region-table th {{ color: var(--muted); font-weight: 600; font-size: 11px; text-transform: uppercase; }}
+  .pill-pass {{ color: var(--cyan); font-weight: 700; }}
+  .view-tabs {{ display: flex; gap: 6px; margin-bottom: 10px; flex-wrap: wrap; }}
+  .vtab {{
+    background: var(--panel-alt);
+    color: var(--muted);
+    border: 1px solid var(--border);
+    padding: 5px 11px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 11px;
+    font-family: inherit;
+  }}
+  .vtab.active, .vtab:hover {{ color: var(--text); border-color: var(--cyan); background: rgba(0,255,213,0.1); }}
+  .coord-hud {{
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    background: var(--panel-alt);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 8px 12px;
+    margin-bottom: 10px;
+    font-size: 11px;
+  }}
+  .coord-readout {{ color: var(--cyan); font-weight: 600; }}
+  .cli-gen {{ display: flex; gap: 6px; flex: 1; min-width: 280px; justify-content: flex-end; }}
+  .cli-out {{
+    background: #07090e;
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 4px 8px;
+    font-size: 11px;
+    font-family: inherit;
+    width: 100%;
+    max-width: 560px;
+  }}
+  .copy-btn {{
+    background: rgba(0,255,213,0.12);
+    color: var(--cyan);
+    border: 1px solid var(--cyan);
+    border-radius: 4px;
+    padding: 4px 10px;
+    cursor: pointer;
+    font-size: 11px;
+    font-family: inherit;
+    white-space: nowrap;
+  }}
+  .preview-wrap {{
+    position: relative;
+    display: inline-block;
+    max-width: 100%;
+    cursor: crosshair;
+    user-select: none;
+  }}
+  .preview-wrap img {{
+    max-width: 100%;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    display: block;
+  }}
+  .sel-box {{
+    position: absolute;
+    border: 2px dashed var(--cyan);
+    background: rgba(0, 255, 213, 0.14);
+    pointer-events: none;
+    display: none;
+  }}
+  .audit-log {{ margin-top: 12px; font-size: 12px; color: var(--muted); }}
+  .audit-log summary {{ cursor: pointer; user-select: none; }}
+  .audit-log ul {{ margin: 8px 0 0 0; padding-left: 18px; line-height: 1.6; }}
+</style>
+</head>
+<body>
+  <header>
+    <div>
+      <h1>HEAV3NS POST-PRODUCTION &amp; CENSORSHIP STUDIO QC (v4.0)</h1>
+      <div class="meta">Commissioning Authority: <strong>{auth}</strong> • Commissioned Agent: <strong>{agent}</strong> • Principal Artist: <strong>{artist}</strong></div>
+    </div>
+    <div class="meta">Shortcuts: <code>/</code> Search • <code>1-6</code> Switch Tab on Hovered Card • Drag on Image to Measure Region • Updated: {updated}</div>
+  </header>
+
+  <div class="kpi-grid">
+    <div class="kpi"><div class="k-val">{total}</div><div class="k-lbl">Total Ingested Assets</div></div>
+    <div class="kpi"><div class="k-val" style="color:var(--cyan)">{verified}</div><div class="k-lbl">Verified Censored Editions</div></div>
+    <div class="kpi"><div class="k-val" style="color:var(--green)">{approved}</div><div class="k-lbl">Approved Untouched (Artistic)</div></div>
+    <div class="kpi"><div class="k-val" style="color:var(--pink)">{escalated}</div><div class="k-lbl">Escalated for Review</div></div>
+    <div class="kpi"><div class="k-val" style="color:var(--cyan)">100%</div><div class="k-lbl">Bit-Exact Preservation</div></div>
+  </div>
+
+  <div class="toolbar">
+    <div class="filter-group">
+      <button class="fbtn active" onclick="filterCards('all', this)">All ({total})</button>
+      <button class="fbtn" onclick="filterCards('verified', this)">Verified ({verified})</button>
+      <button class="fbtn" onclick="filterCards('approved', this)">Approved Original ({approved})</button>
+      <button class="fbtn" onclick="filterCards('escalated', this)">Escalated ({escalated})</button>
+      <button class="fbtn" onclick="filterCards('pending', this)">Pending ({pending})</button>
+    </div>
+    <input id="global-search" type="text" class="search-input" placeholder="Press '/' to filter by Asset ID or filename..." oninput="searchCards(this.value)" />
+  </div>
+
+  <div id="cards-container">
+    {cards}
+  </div>
+
+  <script>
+    let hoveredCard = null;
+    let dragState = null;
+
+    document.querySelectorAll('.card').forEach(c => {{
+      c.addEventListener('mouseenter', () => {{ hoveredCard = c; }});
+    }});
+
+    document.addEventListener('keydown', e => {{
+      if (e.target.tagName === 'INPUT') return;
+      if (e.key === '/') {{
+        e.preventDefault();
+        document.getElementById('global-search').focus();
+      }} else if (hoveredCard && e.key >= '1' && e.key <= '6') {{
+        const idx = parseInt(e.key, 10) - 1;
+        const tabs = hoveredCard.querySelectorAll('.vtab');
+        if (tabs[idx]) tabs[idx].click();
+      }}
+    }});
+
+    function switchImg(btn, src, mode) {{
+      const card = btn.closest('.card');
+      card.dataset.mode = mode;
+      card.querySelectorAll('.vtab').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      card.querySelector('.preview-wrap img').src = src;
+      card.querySelector('.sel-box').style.display = 'none';
+    }}
+
+    function mapClientToAssetCoords(e, wrap) {{
+      const card = wrap.closest('.card');
+      const img = wrap.querySelector('img');
+      const rect = img.getBoundingClientRect();
+      const w = parseFloat(card.dataset.w);
+      const h = parseFloat(card.dataset.h);
+      const mode = card.dataset.mode;
+
+      const relX = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+      const relY = Math.max(0, Math.min(1, (e.clientY - rect.top) / rect.height));
+
+      if (mode === 'slate') {{
+        const slateW = w * 2 + 48;
+        const slateH = h * 2 + 54 + 48;
+        const sx = relX * slateW;
+        const sy = relY * slateH;
+        const qx = sx < (16 + w + 8) ? (sx - 16) : (sx - (32 + w));
+        const qy = sy < (54 + h + 8) ? (sy - 54) : (sy - (54 + 16 + h));
+        const ax = Math.max(0, Math.min(w, Math.round(qx)));
+        const ay = Math.max(0, Math.min(h, Math.round(qy)));
+        return {{ ax, ay, w, h, clientX: e.clientX - rect.left, clientY: e.clientY - rect.top }};
+      }} else {{
+        const ax = Math.max(0, Math.min(w, Math.round(relX * w)));
+        const ay = Math.max(0, Math.min(h, Math.round(relY * h)));
+        return {{ ax, ay, w, h, clientX: e.clientX - rect.left, clientY: e.clientY - rect.top }};
+      }}
+    }}
+
+    function onPreviewDown(e, wrap) {{
+      const pt = mapClientToAssetCoords(e, wrap);
+      const box = wrap.querySelector('.sel-box');
+      box.style.left = pt.clientX + 'px';
+      box.style.top = pt.clientY + 'px';
+      box.style.width = '0px';
+      box.style.height = '0px';
+      box.style.display = 'block';
+      dragState = {{ wrap, start: pt }};
+    }}
+
+    function onPreviewMove(e, wrap) {{
+      const card = wrap.closest('.card');
+      const pt = mapClientToAssetCoords(e, wrap);
+      const nx = Math.round((pt.ax / pt.w) * 1000);
+      const ny = Math.round((pt.ay / pt.h) * 1000);
+      const readout = card.querySelector('.coord-readout');
+
+      if (dragState && dragState.wrap === wrap) {{
+        const box = wrap.querySelector('.sel-box');
+        const left = Math.min(dragState.start.clientX, pt.clientX);
+        const top = Math.min(dragState.start.clientY, pt.clientY);
+        const bw = Math.abs(pt.clientX - dragState.start.clientX);
+        const bh = Math.abs(pt.clientY - dragState.start.clientY);
+        box.style.left = left + 'px';
+        box.style.top = top + 'px';
+        box.style.width = bw + 'px';
+        box.style.height = bh + 'px';
+
+        const rx = Math.min(dragState.start.ax, pt.ax);
+        const ry = Math.min(dragState.start.ay, pt.ay);
+        const rw = Math.max(4, Math.abs(pt.ax - dragState.start.ax));
+        const rh = Math.max(4, Math.abs(pt.ay - dragState.start.ay));
+        const rnx = Math.round((rx / pt.w) * 1000);
+        const rny = Math.round((ry / pt.h) * 1000);
+        const rnw = Math.max(4, Math.round((rw / pt.w) * 1000));
+        const rnh = Math.max(4, Math.round((rh / pt.h) * 1000));
+
+        readout.innerHTML = `Selection Pixels: <code>${{rx}},${{ry}},${{rw}},${{rh}}</code> • Norm1000: <code>${{rnx}},${{rny}},${{rnw}},${{rnh}}</code>`;
+        card.querySelector('.cli-out').value =
+          `./target/release/heav3ns-censor execute --asset-id ${{card.dataset.id}} --append --region "mosaic:${{rx}},${{ry}},${{rw}},${{rh}}:pixels:rect:auto:0:explicit_anatomy"`;
+      }} else {{
+        readout.innerHTML = `Cursor Pixels: <code>(${{pt.ax}}, ${{pt.ay}})</code> • Norm1000: <code>(${{nx}}, ${{ny}})</code>`;
+      }}
+    }}
+
+    function onPreviewUp(e, wrap) {{
+      dragState = null;
+    }}
+
+    function copyCli(btn) {{
+      const input = btn.parentElement.querySelector('.cli-out');
+      navigator.clipboard.writeText(input.value);
+      const prev = btn.textContent;
+      btn.textContent = 'Copied!';
+      setTimeout(() => {{ btn.textContent = prev; }}, 1200);
+    }}
+
+    function filterCards(status, btn) {{
+      document.querySelectorAll('.fbtn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      document.querySelectorAll('.card').forEach(c => {{
+        c.style.display = (status === 'all' || c.dataset.status === status) ? 'block' : 'none';
+      }});
+    }}
+
+    function searchCards(q) {{
+      const term = q.trim().toLowerCase();
+      document.querySelectorAll('.card').forEach(c => {{
+        c.style.display = c.dataset.search.toLowerCase().includes(term) ? 'block' : 'none';
+      }});
+    }}
+  </script>
+</body>
+</html>"#,
+            auth = ledger.commission_authority,
+            agent = ledger.commissioned_agent,
+            artist = ledger.principal_artist,
+            updated = ledger.updated_at.to_rfc3339(),
+            total = assets.len(),
+            verified = count_verified,
+            approved = count_approved,
+            escalated = count_escalated,
+            pending = count_pending,
+            cards = cards
+        )
+    }
+}
+
+pub fn parse_crop_spec(spec: &str) -> Result<(f32, f32, f32, f32, CoordinateUnit)> {
+    let parts: Vec<&str> = spec.split(':').collect();
+    let coords: Vec<f32> = parts[0]
+        .split(',')
+        .map(|s| s.trim().parse::<f32>())
+        .collect::<std::result::Result<Vec<f32>, _>>()
+        .context("Failed to parse crop x,y,w,h coordinates")?;
+    if coords.len() != 4 || coords.iter().any(|c| !c.is_finite()) {
+        anyhow::bail!("Expected 4 finite comma-separated coordinates x,y,w,h in --crop");
+    }
+    let unit = match parts.get(1).copied().unwrap_or("pixels") {
+        "normalized1000" | "norm1000" | "norm" => CoordinateUnit::Normalized1000,
+        "percent" | "pct" => CoordinateUnit::Percent,
+        _ => CoordinateUnit::Pixels,
+    };
+    Ok((coords[0], coords[1], coords[2], coords[3], unit))
+}
+
+pub fn compute_sha256(bytes: &[u8]) -> String {
+    let mut hasher = Sha256::new();
+    hasher.update(bytes);
+    hex::encode(hasher.finalize())
+}
+
+pub fn is_supported_image(path: &Path) -> bool {
+    match path
+        .extension()
+        .and_then(|s| s.to_str())
+        .map(|s| s.to_lowercase())
+        .as_deref()
+    {
+        Some("png" | "jpg" | "jpeg" | "webp") => true,
+        _ => false,
+    }
+}

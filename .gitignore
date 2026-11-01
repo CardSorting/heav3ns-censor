@@ -1,0 +1,8 @@
+# Rust build artifacts
+/target/
+
+# Ephemeral lock & atomic temp files
+ledger/.ledger.lock
+**/.tmp.*
+**/.*.tmp.*
+.DS_Store

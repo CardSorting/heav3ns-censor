@@ -1,0 +1,273 @@
+{
+  "commission_authority": "MAJO, Executive Chair",
+  "commissioned_agent": "Deputy Gemini",
+  "principal_artist": "EGG",
+  "version": "1.0.0",
+  "updated_at": "2026-11-01T22:28:20.607589Z",
+  "assets": {
+    "heav3ns_01_explicit_study_63116478": {
+      "asset_id": "heav3ns_01_explicit_study_63116478",
+      "original_filename": "heav3ns_01_explicit_study.png",
+      "inbox_path": "/Users/bozoegg/Desktop/HEAV3NS-CENSOR/assets/inbox/heav3ns_01_explicit_study.png",
+      "archive_original_path": "/Users/bozoegg/Desktop/HEAV3NS-CENSOR/assets/originals/heav3ns_01_explicit_study_63116478_original.png",
+      "sha256_original": "63116478250d616898851193d272177e9fbac64c209a44d90176d53a7145d365",
+      "width": 1200,
+      "height": 900,
+      "status": "verified",
+      "classification": "explicit_requires_intervention",
+      "policy_profile": "jp_article_175_standard",
+      "regions": [
+        {
+          "id": "r1",
+          "label": "explicit_lower_anatomy",
+          "rationale": "Localized mosaic intervention on explicit_lower_anatomy",
+          "x": 440.0,
+          "y": 500.0,
+          "width": 120.0,
+          "height": 100.0,
+          "unit": "pixels",
+          "shape": "rect",
+          "treatment": {
+            "method": "mosaic",
+            "block_size": 14
+          },
+          "angle_deg": 0.0,
+          "feather_px": 0
+        },
+        {
+          "id": "r2",
+          "label": "kuro_nuri_cleft_bar",
+          "rationale": "Localized solid_bar intervention on kuro_nuri_cleft_bar",
+          "x": 444.0,
+          "y": 314.0,
+          "width": 112.0,
+          "height": 52.0,
+          "unit": "pixels",
+          "shape": "pill",
+          "treatment": {
+            "method": "solid_bar",
+            "color": "auto",
+            "angle_deg": 6.0
+          },
+          "angle_deg": 6.0,
+          "feather_px": 0
+        }
+      ],
+      "inspect_grid_path": "/Users/bozoegg/Desktop/HEAV3NS-CENSOR/assets/inspect/heav3ns_01_explicit_study_63116478_inspect_grid.png",
+      "published_edition_path": "/Users/bozoegg/Desktop/HEAV3NS-CENSOR/assets/published/heav3ns_01_explicit_study_63116478_published.png",
+      "sha256_published": "4e5ecc9be8cbd6c0aac3f8798a699088f896625ca4cd6375196f6e82c6183056",
+      "verification": {
+        "verified_at": "2026-11-01T22:28:20.607568Z",
+        "artistic_preservation_exact": true,
+        "non_censored_pixel_diff_count": 0,
+        "resolution_preserved": true,
+        "dimensions": [
+          1200,
+          900
+        ],
+        "total_censored_area_percent": 1.5974075,
+        "localized_intervention_compliant": true,
+        "region_metrics": [
+          {
+            "region_id": "r1",
+            "pixel_bounds": [
+              440,
+              500,
+              120,
+              100
+            ],
+            "method_summary": "Mosaic(14px, Rect, 0.0deg)",
+            "detail_suppression_ratio": 1.0,
+            "peak_detail_suppression_ratio": 1.0,
+            "pub_1080p_suppression_ratio": 0.9964146,
+            "pub_540p_suppression_ratio": 0.98358846,
+            "survives_publication_resize": true,
+            "effective_strength_score": 1.1666666,
+            "passed": true,
+            "notes": "Native mean: 100.0% (p95 peak: 100.0%) | 1080p JPEG: 99.6% | 540p Thumb: 98.4%"
+          },
+          {
+            "region_id": "r2",
+            "pixel_bounds": [
+              441,
+              308,
+              118,
+              64
+            ],
+            "method_summary": "SolidBar(color=#000000(auto-kuro), Pill, angle=6.0deg)",
+            "detail_suppression_ratio": 1.0,
+            "peak_detail_suppression_ratio": 1.0,
+            "pub_1080p_suppression_ratio": 0.98432267,
+            "pub_540p_suppression_ratio": 0.9313649,
+            "survives_publication_resize": true,
+            "effective_strength_score": 2.0,
+            "passed": true,
+            "notes": "Native mean: 100.0% (p95 peak: 100.0%) | 1080p JPEG: 98.4% | 540p Thumb: 93.1%"
+          }
+        ],
+        "publication_preview_paths": [
+          "/Users/bozoegg/Desktop/HEAV3NS-CENSOR/assets/previews/heav3ns_01_explicit_study_63116478_pub_1080p_q85.jpg",
+          "/Users/bozoegg/Desktop/HEAV3NS-CENSOR/assets/previews/heav3ns_01_explicit_study_63116478_pub_540p_thumb.jpg",
+          "/Users/bozoegg/Desktop/HEAV3NS-CENSOR/assets/previews/heav3ns_01_explicit_study_63116478_contact_sheet.png"
+        ],
+        "overall_passed": true
+      },
+      "escalation": null,
+      "audit_trail": [
+        {
+          "timestamp": "2026-11-01T21:43:26.269015Z",
+          "action": "INGEST_AND_PRESERVE_ORIGINAL",
+          "actor": "Deputy Gemini",
+          "details": "Archived untouched original (1200x900) with SHA-256 63116478250d6168"
+        },
+        {
+          "timestamp": "2026-11-01T21:43:36.284298Z",
+          "action": "GENERATE_INSPECTION_GRID",
+          "actor": "Deputy Gemini",
+          "details": "Generated coordinate overlay at /Users/bozoegg/Desktop/HEAV3NS-CENSOR/assets/inspect/heav3ns_01_explicit_study_63116478_inspect_grid.png"
+        },
+        {
+          "timestamp": "2026-11-01T21:43:36.355873Z",
+          "action": "APPLY_AND_VERIFY_CENSORSHIP",
+          "actor": "Deputy Gemini",
+          "details": "Applied 2 localized region(s); verification passed: true (censored area: 1.48%)"
+        },
+        {
+          "timestamp": "2026-11-01T21:55:41.897609Z",
+          "action": "GENERATE_INSPECTION_GRID",
+          "actor": "Deputy Gemini",
+          "details": "Generated coordinate overlay at /Users/bozoegg/Desktop/HEAV3NS-CENSOR/assets/inspect/heav3ns_01_explicit_study_63116478_inspect_grid.png"
+        },
+        {
+          "timestamp": "2026-11-01T21:55:42.061138Z",
+          "action": "APPLY_AND_VERIFY_CENSORSHIP",
+          "actor": "Deputy Gemini",
+          "details": "Applied 2 localized region(s); verification passed: true (censored area: 1.48%)"
+        },
+        {
+          "timestamp": "2026-11-01T22:08:47.212561Z",
+          "action": "GENERATE_INSPECTION_GRID",
+          "actor": "Deputy Gemini",
+          "details": "Generated coordinate overlay at /Users/bozoegg/Desktop/HEAV3NS-CENSOR/assets/inspect/heav3ns_01_explicit_study_63116478_inspect_grid.png (hotspots: 4, zoom_crop: true)"
+        },
+        {
+          "timestamp": "2026-11-01T22:08:47.391848Z",
+          "action": "APPLY_AND_VERIFY_CENSORSHIP",
+          "actor": "Deputy Gemini",
+          "details": "Applied 2 localized region(s); verification passed: true (censored area: 1.45%)"
+        },
+        {
+          "timestamp": "2026-11-01T22:11:38.121406Z",
+          "action": "APPLY_AND_VERIFY_CENSORSHIP",
+          "actor": "Deputy Gemini",
+          "details": "Applied 2 localized region(s); verification passed: true (censored area: 1.45%)"
+        },
+        {
+          "timestamp": "2026-11-01T22:12:07.908646Z",
+          "action": "APPLY_AND_VERIFY_CENSORSHIP",
+          "actor": "Deputy Gemini",
+          "details": "Applied 2 localized region(s); verification passed: true (censored area: 1.60%)"
+        },
+        {
+          "timestamp": "2026-11-01T22:28:20.423768Z",
+          "action": "APPLY_AND_VERIFY_CENSORSHIP",
+          "actor": "Deputy Gemini",
+          "details": "Applied 1 localized region(s) (append=false, removed=0); verification passed: true (censored area: 1.11%)"
+        },
+        {
+          "timestamp": "2026-11-01T22:28:20.607581Z",
+          "action": "APPLY_AND_VERIFY_CENSORSHIP",
+          "actor": "Deputy Gemini",
+          "details": "Applied 2 localized region(s) (append=true, removed=0); verification passed: true (censored area: 1.60%)"
+        }
+      ],
+      "created_at": "2026-11-01T21:43:26.269015Z",
+      "updated_at": "2026-11-01T22:28:20.607580Z"
+    },
+    "heav3ns_02_artistic_silhouette_c199216e": {
+      "asset_id": "heav3ns_02_artistic_silhouette_c199216e",
+      "original_filename": "heav3ns_02_artistic_silhouette.png",
+      "inbox_path": "/Users/bozoegg/Desktop/HEAV3NS-CENSOR/assets/inbox/heav3ns_02_artistic_silhouette.png",
+      "archive_original_path": "/Users/bozoegg/Desktop/HEAV3NS-CENSOR/assets/originals/heav3ns_02_artistic_silhouette_c199216e_original.png",
+      "sha256_original": "c199216e2bbcbe294b430237cb007d3796441cd5fd619289c4d788b2c0f79329",
+      "width": 1000,
+      "height": 1000,
+      "status": "approved_original",
+      "classification": "artistic_nudity_pass",
+      "policy_profile": "jp_article_175_standard",
+      "regions": [],
+      "inspect_grid_path": "/Users/bozoegg/Desktop/HEAV3NS-CENSOR/assets/inspect/heav3ns_02_artistic_silhouette_c199216e_inspect_grid.png",
+      "published_edition_path": "/Users/bozoegg/Desktop/HEAV3NS-CENSOR/assets/published/heav3ns_02_artistic_silhouette_c199216e_published.png",
+      "sha256_published": "c199216e2bbcbe294b430237cb007d3796441cd5fd619289c4d788b2c0f79329",
+      "verification": null,
+      "escalation": null,
+      "audit_trail": [
+        {
+          "timestamp": "2026-11-01T21:43:26.271525Z",
+          "action": "INGEST_AND_PRESERVE_ORIGINAL",
+          "actor": "Deputy Gemini",
+          "details": "Archived untouched original (1000x1000) with SHA-256 c199216e2bbcbe29"
+        },
+        {
+          "timestamp": "2026-11-01T21:43:36.363506Z",
+          "action": "APPROVE_UNTOUCHED_FOR_PUBLICATION",
+          "actor": "Deputy Gemini",
+          "details": "Classification ArtisticNudityPass: Classical non-explicit artistic silhouette; zero censorship intervention required per Section 3."
+        },
+        {
+          "timestamp": "2026-11-01T22:08:47.096068Z",
+          "action": "GENERATE_INSPECTION_GRID",
+          "actor": "Deputy Gemini",
+          "details": "Generated coordinate overlay at /Users/bozoegg/Desktop/HEAV3NS-CENSOR/assets/inspect/heav3ns_02_artistic_silhouette_c199216e_inspect_grid.png (hotspots: 0, zoom_crop: false)"
+        }
+      ],
+      "created_at": "2026-11-01T21:43:26.271525Z",
+      "updated_at": "2026-11-01T22:08:47.096068Z"
+    },
+    "heav3ns_03_biomech_ambiguity_05522fca": {
+      "asset_id": "heav3ns_03_biomech_ambiguity_05522fca",
+      "original_filename": "heav3ns_03_biomech_ambiguity.png",
+      "inbox_path": "/Users/bozoegg/Desktop/HEAV3NS-CENSOR/assets/inbox/heav3ns_03_biomech_ambiguity.png",
+      "archive_original_path": "/Users/bozoegg/Desktop/HEAV3NS-CENSOR/assets/originals/heav3ns_03_biomech_ambiguity_05522fca_original.png",
+      "sha256_original": "05522fca0c630e7b663ddb4522cfb302e45ca05eaea15bf7725b3df242d83822",
+      "width": 1000,
+      "height": 800,
+      "status": "escalated",
+      "classification": "ambiguous_escalate",
+      "policy_profile": "jp_article_175_standard",
+      "regions": [],
+      "inspect_grid_path": "/Users/bozoegg/Desktop/HEAV3NS-CENSOR/assets/inspect/heav3ns_03_biomech_ambiguity_05522fca_inspect_grid.png",
+      "published_edition_path": null,
+      "sha256_published": null,
+      "verification": null,
+      "escalation": {
+        "escalated_at": "2026-11-01T21:43:36.369062Z",
+        "reason": "Abstract biomechanical forms intertwine with central organic geometry; escalating per Section 5 rather than inventing a compliance determination.",
+        "ambiguity_category": "stylized_biomechanical_ambiguity",
+        "agent_notes": "Requires Executive Chair (MAJO) or Principal Artist (EGG) confirmation on whether central motif is intended as anatomical or purely mechanical."
+      },
+      "audit_trail": [
+        {
+          "timestamp": "2026-11-01T21:43:26.264353Z",
+          "action": "INGEST_AND_PRESERVE_ORIGINAL",
+          "actor": "Deputy Gemini",
+          "details": "Archived untouched original (1000x800) with SHA-256 05522fca0c630e7b"
+        },
+        {
+          "timestamp": "2026-11-01T21:43:36.369063Z",
+          "action": "ESCALATE_FOR_EXECUTIVE_REVIEW",
+          "actor": "Deputy Gemini",
+          "details": "[stylized_biomechanical_ambiguity] Abstract biomechanical forms intertwine with central organic geometry; escalating per Section 5 rather than inventing a compliance determination."
+        },
+        {
+          "timestamp": "2026-11-01T22:08:47.151722Z",
+          "action": "GENERATE_INSPECTION_GRID",
+          "actor": "Deputy Gemini",
+          "details": "Generated coordinate overlay at /Users/bozoegg/Desktop/HEAV3NS-CENSOR/assets/inspect/heav3ns_03_biomech_ambiguity_05522fca_inspect_grid.png (hotspots: 0, zoom_crop: false)"
+        }
+      ],
+      "created_at": "2026-11-01T21:43:26.264353Z",
+      "updated_at": "2026-11-01T22:08:47.151721Z"
+    }
+  }
+}

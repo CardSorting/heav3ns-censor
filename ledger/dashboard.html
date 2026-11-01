@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>HEAV3NS Post-Production QC &amp; Censorship Studio (v4.0)</title>
+<style>
+  :root {
+    --bg: #090b10;
+    --panel: #121621;
+    --panel-alt: #0d1018;
+    --border: #232a3d;
+    --text: #e6edf3;
+    --muted: #8b949e;
+    --cyan: #00ffd5;
+    --green: #3fb950;
+    --amber: #d29922;
+    --pink: #ff328c;
+  }
+  * { box-sizing: border-box; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, monospace;
+    margin: 0;
+    padding: 28px 36px;
+  }
+  header {
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 18px;
+    margin-bottom: 22px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  h1 { margin: 0 0 6px 0; font-size: 20px; letter-spacing: 0.06em; color: var(--cyan); }
+  .meta { color: var(--muted); font-size: 12px; }
+  .kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(175px, 1fr));
+    gap: 14px;
+    margin-bottom: 22px;
+  }
+  .kpi {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 16px;
+  }
+  .kpi .k-val { font-size: 24px; font-weight: 700; margin-bottom: 4px; }
+  .kpi .k-lbl { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; }
+  .toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+  }
+  .filter-group { display: flex; gap: 8px; flex-wrap: wrap; }
+  .fbtn {
+    background: var(--panel);
+    color: var(--muted);
+    border: 1px solid var(--border);
+    padding: 6px 13px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 12px;
+    font-family: inherit;
+  }
+  .fbtn.active, .fbtn:hover { color: var(--cyan); border-color: var(--cyan); background: rgba(0,255,213,0.08); }
+  .search-input {
+    background: var(--panel);
+    color: var(--text);
+    border: 1px solid var(--border);
+    padding: 7px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    min-width: 260px;
+    font-family: inherit;
+  }
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 22px;
+  }
+  .card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 12px;
+  }
+  h3 { margin: 0 0 4px 0; font-size: 16px; }
+  .sub { margin: 0; color: var(--muted); font-size: 12px; }
+  .badge {
+    padding: 4px 10px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 700;
+  }
+  .verified { background: rgba(0, 255, 213, 0.14); color: var(--cyan); border: 1px solid var(--cyan); }
+  .approved { background: rgba(63, 185, 80, 0.15); color: var(--green); border: 1px solid var(--green); }
+  .escalated { background: rgba(255, 50, 140, 0.15); color: var(--pink); border: 1px solid var(--pink); }
+  .pending { background: rgba(210, 153, 34, 0.15); color: var(--amber); border: 1px solid var(--amber); }
+  .metrics-bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 24px;
+    background: var(--panel-alt);
+    padding: 10px 14px;
+    border-radius: 6px;
+    font-size: 12px;
+    margin-bottom: 12px;
+    border: 1px solid var(--border);
+  }
+  .metrics-bar .lbl { color: var(--muted); }
+  .metrics-bar .ok { color: var(--cyan); }
+  .escalated-box { color: #ff80b5; flex-direction: column; gap: 6px; }
+  .approved-box { color: var(--green); }
+  .region-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+    margin-bottom: 14px;
+    background: var(--panel-alt);
+    border-radius: 6px;
+    overflow: hidden;
+  }
+  .region-table th, .region-table td {
+    padding: 7px 10px;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+  }
+  .region-table th { color: var(--muted); font-weight: 600; font-size: 11px; text-transform: uppercase; }
+  .pill-pass { color: var(--cyan); font-weight: 700; }
+  .view-tabs { display: flex; gap: 6px; margin-bottom: 10px; flex-wrap: wrap; }
+  .vtab {
+    background: var(--panel-alt);
+    color: var(--muted);
+    border: 1px solid var(--border);
+    padding: 5px 11px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 11px;
+    font-family: inherit;
+  }
+  .vtab.active, .vtab:hover { color: var(--text); border-color: var(--cyan); background: rgba(0,255,213,0.1); }
+  .coord-hud {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    background: var(--panel-alt);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 8px 12px;
+    margin-bottom: 10px;
+    font-size: 11px;
+  }
+  .coord-readout { color: var(--cyan); font-weight: 600; }
+  .cli-gen { display: flex; gap: 6px; flex: 1; min-width: 280px; justify-content: flex-end; }
+  .cli-out {
+    background: #07090e;
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 4px 8px;
+    font-size: 11px;
+    font-family: inherit;
+    width: 100%;
+    max-width: 560px;
+  }
+  .copy-btn {
+    background: rgba(0,255,213,0.12);
+    color: var(--cyan);
+    border: 1px solid var(--cyan);
+    border-radius: 4px;
+    padding: 4px 10px;
+    cursor: pointer;
+    font-size: 11px;
+    font-family: inherit;
+    white-space: nowrap;
+  }
+  .preview-wrap {
+    position: relative;
+    display: inline-block;
+    max-width: 100%;
+    cursor: crosshair;
+    user-select: none;
+  }
+  .preview-wrap img {
+    max-width: 100%;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    display: block;
+  }
+  .sel-box {
+    position: absolute;
+    border: 2px dashed var(--cyan);
+    background: rgba(0, 255, 213, 0.14);
+    pointer-events: none;
+    display: none;
+  }
+  .audit-log { margin-top: 12px; font-size: 12px; color: var(--muted); }
+  .audit-log summary { cursor: pointer; user-select: none; }
+  .audit-log ul { margin: 8px 0 0 0; padding-left: 18px; line-height: 1.6; }
+</style>
+</head>
+<body>
+  <header>
+    <div>
+      <h1>HEAV3NS POST-PRODUCTION &amp; CENSORSHIP STUDIO QC (v4.0)</h1>
+      <div class="meta">Commissioning Authority: <strong>MAJO, Executive Chair</strong> • Commissioned Agent: <strong>Deputy Gemini</strong> • Principal Artist: <strong>EGG</strong></div>
+    </div>
+    <div class="meta">Shortcuts: <code>/</code> Search • <code>1-6</code> Switch Tab on Hovered Card • Drag on Image to Measure Region • Updated: 2026-11-01T22:28:20.607589+00:00</div>
+  </header>
+
+  <div class="kpi-grid">
+    <div class="kpi"><div class="k-val">3</div><div class="k-lbl">Total Ingested Assets</div></div>
+    <div class="kpi"><div class="k-val" style="color:var(--cyan)">1</div><div class="k-lbl">Verified Censored Editions</div></div>
+    <div class="kpi"><div class="k-val" style="color:var(--green)">1</div><div class="k-lbl">Approved Untouched (Artistic)</div></div>
+    <div class="kpi"><div class="k-val" style="color:var(--pink)">1</div><div class="k-lbl">Escalated for Review</div></div>
+    <div class="kpi"><div class="k-val" style="color:var(--cyan)">100%</div><div class="k-lbl">Bit-Exact Preservation</div></div>
+  </div>
+
+  <div class="toolbar">
+    <div class="filter-group">
+      <button class="fbtn active" onclick="filterCards('all', this)">All (3)</button>
+      <button class="fbtn" onclick="filterCards('verified', this)">Verified (1)</button>
+      <button class="fbtn" onclick="filterCards('approved', this)">Approved Original (1)</button>
+      <button class="fbtn" onclick="filterCards('escalated', this)">Escalated (1)</button>
+      <button class="fbtn" onclick="filterCards('pending', this)">Pending (0)</button>
+    </div>
+    <input id="global-search" type="text" class="search-input" placeholder="Press '/' to filter by Asset ID or filename..." oninput="searchCards(this.value)" />
+  </div>
+
+  <div id="cards-container">
+    <div class="card" data-status="verified" data-id="heav3ns_01_explicit_study_63116478" data-w="1200" data-h="900" data-mode="slate" data-search="heav3ns_01_explicit_study_63116478 heav3ns_01_explicit_study.png verified">
+                    <div class="card-header">
+                        <div>
+                            <h3><code>heav3ns_01_explicit_study_63116478</code></h3>
+                            <p class="sub">Original: <code>heav3ns_01_explicit_study.png</code> (1200x900) • Policy: <code>jp_article_175_standard</code> • SHA-256: <code>63116478250d6168</code></p>
+                        </div>
+                        <span class="badge verified">VERIFIED EDITION</span>
+                    </div>
+                    <div class="metrics-bar">
+                        <div><span class="lbl">Uncensored Pixel Fidelity:</span> <strong class="ok">100% Bit-Exact (0 diff px)</strong></div>
+                        <div><span class="lbl">Localized Area:</span> <strong>1.60% of canvas</strong></div>
+                        <div><span class="lbl">Downscale Survival (1080p &amp; 540p):</span> <strong class="ok">VERIFIED</strong></div>
+                    </div>
+                    <table class="region-table">
+                        <thead>
+                            <tr><th>Region</th><th>Treatment</th><th>Enclosing AABB</th><th>Native Mean</th><th>Peak p95</th><th>1080p JPEG</th><th>540p Thumb</th><th>Status</th></tr>
+                        </thead>
+                        <tbody><tr>
+                            <td><code>r1</code></td>
+                            <td><code>Mosaic(14px, Rect, 0.0deg)</code></td>
+                            <td><code>(440,500, 120x100)</code></td>
+                            <td><strong>100.0%</strong></td>
+                            <td><strong>100.0%</strong></td>
+                            <td><strong>99.6%</strong></td>
+                            <td><strong>98.4%</strong></td>
+                            <td><span class="pill-pass">PASS</span></td>
+                        </tr><tr>
+                            <td><code>r2</code></td>
+                            <td><code>SolidBar(color=#000000(auto-kuro), Pill, angle=6.0deg)</code></td>
+                            <td><code>(441,308, 118x64)</code></td>
+                            <td><strong>100.0%</strong></td>
+                            <td><strong>100.0%</strong></td>
+                            <td><strong>98.4%</strong></td>
+                            <td><strong>93.1%</strong></td>
+                            <td><span class="pill-pass">PASS</span></td>
+                        </tr></tbody>
+                    </table>
+                    <div class="view-tabs">
+                        <button class="vtab active" onclick="switchImg(this, '../assets/previews/heav3ns_01_explicit_study_63116478_contact_sheet.png', 'slate')">[1] 4-Panel QC Slate</button>
+                        <button class="vtab" onclick="switchImg(this, '../assets/published/heav3ns_01_explicit_study_63116478_published.png', 'single')">[2] Published Edition</button>
+                        <button class="vtab" onclick="switchImg(this, '../assets/previews/heav3ns_01_explicit_study_63116478_pub_1080p_q85.jpg', 'single')">[3] 1080p JPEG Sim</button>
+                        <button class="vtab" onclick="switchImg(this, '../assets/previews/heav3ns_01_explicit_study_63116478_pub_540p_thumb.jpg', 'single')">[4] 540p Thumb Sim</button>
+                        <button class="vtab" onclick="switchImg(this, '../assets/inspect/heav3ns_01_explicit_study_63116478_inspect_grid.png', 'single')">[5] VLM Coordinate Grid</button>
+                        <button class="vtab" onclick="switchImg(this, '../assets/originals/heav3ns_01_explicit_study_63116478_original.png', 'single')">[6] Untouched Original</button>
+                    </div>
+                    <div class="coord-hud">
+                        <span class="coord-readout">Hover or drag on image to measure coordinates &amp; generate <code>--region</code> CLI</span>
+                        <div class="cli-gen">
+                            <input type="text" class="cli-out" readonly value="./target/release/heav3ns-censor inspect --asset-id heav3ns_01_explicit_study_63116478" />
+                            <button class="copy-btn" onclick="copyCli(this)">Copy CLI</button>
+                        </div>
+                    </div>
+                    <div class="preview-wrap" onmousemove="onPreviewMove(event, this)" onmousedown="onPreviewDown(event, this)" onmouseup="onPreviewUp(event, this)">
+                        <img src="../assets/previews/heav3ns_01_explicit_study_63116478_contact_sheet.png" alt="heav3ns_01_explicit_study_63116478" loading="lazy" draggable="false" />
+                        <div class="sel-box"></div>
+                    </div>
+                    <details class="audit-log">
+                        <summary>Audit Trail (11 events)</summary>
+                        <ul><li><code>21:43:26 UTC</code> <strong>INGEST_AND_PRESERVE_ORIGINAL</strong> — Archived untouched original (1200x900) with SHA-256 63116478250d6168</li><li><code>21:43:36 UTC</code> <strong>GENERATE_INSPECTION_GRID</strong> — Generated coordinate overlay at /Users/bozoegg/Desktop/HEAV3NS-CENSOR/assets/inspect/heav3ns_01_explicit_study_63116478_inspect_grid.png</li><li><code>21:43:36 UTC</code> <strong>APPLY_AND_VERIFY_CENSORSHIP</strong> — Applied 2 localized region(s); verification passed: true (censored area: 1.48%)</li><li><code>21:55:41 UTC</code> <strong>GENERATE_INSPECTION_GRID</strong> — Generated coordinate overlay at /Users/bozoegg/Desktop/HEAV3NS-CENSOR/assets/inspect/heav3ns_01_explicit_study_63116478_inspect_grid.png</li><li><code>21:55:42 UTC</code> <strong>APPLY_AND_VERIFY_CENSORSHIP</strong> — Applied 2 localized region(s); verification passed: true (censored area: 1.48%)</li><li><code>22:08:47 UTC</code> <strong>GENERATE_INSPECTION_GRID</strong> — Generated coordinate overlay at /Users/bozoegg/Desktop/HEAV3NS-CENSOR/assets/inspect/heav3ns_01_explicit_study_63116478_inspect_grid.png (hotspots: 4, zoom_crop: true)</li><li><code>22:08:47 UTC</code> <strong>APPLY_AND_VERIFY_CENSORSHIP</strong> — Applied 2 localized region(s); verification passed: true (censored area: 1.45%)</li><li><code>22:11:38 UTC</code> <strong>APPLY_AND_VERIFY_CENSORSHIP</strong> — Applied 2 localized region(s); verification passed: true (censored area: 1.45%)</li><li><code>22:12:07 UTC</code> <strong>APPLY_AND_VERIFY_CENSORSHIP</strong> — Applied 2 localized region(s); verification passed: true (censored area: 1.60%)</li><li><code>22:28:20 UTC</code> <strong>APPLY_AND_VERIFY_CENSORSHIP</strong> — Applied 1 localized region(s) (append=false, removed=0); verification passed: true (censored area: 1.11%)</li><li><code>22:28:20 UTC</code> <strong>APPLY_AND_VERIFY_CENSORSHIP</strong> — Applied 2 localized region(s) (append=true, removed=0); verification passed: true (censored area: 1.60%)</li></ul>
+                    </details>
+                </div><div class="card" data-status="approved" data-id="heav3ns_02_artistic_silhouette_c199216e" data-w="1000" data-h="1000" data-mode="single" data-search="heav3ns_02_artistic_silhouette_c199216e heav3ns_02_artistic_silhouette.png approved">
+                    <div class="card-header">
+                        <div>
+                            <h3><code>heav3ns_02_artistic_silhouette_c199216e</code></h3>
+                            <p class="sub">Original: <code>heav3ns_02_artistic_silhouette.png</code> (1000x1000) • Policy: <code>jp_article_175_standard</code> • SHA-256: <code>c199216e2bbcbe29</code></p>
+                        </div>
+                        <span class="badge approved">APPROVED UNTOUCHED</span>
+                    </div>
+                    <div class="metrics-bar approved-box">
+                    <div><strong>ARTISTIC NUDITY / SUGGESTIVE PASS:</strong> Untouched original approved for publication with zero censorship modification (SHA-256 bit-identical).</div>
+                </div>
+                    <div class="view-tabs">
+                        <button class="vtab active" onclick="switchImg(this, '../assets/published/heav3ns_02_artistic_silhouette_c199216e_published.png', 'single')">[1] 4-Panel QC Slate</button>
+                        <button class="vtab" onclick="switchImg(this, '../assets/published/heav3ns_02_artistic_silhouette_c199216e_published.png', 'single')">[2] Published Edition</button>
+                        <button class="vtab" onclick="switchImg(this, '../assets/published/heav3ns_02_artistic_silhouette_c199216e_published.png', 'single')">[3] 1080p JPEG Sim</button>
+                        <button class="vtab" onclick="switchImg(this, '../assets/published/heav3ns_02_artistic_silhouette_c199216e_published.png', 'single')">[4] 540p Thumb Sim</button>
+                        <button class="vtab" onclick="switchImg(this, '../assets/inspect/heav3ns_02_artistic_silhouette_c199216e_inspect_grid.png', 'single')">[5] VLM Coordinate Grid</button>
+                        <button class="vtab" onclick="switchImg(this, '../assets/originals/heav3ns_02_artistic_silhouette_c199216e_original.png', 'single')">[6] Untouched Original</button>
+                    </div>
+                    <div class="coord-hud">
+                        <span class="coord-readout">Hover or drag on image to measure coordinates &amp; generate <code>--region</code> CLI</span>
+                        <div class="cli-gen">
+                            <input type="text" class="cli-out" readonly value="./target/release/heav3ns-censor inspect --asset-id heav3ns_02_artistic_silhouette_c199216e" />
+                            <button class="copy-btn" onclick="copyCli(this)">Copy CLI</button>
+                        </div>
+                    </div>
+                    <div class="preview-wrap" onmousemove="onPreviewMove(event, this)" onmousedown="onPreviewDown(event, this)" onmouseup="onPreviewUp(event, this)">
+                        <img src="../assets/published/heav3ns_02_artistic_silhouette_c199216e_published.png" alt="heav3ns_02_artistic_silhouette_c199216e" loading="lazy" draggable="false" />
+                        <div class="sel-box"></div>
+                    </div>
+                    <details class="audit-log">
+                        <summary>Audit Trail (3 events)</summary>
+                        <ul><li><code>21:43:26 UTC</code> <strong>INGEST_AND_PRESERVE_ORIGINAL</strong> — Archived untouched original (1000x1000) with SHA-256 c199216e2bbcbe29</li><li><code>21:43:36 UTC</code> <strong>APPROVE_UNTOUCHED_FOR_PUBLICATION</strong> — Classification ArtisticNudityPass: Classical non-explicit artistic silhouette; zero censorship intervention required per Section 3.</li><li><code>22:08:47 UTC</code> <strong>GENERATE_INSPECTION_GRID</strong> — Generated coordinate overlay at /Users/bozoegg/Desktop/HEAV3NS-CENSOR/assets/inspect/heav3ns_02_artistic_silhouette_c199216e_inspect_grid.png (hotspots: 0, zoom_crop: false)</li></ul>
+                    </details>
+                </div><div class="card" data-status="escalated" data-id="heav3ns_03_biomech_ambiguity_05522fca" data-w="1000" data-h="800" data-mode="single" data-search="heav3ns_03_biomech_ambiguity_05522fca heav3ns_03_biomech_ambiguity.png escalated">
+                    <div class="card-header">
+                        <div>
+                            <h3><code>heav3ns_03_biomech_ambiguity_05522fca</code></h3>
+                            <p class="sub">Original: <code>heav3ns_03_biomech_ambiguity.png</code> (1000x800) • Policy: <code>jp_article_175_standard</code> • SHA-256: <code>05522fca0c630e7b</code></p>
+                        </div>
+                        <span class="badge escalated">ESCALATED FOR REVIEW</span>
+                    </div>
+                    <div class="metrics-bar escalated-box">
+                        <div><strong>ESCALATION CATEGORY [stylized_biomechanical_ambiguity]:</strong> Abstract biomechanical forms intertwine with central organic geometry; escalating per Section 5 rather than inventing a compliance determination.</div>
+                        <div class="notes">Agent Notes: Requires Executive Chair (MAJO) or Principal Artist (EGG) confirmation on whether central motif is intended as anatomical or purely mechanical.</div>
+                    </div>
+                    <div class="view-tabs">
+                        <button class="vtab active" onclick="switchImg(this, '../assets/originals/heav3ns_03_biomech_ambiguity_05522fca_original.png', 'single')">[1] 4-Panel QC Slate</button>
+                        <button class="vtab" onclick="switchImg(this, '../assets/originals/heav3ns_03_biomech_ambiguity_05522fca_original.png', 'single')">[2] Published Edition</button>
+                        <button class="vtab" onclick="switchImg(this, '../assets/originals/heav3ns_03_biomech_ambiguity_05522fca_original.png', 'single')">[3] 1080p JPEG Sim</button>
+                        <button class="vtab" onclick="switchImg(this, '../assets/originals/heav3ns_03_biomech_ambiguity_05522fca_original.png', 'single')">[4] 540p Thumb Sim</button>
+                        <button class="vtab" onclick="switchImg(this, '../assets/inspect/heav3ns_03_biomech_ambiguity_05522fca_inspect_grid.png', 'single')">[5] VLM Coordinate Grid</button>
+                        <button class="vtab" onclick="switchImg(this, '../assets/originals/heav3ns_03_biomech_ambiguity_05522fca_original.png', 'single')">[6] Untouched Original</button>
+                    </div>
+                    <div class="coord-hud">
+                        <span class="coord-readout">Hover or drag on image to measure coordinates &amp; generate <code>--region</code> CLI</span>
+                        <div class="cli-gen">
+                            <input type="text" class="cli-out" readonly value="./target/release/heav3ns-censor inspect --asset-id heav3ns_03_biomech_ambiguity_05522fca" />
+                            <button class="copy-btn" onclick="copyCli(this)">Copy CLI</button>
+                        </div>
+                    </div>
+                    <div class="preview-wrap" onmousemove="onPreviewMove(event, this)" onmousedown="onPreviewDown(event, this)" onmouseup="onPreviewUp(event, this)">
+                        <img src="../assets/originals/heav3ns_03_biomech_ambiguity_05522fca_original.png" alt="heav3ns_03_biomech_ambiguity_05522fca" loading="lazy" draggable="false" />
+                        <div class="sel-box"></div>
+                    </div>
+                    <details class="audit-log">
+                        <summary>Audit Trail (3 events)</summary>
+                        <ul><li><code>21:43:26 UTC</code> <strong>INGEST_AND_PRESERVE_ORIGINAL</strong> — Archived untouched original (1000x800) with SHA-256 05522fca0c630e7b</li><li><code>21:43:36 UTC</code> <strong>ESCALATE_FOR_EXECUTIVE_REVIEW</strong> — [stylized_biomechanical_ambiguity] Abstract biomechanical forms intertwine with central organic geometry; escalating per Section 5 rather than inventing a compliance determination.</li><li><code>22:08:47 UTC</code> <strong>GENERATE_INSPECTION_GRID</strong> — Generated coordinate overlay at /Users/bozoegg/Desktop/HEAV3NS-CENSOR/assets/inspect/heav3ns_03_biomech_ambiguity_05522fca_inspect_grid.png (hotspots: 0, zoom_crop: false)</li></ul>
+                    </details>
+                </div>
+  </div>
+
+  <script>
+    let hoveredCard = null;
+    let dragState = null;
+
+    document.querySelectorAll('.card').forEach(c => {
+      c.addEventListener('mouseenter', () => { hoveredCard = c; });
+    });
+
+    document.addEventListener('keydown', e => {
+      if (e.target.tagName === 'INPUT') return;
+      if (e.key === '/') {
+        e.preventDefault();
+        document.getElementById('global-search').focus();
+      } else if (hoveredCard && e.key >= '1' && e.key <= '6') {
+        const idx = parseInt(e.key, 10) - 1;
+        const tabs = hoveredCard.querySelectorAll('.vtab');
+        if (tabs[idx]) tabs[idx].click();
+      }
+    });
+
+    function switchImg(btn, src, mode) {
+      const card = btn.closest('.card');
+      card.dataset.mode = mode;
+      card.querySelectorAll('.vtab').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      card.querySelector('.preview-wrap img').src = src;
+      card.querySelector('.sel-box').style.display = 'none';
+    }
+
+    function mapClientToAssetCoords(e, wrap) {
+      const card = wrap.closest('.card');
+      const img = wrap.querySelector('img');
+      const rect = img.getBoundingClientRect();
+      const w = parseFloat(card.dataset.w);
+      const h = parseFloat(card.dataset.h);
+      const mode = card.dataset.mode;
+
+      const relX = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+      const relY = Math.max(0, Math.min(1, (e.clientY - rect.top) / rect.height));
+
+      if (mode === 'slate') {
+        const slateW = w * 2 + 48;
+        const slateH = h * 2 + 54 + 48;
+        const sx = relX * slateW;
+        const sy = relY * slateH;
+        const qx = sx < (16 + w + 8) ? (sx - 16) : (sx - (32 + w));
+        const qy = sy < (54 + h + 8) ? (sy - 54) : (sy - (54 + 16 + h));
+        const ax = Math.max(0, Math.min(w, Math.round(qx)));
+        const ay = Math.max(0, Math.min(h, Math.round(qy)));
+        return { ax, ay, w, h, clientX: e.clientX - rect.left, clientY: e.clientY - rect.top };
+      } else {
+        const ax = Math.max(0, Math.min(w, Math.round(relX * w)));
+        const ay = Math.max(0, Math.min(h, Math.round(relY * h)));
+        return { ax, ay, w, h, clientX: e.clientX - rect.left, clientY: e.clientY - rect.top };
+      }
+    }
+
+    function onPreviewDown(e, wrap) {
+      const pt = mapClientToAssetCoords(e, wrap);
+      const box = wrap.querySelector('.sel-box');
+      box.style.left = pt.clientX + 'px';
+      box.style.top = pt.clientY + 'px';
+      box.style.width = '0px';
+      box.style.height = '0px';
+      box.style.display = 'block';
+      dragState = { wrap, start: pt };
+    }
+
+    function onPreviewMove(e, wrap) {
+      const card = wrap.closest('.card');
+      const pt = mapClientToAssetCoords(e, wrap);
+      const nx = Math.round((pt.ax / pt.w) * 1000);
+      const ny = Math.round((pt.ay / pt.h) * 1000);
+      const readout = card.querySelector('.coord-readout');
+
+      if (dragState && dragState.wrap === wrap) {
+        const box = wrap.querySelector('.sel-box');
+        const left = Math.min(dragState.start.clientX, pt.clientX);
+        const top = Math.min(dragState.start.clientY, pt.clientY);
+        const bw = Math.abs(pt.clientX - dragState.start.clientX);
+        const bh = Math.abs(pt.clientY - dragState.start.clientY);
+        box.style.left = left + 'px';
+        box.style.top = top + 'px';
+        box.style.width = bw + 'px';
+        box.style.height = bh + 'px';
+
+        const rx = Math.min(dragState.start.ax, pt.ax);
+        const ry = Math.min(dragState.start.ay, pt.ay);
+        const rw = Math.max(4, Math.abs(pt.ax - dragState.start.ax));
+        const rh = Math.max(4, Math.abs(pt.ay - dragState.start.ay));
+        const rnx = Math.round((rx / pt.w) * 1000);
+        const rny = Math.round((ry / pt.h) * 1000);
+        const rnw = Math.max(4, Math.round((rw / pt.w) * 1000));
+        const rnh = Math.max(4, Math.round((rh / pt.h) * 1000));
+
+        readout.innerHTML = `Selection Pixels: <code>${rx},${ry},${rw},${rh}</code> • Norm1000: <code>${rnx},${rny},${rnw},${rnh}</code>`;
+        card.querySelector('.cli-out').value =
+          `./target/release/heav3ns-censor execute --asset-id ${card.dataset.id} --append --region "mosaic:${rx},${ry},${rw},${rh}:pixels:rect:auto:0:explicit_anatomy"`;
+      } else {
+        readout.innerHTML = `Cursor Pixels: <code>(${pt.ax}, ${pt.ay})</code> • Norm1000: <code>(${nx}, ${ny})</code>`;
+      }
+    }
+
+    function onPreviewUp(e, wrap) {
+      dragState = null;
+    }
+
+    function copyCli(btn) {
+      const input = btn.parentElement.querySelector('.cli-out');
+      navigator.clipboard.writeText(input.value);
+      const prev = btn.textContent;
+      btn.textContent = 'Copied!';
+      setTimeout(() => { btn.textContent = prev; }, 1200);
+    }
+
+    function filterCards(status, btn) {
+      document.querySelectorAll('.fbtn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      document.querySelectorAll('.card').forEach(c => {
+        c.style.display = (status === 'all' || c.dataset.status === status) ? 'block' : 'none';
+      });
+    }
+
+    function searchCards(q) {
+      const term = q.trim().toLowerCase();
+      document.querySelectorAll('.card').forEach(c => {
+        c.style.display = c.dataset.search.toLowerCase().includes(term) ? 'block' : 'none';
+      });
+    }
+  </script>
+</body>
+</html>

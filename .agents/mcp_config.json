@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "heav3ns-censor": {
+      "command": "/Users/bozoegg/Desktop/HEAV3NS-CENSOR/target/release/heav3ns-censor",
+      "args": ["mcp"],
+      "env": {
+        "HEAV3NS_WORKSPACE": "/Users/bozoegg/Desktop/HEAV3NS-CENSOR"
+      }
+    }
+  }
+}
+
