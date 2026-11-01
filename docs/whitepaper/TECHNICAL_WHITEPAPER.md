@@ -135,3 +135,4 @@ Excluding Lanczos-3 ringing transitions where $d_{\text{step}}(\Delta x) < 1.35\
 | `r2`: Adaptive Bar (`auto` `#000000`, `Pill`, $+6.0^\circ$) | `100.0%` | `100.0%` | `98.4%` | `93.1%` | `0 px` | **PASS** |
 | Non-Multiple Remainder Mosaic ($103\times97\text{px}$, $b=12\text{px}$) | `100.0%` | `100.0%` | `99.4%` | `97.8%` | `0 px` | **PASS** |
 | Degenerate $2\times2\text{px}$ Region (`0` interior samples) | `0.0%` | `0.0%` | `0.0%` | `0.0%` | `0 px` | **REJECTED (Expected)** |
+

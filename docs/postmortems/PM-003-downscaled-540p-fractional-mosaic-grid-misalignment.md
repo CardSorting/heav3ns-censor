@@ -37,3 +37,4 @@ When verifying `heav3ns_01_explicit_study` ($1200\times900$) with a $14\text{px}
    Excluding a $1.35\text{px}$ Lanczos transition margin around fractional multiples of $b \cdot s$ restored true intra-block `540p` suppression measurement (`98.4%`).
 2. **Baseline Reference Floor:**  
    Anchored downscaled suppression denominator against `o_mean.max(orig_native_mean * 0.5)` so low-pass filtering of the reference thumbnail never penalizes an opaque or flat-pooled censorship region.
+

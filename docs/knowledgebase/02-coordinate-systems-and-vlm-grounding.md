@@ -49,3 +49,4 @@ For small or angled anatomical details (such as a narrow cleft requiring a rotat
 ```
 
 [`generate_zoom_crop_grid`](../../src/engine.rs#L740-L815) extracts the sub-region, magnifies it **$3\times$ via nearest-neighbor scaling** (preserving exact pixel boundaries), overlays a fine $50\text{px}$ sub-grid, and burns the **global original-image pixel coordinates** (`X400`, `Y300`, etc.) directly onto the magnified crop. The agent can then read exact pixel coordinates from the magnified image without mental coordinate math.
+

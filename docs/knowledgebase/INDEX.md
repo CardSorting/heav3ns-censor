@@ -60,3 +60,4 @@ Welcome to the central engineering and domain knowledgebase for **`heav3ns-censo
 | **Enclosing AABB** | The dynamically expanded axis-aligned bounding box $(W_{\text{enc}}, H_{\text{enc}})$ guaranteed to contain a shape rotated by $\theta$. |
 | **Normalized1000** | Resolution-independent coordinate space $[0, 1000] \times [0, 1000]$ used by multimodal VLMs and burned into inspection grids. |
 | **Remainder-Strip Pooling** | Folding a boundary strip narrower than $0.5 \times \text{block\_size}$ into the preceding full mosaic cell so no narrow edge strip leaks detail. |
+

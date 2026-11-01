@@ -23,3 +23,4 @@ Two critical verification failure modes were uncovered during engineering audits
    If a region is so small (e.g., `2x2` pixels) that interior erosion leaves `sample_count == 0`, verification explicitly fails (`passed = false`).
 3. **Fractional Step-Boundary Alignment (`native_block_size * scale_factor`):**  
    Downscaled mosaic verification tracks exact floating-point step intervals $b_s = b \cdot s$ and excludes a $1.35\text{px}$ Lanczos-3 transition margin around multiples of $b_s$, accurately measuring intra-block detail suppression across `1080p` (`Q85` JPEG) and `540p` (`Q75` JPEG).
+

@@ -5,12 +5,12 @@
 **Deterministic Japanese-Style Localized Image Obscuration & Multi-Scale Verification Studio Engine**
 
 [![Rust 2021](https://img.shields.io/badge/rust-2021_edition-orange.svg)](Cargo.toml)
-[![Version](https://img.shields.io/badge/version-4.0.0-00ffd5.svg)](Cargo.toml)
+[![Version](https://img.shields.io/badge/version-4.0.0-00ffd5.svg)](CHANGELOG.md)
+[![License: MIT OR Apache-2.0](https://img.shields.io/badge/license-MIT_OR_Apache--2.0-blue.svg)](LICENSE)
 [![MCP Protocol](https://img.shields.io/badge/MCP-2024--11--05_stdio-ff328c.svg)](src/mcp.rs)
 [![Preservation Invariant](https://img.shields.io/badge/exterior_pixel_diff-0_px_(bit_exact)-3fb950.svg)](docs/whitepaper/TECHNICAL_WHITEPAPER.md)
-[![Article 175 Compliant](https://img.shields.io/badge/policy-JP_Article_175_%26_Kuro--Nuri-blue.svg)](docs/knowledgebase/01-japanese-article-175-and-platform-standards.md)
 
-**[Philosophy](docs/philosophy/PHILOSOPHY.md)** • **[Stakeholder Handoff](docs/stakeholder-handoff/STAKEHOLDER_HANDOFF.md)** • **[Technical Whitepaper](docs/whitepaper/TECHNICAL_WHITEPAPER.md)** • **[Knowledgebase](docs/knowledgebase/INDEX.md)** • **[ADRs](docs/adrs/)** • **[Playbooks](docs/playbooks/)** • **[Postmortems](docs/postmortems/)**
+**[Philosophy](docs/philosophy/PHILOSOPHY.md)** • **[Stakeholder Handoff](docs/stakeholder-handoff/STAKEHOLDER_HANDOFF.md)** • **[Technical Whitepaper](docs/whitepaper/TECHNICAL_WHITEPAPER.md)** • **[Knowledgebase](docs/knowledgebase/INDEX.md)** • **[ADRs](docs/adrs/)** • **[Playbooks](docs/playbooks/)** • **[Postmortems](docs/postmortems/)** • **[Contributing](CONTRIBUTING.md)**
 
 </div>
 
@@ -224,9 +224,9 @@ Run `cargo test --release` to execute all 8 automated mathematical and state-hyg
 
 ---
 
-## Academic Citation (`BibTeX`)
+## Academic Citation (`BibTeX` & `CITATION.cff`)
 
-If you reference the mathematical SDF compositing, remainder-strip mosaic pooling, or fractional-step multi-scale verification architecture in academic or technical work, please cite:
+This repository includes a machine-readable [`CITATION.cff`](CITATION.cff) file for GitHub, Zenodo, and Zotero integration. If you reference the mathematical SDF compositing, remainder-strip mosaic pooling, or fractional-step multi-scale verification architecture in academic or technical work, please cite:
 
 ```bibtex
 @software{heav3ns_censor_2026,
@@ -238,3 +238,15 @@ If you reference the mathematical SDF compositing, remainder-strip mosaic poolin
   url          = {https://github.com/CardSorting/heav3ns-censor}
 }
 ```
+
+---
+
+## Open-Source Governance, Security, & Licensing
+
+- **License:** Dual-licensed under **[MIT](LICENSE-MIT) OR [Apache-2.0](LICENSE-APACHE)** at your option (see [`LICENSE`](LICENSE) for full details and studio artwork copyright notice).
+- **Contributing:** See [`CONTRIBUTING.md`](CONTRIBUTING.md) for architectural invariants, test requirements, and ADR guidelines.
+- **Governance:** See [`GOVERNANCE.md`](GOVERNANCE.md) for the Triad Studio & Open-Source Governance model (**MAJO**, **EGG**, **Deputy Gemini**, and community contributors).
+- **Security Policy:** See [`SECURITY.md`](SECURITY.md) for cryptographic `SHA-256` master verification, escalation isolation guarantees, and vulnerability reporting.
+- **Code of Conduct:** Governed by the Contributor Covenant v2.1 in [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md).
+- **Release History:** Tracked in [`CHANGELOG.md`](CHANGELOG.md).
+

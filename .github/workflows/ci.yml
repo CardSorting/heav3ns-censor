@@ -1,0 +1,35 @@
+name: HEAV3NS-CENSOR CI & Cryptographic Audit
+
+on:
+  push:
+    branches: [ "main", "master" ]
+  pull_request:
+    branches: [ "main", "master" ]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  test-and-audit:
+    name: Rust Unit Tests & Workspace Doctor Audit
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install stable Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy, rustfmt
+
+      - name: Rust Cache
+        uses: Swatinem/rust-cache@v2
+
+      - name: Run mathematical & state-hygiene unit tests
+        run: cargo test --release
+
+      - name: Build release binary
+        run: cargo build --release
+
+      - name: Run heav3ns-censor doctor cryptographic & orphan-hygiene audit
+        run: ./target/release/heav3ns-censor doctor

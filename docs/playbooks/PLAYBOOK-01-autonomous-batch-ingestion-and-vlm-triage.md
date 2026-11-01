@@ -45,3 +45,4 @@ If an anatomical feature is small (`< 100px`) or angled, refine your coordinates
 ```
 
 Read the resulting `zoom_crop_path` image to read pixel-accurate coordinates directly off the magnified ruler badges.
+

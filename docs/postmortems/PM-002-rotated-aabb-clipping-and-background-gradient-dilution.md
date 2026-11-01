@@ -30,3 +30,4 @@ When applying an angled *kuro-nuri* bar (`SolidBar` with `angle_deg = 35.0`) ove
    Automatically computes $(W_{\text{enc}}, H_{\text{enc}})$ from $(w, h, \theta)$ clamped to canvas bounds.
 2. **Mask-Eroded Interior Verification ([`compute_masked_detail_metrics`](../../src/engine.rs#L580-L634)):**  
    Verification samples gradient pairs $(x, y), (x+1, y), (x, y+1)$ **strictly where `region_mask_alpha >= 0.95` for all three points** ($1\text{px}$ interior erosion). Untouched background corners around rotated `Pill`, `Ellipse`, or `Rect` regions are 100% excluded from obscuration telemetry.
+

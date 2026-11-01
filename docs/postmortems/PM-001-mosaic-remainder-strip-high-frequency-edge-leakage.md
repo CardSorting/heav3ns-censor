@@ -33,3 +33,4 @@ Consider a mosaic region of dimensions $W_r = 103\text{px}, H_r = 97\text{px}$ w
    - Consequently, no mosaic cell can ever be narrower or shorter than $\ge 1.0b$ (or $\ge 0.5b$ if the entire region is tiny).
 2. **95th-Percentile ($P_{95}$) Peak Suppression Metric ([`src/engine.rs`](../../src/engine.rs#L580-L634)):**  
    Added `peak_detail_suppression_ratio` ($P_{95}$) to `RegionVerificationMetric` and enforced `peak_suppression >= 0.80` alongside mean suppression so localized edge leaks can never hide behind region-wide averages.
+

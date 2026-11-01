@@ -22,3 +22,4 @@ Autonomous agents may invoke `heav3ns-censor` either via shell commands (`CLI`) 
    All mutating workspace operations acquire `ledger/.ledger.lock` (with automatic 30-second stale-lock recovery) and write via a PID-scoped sibling temp file + `sync_all()` + POSIX `fs::rename()`.
 3. **Incremental Region Editing (`--append`, `--remove-region`, `--dry-run`):**  
    Both CLI (`execute`) and MCP (`heav3ns_execute_censorship`) support upserting individual regions by ID (`r2=solid_bar:...`), removing specific region IDs, and simulating verification in a temporary directory (`--dry-run`) without mutating `published/` or `treatments_ledger.json`.
+

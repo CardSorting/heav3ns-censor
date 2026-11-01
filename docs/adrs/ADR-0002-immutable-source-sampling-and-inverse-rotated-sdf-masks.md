@@ -26,3 +26,4 @@ Early prototypes (`v1.0`–`v3.0`) revealed three subtle geometric and compositi
    In [`apply_censorship_regions`](../../src/engine.rs#L65-L214), all spatial neighborhoods (`Mosaic` block pooling, `GaussianBlur` $3\sigma$ halo extraction, and `SolidBar` `auto` luminance calculation) read strictly from the immutable `original` image while compositing onto `canvas`.
 4. **Minor-Axis Feather Clamping:**  
    `feather_px` is clamped to $\le 0.45 \cdot \min(w/2, h/2)$ so the central core of every censorship region remains 100% opaque.
+

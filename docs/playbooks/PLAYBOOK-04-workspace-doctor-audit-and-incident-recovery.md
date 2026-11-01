@@ -42,3 +42,4 @@ If [`ledger/publication_report.md`](../../ledger/publication_report.md), [`ledge
 
 ### Scenario C: Stale Lock File Recovery
 If a process was hard-killed (`SIGKILL`) while holding `ledger/.ledger.lock`, `WorkspaceLock::acquire` automatically detects and recovers locks older than `30` seconds, or you can run `doctor --fix`.
+

@@ -4,6 +4,12 @@ version = "4.0.0"
 edition = "2021"
 description = "Autonomous Japanese-Style Censorship & Publication Post-Processing Agentic Tool for HEAV3NS"
 authors = ["Deputy Gemini <gemini@heav3ns.art>"]
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/CardSorting/heav3ns-censor"
+homepage = "https://github.com/CardSorting/heav3ns-censor"
+readme = "README.md"
+keywords = ["image-processing", "censorship", "sdf", "mcp", "computer-vision"]
+categories = ["multimedia::images", "command-line-utilities", "science"]
 
 [[bin]]
 name = "heav3ns-censor"

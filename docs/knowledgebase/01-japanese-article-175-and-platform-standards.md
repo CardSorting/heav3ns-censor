@@ -35,3 +35,4 @@ Query all active policy profiles at any time via `./target/release/heav3ns-censo
 | `jp_article_175_standard` | Default commercial Japanese illustration & digital art release | $\max(6, \lceil \max(W,H)/100 \rceil + 2)$ | Remainder-pooled `mosaic` for area coverage; `solid_bar` (`pill`) for linear clefts |
 | `kuro_nuri_graphic` | Editorial, monochrome, high-contrast, or cyber-gothic art | $\max(6, \lceil \max(W,H)/100 \rceil + 2)$ | High-contrast `#000000` (*kuro-nuri*), `#FFFFFF` (*shiro-nuri*), or `auto` rotated `pill`/`rect` bars |
 | `social_media_safe` | Strict public feed / preview distribution (`X`, `Instagram`, `Bluesky`) | $\max(8, \lceil \max(W,H)/80 \rceil + 4)$ | Coarser `mosaic`, `solid_bar`, or heavy `gaussian_blur` ($\sigma \ge 12.0$) |
+

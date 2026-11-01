@@ -32,3 +32,4 @@ During the `v4.0` deep security and mathematical audit of `src/engine.rs`, two s
    Clamped `feather_px` to `(half_w.min(half_h) * 0.45).max(0.0)` so excessive feather parameters can never make the center of a censorship region semi-transparent.
 3. **Explicit `sample_count > 0` Gate ([`src/engine.rs`](../../src/engine.rs#L406-L468)):**  
    `compute_masked_detail_metrics` now returns `(mean, p95, sample_count)` and `verify_censored_edition` enforces `native_samples > 0` for `passed = true`.
+

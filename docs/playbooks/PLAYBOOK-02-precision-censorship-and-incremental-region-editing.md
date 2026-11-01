@@ -61,3 +61,4 @@ When adjusting a single region on a multi-region asset, **do not re-specify unch
 
 1. Confirm `verification.overall_passed == true` and `verification.non_censored_pixel_diff_count == 0` in the JSON output.
 2. Inspect `assets/previews/<ASSET_ID>_contact_sheet.png` using `read_file` to visually verify all 4 panels (Original + Contours, Published Edition, 540p Thumbnail Sim, and Modification Heatmap).
+

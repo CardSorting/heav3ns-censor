@@ -40,3 +40,4 @@ Once MAJO or EGG provides a determination:
 - **If approved untouched:** Run `./target/release/heav3ns-censor approve-original --asset-id <ID> --classification artistic_nudity_pass --rationale "Executive sign-off by MAJO"`.
 - **If localized censorship is directed:** Run `./target/release/heav3ns-censor execute --asset-id <ID> --region "..."`.
 - Both commands automatically clear the escalation state, remove the file from `assets/review_escalated/`, and update `ledger/escalations_review.md`.
+

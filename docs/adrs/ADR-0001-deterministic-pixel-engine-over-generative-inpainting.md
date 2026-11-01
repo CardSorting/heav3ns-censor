@@ -37,3 +37,4 @@ Chosen option: **Option 3 — Custom Deterministic Rust Studio Engine (`heav3ns-
   - Zero GPU/VRAM requirement; executes full censorship + multi-scale `1080p`/`540p` JPEG verification + 4-panel QC slate generation in `< 200ms` on CPU.
 - **Negative / Trade-offs:**
   - Requires explicit geometric primitive modeling (`Rect`, `Ellipse`, `Pill` + rotation `@angle_deg`) in Rust rather than freehand brush masks. Mitigated by implementing exact analytical SDFs for rotated capsules and ellipses.
+

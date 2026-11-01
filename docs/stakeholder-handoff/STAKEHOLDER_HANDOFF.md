@@ -88,3 +88,4 @@ Open [`ledger/dashboard.html`](../../ledger/dashboard.html) in any modern browse
 | Distinguish artistic/suggestive nudity from explicit anatomy | **VERIFIED** | `approve-original` vs `execute` vs `escalate` state machine |
 | Survive publication downscaling (`1080p` & `540p` JPEG) | **VERIFIED** | `pub_1080p_suppression_ratio` & `pub_540p_suppression_ratio` |
 | Maintain auditable correspondence ledger & escalation queue | **VERIFIED** | `ledger/treatments_ledger.json`, `publication_report.md`, `escalations_review.md` |
+
