@@ -130,6 +130,20 @@ fn mcp_tool_definitions() -> Value {
             }
         },
         {
+            "name": "heav3ns_explain_asset",
+            "description": "Generate a comprehensive diagnostic, cryptographic integrity, and stakeholder/agent handoff explanation card for a single asset.",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "asset_id": {
+                        "type": "string",
+                        "description": "Asset ID, unique prefix, SHA-256 prefix, or filename"
+                    }
+                },
+                "required": ["asset_id"]
+            }
+        },
+        {
             "name": "heav3ns_doctor",
             "description": "Run a comprehensive cryptographic (SHA-256), bit-exact preservation, escalation-isolation, and orphan-hygiene health audit across the workspace.",
             "inputSchema": {
@@ -286,6 +300,14 @@ fn dispatch_tool_call(workspace: &Workspace, tool_name: &str, args: &Value) -> R
         "heav3ns_onboard" => {
             let role = args.get("role").and_then(|s| s.as_str()).unwrap_or("agent");
             let packet = workspace.onboard(role)?;
+            Ok(serde_json::to_value(packet)?)
+        }
+        "heav3ns_explain_asset" => {
+            let asset_id = args
+                .get("asset_id")
+                .and_then(|s| s.as_str())
+                .ok_or_else(|| anyhow::anyhow!("Missing asset_id"))?;
+            let packet = workspace.explain_asset(asset_id)?;
             Ok(serde_json::to_value(packet)?)
         }
         "heav3ns_doctor" => {

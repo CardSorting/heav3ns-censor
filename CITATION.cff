@@ -4,7 +4,7 @@ message: "If you use heav3ns-censor or its mathematical SDF compositing and mult
 type: software
 version: 4.0.0
 date-released: "2026-11-01"
-license: "MIT OR Apache-2.0"
+license: "MIT"
 repository-code: "https://github.com/CardSorting/heav3ns-censor"
 url: "https://github.com/CardSorting/heav3ns-censor"
 keywords:

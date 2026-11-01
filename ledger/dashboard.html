@@ -351,6 +351,7 @@
                         <button class="vtab" onclick="switchImg(this, '../assets/previews/heav3ns_01_explicit_study_63116478_pub_540p_thumb.jpg', 'single')">[4] 540p Thumb Sim</button>
                         <button class="vtab" onclick="switchImg(this, '../assets/inspect/heav3ns_01_explicit_study_63116478_inspect_grid.png', 'single')">[5] VLM Coordinate Grid</button>
                         <button class="vtab" onclick="switchImg(this, '../assets/originals/heav3ns_01_explicit_study_63116478_original.png', 'single')">[6] Untouched Original</button>
+                        <button class="vtab ab-btn" onclick="toggleAbCompare(this)" title="Press 'o' to A/B toggle between Published Edition [2] and Untouched Original [6]">[o] A/B Compare Original</button>
                     </div>
                     <div class="coord-hud" data-cmd-type="mosaic">
                         <div class="hud-left">
@@ -394,6 +395,7 @@
                         <button class="vtab" onclick="switchImg(this, '../assets/published/heav3ns_02_artistic_silhouette_c199216e_published.png', 'single')">[4] 540p Thumb Sim</button>
                         <button class="vtab" onclick="switchImg(this, '../assets/inspect/heav3ns_02_artistic_silhouette_c199216e_inspect_grid.png', 'single')">[5] VLM Coordinate Grid</button>
                         <button class="vtab" onclick="switchImg(this, '../assets/originals/heav3ns_02_artistic_silhouette_c199216e_original.png', 'single')">[6] Untouched Original</button>
+                        <button class="vtab ab-btn" onclick="toggleAbCompare(this)" title="Press 'o' to A/B toggle between Published Edition [2] and Untouched Original [6]">[o] A/B Compare Original</button>
                     </div>
                     <div class="coord-hud" data-cmd-type="mosaic">
                         <div class="hud-left">
@@ -438,6 +440,7 @@
                         <button class="vtab" onclick="switchImg(this, '../assets/originals/heav3ns_03_biomech_ambiguity_05522fca_original.png', 'single')">[4] 540p Thumb Sim</button>
                         <button class="vtab" onclick="switchImg(this, '../assets/inspect/heav3ns_03_biomech_ambiguity_05522fca_inspect_grid.png', 'single')">[5] VLM Coordinate Grid</button>
                         <button class="vtab" onclick="switchImg(this, '../assets/originals/heav3ns_03_biomech_ambiguity_05522fca_original.png', 'single')">[6] Untouched Original</button>
+                        <button class="vtab ab-btn" onclick="toggleAbCompare(this)" title="Press 'o' to A/B toggle between Published Edition [2] and Untouched Original [6]">[o] A/B Compare Original</button>
                     </div>
                     <div class="coord-hud" data-cmd-type="mosaic">
                         <div class="hud-left">
@@ -479,12 +482,26 @@
       if (e.key === '/') {
         e.preventDefault();
         document.getElementById('global-search').focus();
+      } else if (hoveredCard && (e.key === 'o' || e.key === 'O')) {
+        e.preventDefault();
+        const abBtn = hoveredCard.querySelector('.ab-btn');
+        if (abBtn) toggleAbCompare(abBtn);
       } else if (hoveredCard && e.key >= '1' && e.key <= '6') {
         const idx = parseInt(e.key, 10) - 1;
         const tabs = hoveredCard.querySelectorAll('.vtab');
         if (tabs[idx]) tabs[idx].click();
       }
     });
+
+    function toggleAbCompare(btn) {
+      const card = btn.closest('.card');
+      const tabs = card.querySelectorAll('.vtab');
+      if (tabs[5].classList.contains('active')) {
+        tabs[1].click();
+      } else {
+        tabs[5].click();
+      }
+    }
 
     function switchImg(btn, src, mode) {
       const card = btn.closest('.card');

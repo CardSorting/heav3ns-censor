@@ -46,6 +46,13 @@ enum Commands {
         role: String,
     },
 
+    /// Output a comprehensive diagnostic, cryptographic integrity, and handoff explanation for a single asset
+    Explain {
+        /// Asset ID, unique prefix, SHA-256 prefix, or filename in the ledger
+        #[arg(long)]
+        asset_id: String,
+    },
+
     /// Run a comprehensive cryptographic (SHA-256), bit-exact preservation, escalation-isolation, and orphan-hygiene audit
     Doctor {
         /// Automatically repair missing directories, prune orphaned files, and re-sync reports
@@ -303,6 +310,10 @@ fn main() -> Result<()> {
         }
         Commands::Onboard { role } => {
             let packet = workspace.onboard(&role)?;
+            println!("{}", serde_json::to_string_pretty(&packet)?);
+        }
+        Commands::Explain { asset_id } => {
+            let packet = workspace.explain_asset(&asset_id)?;
             println!("{}", serde_json::to_string_pretty(&packet)?);
         }
         Commands::Doctor { fix } => {
@@ -789,6 +800,16 @@ mod tests {
         )?;
         assert_eq!(rec3.regions.len(), 1);
         assert_eq!(rec3.regions[0].id, "r1");
+
+        // 5. Verify onboard and explain handoff packets
+        let onboard_pkt = ws.onboard("agent")?;
+        assert_eq!(onboard_pkt.selected_role, "agent");
+        assert_eq!(onboard_pkt.engine_version, "4.0.0");
+
+        let explain_pkt = ws.explain_asset(target_id)?;
+        assert!(explain_pkt.cryptographic_integrity_verified);
+        assert!(explain_pkt.bit_exact_preservation_verified);
+        assert_eq!(explain_pkt.active_regions_count, 1);
 
         let _ = std::fs::remove_dir_all(&tmp_ws);
         Ok(())

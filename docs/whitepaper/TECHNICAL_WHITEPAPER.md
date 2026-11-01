@@ -1,3 +1,7 @@
+[🏠 Home (`README.md`)](../../README.md) &rsaquo; [📚 Docs Portal (`docs/`)](../README.md) &rsaquo; **📄 Technical Whitepaper**
+
+---
+
 # Deterministic Zero-Collateral Localized Image Obscuration with Multi-Scale Frequency-Domain & JPEG-Quantization Resilience Verification
 
 **Document ID:** `DOC-WP-001`  

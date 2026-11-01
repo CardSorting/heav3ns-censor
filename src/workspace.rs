@@ -146,6 +146,22 @@ pub struct OnboardingPacket {
     pub status_summary: WorkspaceStatusSummary,
 }
 
+#[derive(Debug, Serialize)]
+pub struct AssetExplanationPacket {
+    pub asset_id: String,
+    pub original_filename: String,
+    pub dimensions: (u32, u32),
+    pub status: AssetStatus,
+    pub classification: Option<CensorshipClassification>,
+    pub executive_summary: String,
+    pub cryptographic_integrity_verified: bool,
+    pub bit_exact_preservation_verified: bool,
+    pub active_regions_count: usize,
+    pub next_handoff_actions: Vec<String>,
+    pub cli_commands: InspectCliTemplates,
+    pub record: AssetRecord,
+}
+
 /// Atomically writes `bytes` to `target_path` via a sibling temporary file + `sync_all()` + `rename()`.
 pub fn atomic_write_bytes(target_path: &Path, bytes: &[u8]) -> Result<()> {
     if let Some(parent) = target_path.parent() {
@@ -1305,6 +1321,111 @@ impl Workspace {
         })
     }
 
+    /// Generates a comprehensive diagnostic and stakeholder/agent handoff explanation for a single asset (`explain`).
+    pub fn explain_asset(&self, asset_query: &str) -> Result<AssetExplanationPacket> {
+        let ledger = self.load_ledger()?;
+        let asset_id = Self::resolve_asset_id_in_ledger(&ledger, asset_query)?;
+        let rec = ledger
+            .assets
+            .get(&asset_id)
+            .ok_or_else(|| anyhow!("Asset '{}' not found in ledger", asset_id))?
+            .clone();
+
+        let orig_sha_ok = fs::read(&rec.archive_original_path)
+            .map(|b| compute_sha256(&b) == rec.sha256_original)
+            .unwrap_or(false);
+        let pub_sha_ok = match (&rec.published_edition_path, &rec.sha256_published) {
+            (Some(p), Some(expected)) => fs::read(p)
+                .map(|b| &compute_sha256(&b) == expected)
+                .unwrap_or(false),
+            (None, None) => true,
+            _ => false,
+        };
+        let crypto_ok = orig_sha_ok && pub_sha_ok;
+
+        let bit_exact_ok = match &rec.verification {
+            Some(v) => v.artistic_preservation_exact && v.non_censored_pixel_diff_count == 0,
+            None => rec.status == AssetStatus::ApprovedOriginal || rec.status == AssetStatus::Escalated || rec.status == AssetStatus::PendingInspection,
+        };
+
+        let executive_summary = match rec.status {
+            AssetStatus::Verified => format!(
+                "VERIFIED CENSORED EDITION: {} localized intervention region(s) applied under '{}'. 100% bit-exact outside masks (0 diff px) and verified across 1080p Q85 & 540p Q75 JPEG downscales.",
+                rec.regions.len(),
+                rec.policy_profile
+            ),
+            AssetStatus::ApprovedOriginal => format!(
+                "APPROVED UNTOUCHED ({:?}): Exported bit-identically to published/ with zero pixel modification (SHA-256 matches archived original).",
+                rec.classification.unwrap_or(CensorshipClassification::ArtisticNudityPass)
+            ),
+            AssetStatus::Escalated => {
+                let esc_info = rec.escalation.as_ref().map(|e| format!("[{}] {}", e.ambiguity_category, e.reason)).unwrap_or_default();
+                format!(
+                    "ESCALATED FOR EXECUTIVE/ARTIST REVIEW: Isolated from published/ directory. {}",
+                    esc_info
+                )
+            }
+            _ => "PENDING INSPECTION: Awaiting VLM coordinate inspection and classification triage.".to_string(),
+        };
+
+        let next_handoff_actions = match rec.status {
+            AssetStatus::Verified => vec![
+                format!("Ready for publication distribution at `{}`.", rec.published_edition_path.as_deref().unwrap_or("")),
+                format!("View 4-Panel Broadcast QC Slate at `assets/previews/{}_contact_sheet.png` or open `ledger/dashboard.html`.", rec.asset_id),
+                format!("To adjust a region incrementally, run `heav3ns-censor execute --asset-id {} --append --region \"...\"`.", rec.asset_id),
+            ],
+            AssetStatus::ApprovedOriginal => vec![
+                format!("Ready for publication distribution (untouched original) at `{}`.", rec.published_edition_path.as_deref().unwrap_or("")),
+            ],
+            AssetStatus::Escalated => vec![
+                "Requires determination by MAJO (Executive Chair) or EGG (Principal Artist) in `ledger/escalations_review.md`.".to_string(),
+                format!("Once decided, resolve via `heav3ns-censor execute --asset-id {} --region \"...\"` or `heav3ns-censor approve-original --asset-id {} --rationale \"...\"`.", rec.asset_id, rec.asset_id),
+            ],
+            _ => vec![
+                format!("Run `heav3ns-censor inspect --asset-id {}` and view `inspect_grid_path` via VLM `read_file`.", rec.asset_id),
+            ],
+        };
+
+        let rec_bs =
+            recommended_mosaic_block_size(rec.width, rec.height, &rec.policy_profile);
+
+        Ok(AssetExplanationPacket {
+            asset_id: rec.asset_id.clone(),
+            original_filename: rec.original_filename.clone(),
+            dimensions: (rec.width, rec.height),
+            status: rec.status,
+            classification: rec.classification,
+            executive_summary,
+            cryptographic_integrity_verified: crypto_ok,
+            bit_exact_preservation_verified: bit_exact_ok,
+            active_regions_count: rec.regions.len(),
+            next_handoff_actions,
+            cli_commands: InspectCliTemplates {
+                execute_mosaic_example: format!(
+                    "./target/release/heav3ns-censor execute --asset-id {} --append --region \"r1=mosaic:440,500,120,100:pixels:rect:{}:0:explicit_anatomy\"",
+                    rec.asset_id, rec_bs
+                ),
+                execute_rotated_bar_example: format!(
+                    "./target/release/heav3ns-censor execute --asset-id {} --append --region \"r2=solid_bar:444,314,112,52:pixels:pill:auto@6.0:0:kuro_nuri_cleft\"",
+                    rec.asset_id
+                ),
+                zoom_crop_example: format!(
+                    "./target/release/heav3ns-censor inspect --asset-id {} --crop \"420,480,160,140:pixels\"",
+                    rec.asset_id
+                ),
+                approve_original_example: format!(
+                    "./target/release/heav3ns-censor approve-original --asset-id {} --classification artistic_nudity_pass --rationale \"Approved untouched.\"",
+                    rec.asset_id
+                ),
+                escalate_example: format!(
+                    "./target/release/heav3ns-censor escalate --asset-id {} --category \"stylized_anatomy_ambiguity\" --reason \"Requires review\"",
+                    rec.asset_id
+                ),
+            },
+            record: rec,
+        })
+    }
+
     /// Generates Markdown reports (`ledger/publication_report.md` and `ledger/escalations_review.md`)
     /// AND the Interactive Studio QC Dashboard (`ledger/dashboard.html`).
     pub fn sync_markdown_reports(&self) -> Result<()> {
@@ -1620,6 +1741,7 @@ impl Workspace {
                         <button class="vtab" onclick="switchImg(this, '{p540_rel}', 'single')">[4] 540p Thumb Sim</button>
                         <button class="vtab" onclick="switchImg(this, '{grid_rel}', 'single')">[5] VLM Coordinate Grid</button>
                         <button class="vtab" onclick="switchImg(this, '{orig_rel}', 'single')">[6] Untouched Original</button>
+                        <button class="vtab ab-btn" onclick="toggleAbCompare(this)" title="Press 'o' to A/B toggle between Published Edition [2] and Untouched Original [6]">[o] A/B Compare Original</button>
                     </div>
                     <div class="coord-hud" data-cmd-type="mosaic">
                         <div class="hud-left">
@@ -1993,12 +2115,26 @@ impl Workspace {
       if (e.key === '/') {{
         e.preventDefault();
         document.getElementById('global-search').focus();
+      }} else if (hoveredCard && (e.key === 'o' || e.key === 'O')) {{
+        e.preventDefault();
+        const abBtn = hoveredCard.querySelector('.ab-btn');
+        if (abBtn) toggleAbCompare(abBtn);
       }} else if (hoveredCard && e.key >= '1' && e.key <= '6') {{
         const idx = parseInt(e.key, 10) - 1;
         const tabs = hoveredCard.querySelectorAll('.vtab');
         if (tabs[idx]) tabs[idx].click();
       }}
     }});
+
+    function toggleAbCompare(btn) {{
+      const card = btn.closest('.card');
+      const tabs = card.querySelectorAll('.vtab');
+      if (tabs[5].classList.contains('active')) {{
+        tabs[1].click();
+      }} else {{
+        tabs[5].click();
+      }}
+    }}
 
     function switchImg(btn, src, mode) {{
       const card = btn.closest('.card');

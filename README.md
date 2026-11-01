@@ -6,11 +6,11 @@
 
 [![Rust 2021](https://img.shields.io/badge/rust-2021_edition-orange.svg)](Cargo.toml)
 [![Version](https://img.shields.io/badge/version-4.0.0-00ffd5.svg)](CHANGELOG.md)
-[![License: MIT OR Apache-2.0](https://img.shields.io/badge/license-MIT_OR_Apache--2.0-blue.svg)](LICENSE)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![MCP Protocol](https://img.shields.io/badge/MCP-2024--11--05_stdio-ff328c.svg)](src/mcp.rs)
 [![Preservation Invariant](https://img.shields.io/badge/exterior_pixel_diff-0_px_(bit_exact)-3fb950.svg)](docs/whitepaper/TECHNICAL_WHITEPAPER.md)
 
-**[🤖 Agent Onboarding](docs/onboarding/AGENT_ONBOARDING.md)** • **[🛠️ Developer Onboarding](docs/onboarding/DEVELOPER_ONBOARDING.md)** • **[🏛️ Stakeholder Handoff](docs/stakeholder-handoff/STAKEHOLDER_HANDOFF.md)** • **[Philosophy](docs/philosophy/PHILOSOPHY.md)** • **[Whitepaper](docs/whitepaper/TECHNICAL_WHITEPAPER.md)** • **[Knowledgebase](docs/knowledgebase/INDEX.md)** • **[ADRs](docs/adrs/)** • **[Playbooks](docs/playbooks/)** • **[Postmortems](docs/postmortems/)**
+**[🤖 Agent Onboarding](docs/onboarding/AGENT_ONBOARDING.md)** • **[🛠️ Developer Onboarding](docs/onboarding/DEVELOPER_ONBOARDING.md)** • **[🏛️ Stakeholder Handoff](docs/stakeholder-handoff/STAKEHOLDER_HANDOFF.md)** • **[Philosophy](docs/philosophy/PHILOSOPHY.md)** • **[Whitepaper](docs/whitepaper/TECHNICAL_WHITEPAPER.md)** • **[Docs Portal](docs/README.md)** • **[ADRs](docs/adrs/README.md)** • **[Playbooks](docs/playbooks/README.md)** • **[Postmortems](docs/postmortems/README.md)**
 
 </div>
 
@@ -48,6 +48,14 @@ Unlike generative diffusion/inpainting tools that hallucinate brushwork or alter
 Every `execute` run automatically generates a 4-panel verification contact sheet comparing **(1) Original + Exact SDF Contours**, **(2) Published Censored Edition**, **(3) 540p Thumbnail JPEG Simulation (`Q75`)**, and **(4) Bit-Exact Modification Heatmap** (`0` exterior diff pixels):
 
 ![4-Panel Broadcast QC Slate](assets/previews/heav3ns_01_explicit_study_63116478_contact_sheet.png)
+
+### Stage 4: The 3 Commission Triage Archetypes in Action
+`heav3ns-censor` never blindly censors every instance of nudity. It enforces a strict three-way triage across incoming master illustrations:
+
+| 1. `Verified` (Localized Intervention) | 2. `ApprovedOriginal` (Artistic Nudity Pass) | 3. `Escalated` (Isolated for Executive Review) |
+| :---: | :---: | :---: |
+| ![Verified Censored Edition](assets/published/heav3ns_01_explicit_study_63116478_published.png) | ![Approved Untouched Edition](assets/published/heav3ns_02_artistic_silhouette_c199216e_published.png) | ![Escalated Ambiguity Grid](assets/inspect/heav3ns_03_biomech_ambiguity_05522fca_inspect_grid.png) |
+| **`heav3ns_01_explicit_study`**<br/>Applied `14px` Article 175 `Mosaic` (`r1`) + $+6^\circ$ rotated `Pill` `SolidBar` (`r2`). `1.60%` canvas modified; `98.40%` 100% bit-identical. | **`heav3ns_02_artistic_silhouette`**<br/>Classical silhouette with zero explicit genital detail. Approved untouched (`0.00%` pixels modified; `SHA-256` identical to master). | **`heav3ns_03_biomech_ambiguity`**<br/>Abstract biomechanical groin core. Isolated from `published/` and logged to [`ledger/escalations_review.md`](ledger/escalations_review.md) for **MAJO** & **EGG**. |
 
 ---
 
@@ -221,6 +229,8 @@ The `--region` flag accepts a compact, expressive specification:
 
 | MCP Tool Name | Description |
 | :--- | :--- |
+| `heav3ns_onboard` | Returns a role-tailored (`agent`, `developer`, `stakeholder`, `all`) onboarding packet with live workspace commands. |
+| `heav3ns_explain_asset` | Returns a complete diagnostic, cryptographic integrity, and handoff explanation card for a single asset. |
 | `heav3ns_status` | Returns pipeline queues, ledger paths, and `next_recommended_action`. |
 | `heav3ns_doctor` | Runs the 9-point cryptographic SHA-256, preservation, and orphan-hygiene audit (`fix: bool`). |
 | `heav3ns_batch_prepare` | Ingests all new `inbox/` files and renders VLM inspection grids + hotspot hints in one call. |
@@ -270,7 +280,7 @@ This repository includes a machine-readable [`CITATION.cff`](CITATION.cff) file 
 
 ## Open-Source Governance, Security, & Licensing
 
-- **License:** Dual-licensed under **[MIT](LICENSE-MIT) OR [Apache-2.0](LICENSE-APACHE)** at your option (see [`LICENSE`](LICENSE) for full details and studio artwork copyright notice).
+- **License:** Licensed under the **[MIT License](LICENSE)** (see [`LICENSE`](LICENSE) for full details).
 - **Contributing:** See [`CONTRIBUTING.md`](CONTRIBUTING.md) for architectural invariants, test requirements, and ADR guidelines.
 - **Governance:** See [`GOVERNANCE.md`](GOVERNANCE.md) for the Triad Studio & Open-Source Governance model (**MAJO**, **EGG**, **Deputy Gemini**, and community contributors).
 - **Security Policy:** See [`SECURITY.md`](SECURITY.md) for cryptographic `SHA-256` master verification, escalation isolation guarantees, and vulnerability reporting.

@@ -57,5 +57,5 @@ cargo build --release
 
 ## 4. License of Contributions
 
-By submitting a contribution to this repository, you agree that your contribution is dual-licensed under the **MIT OR Apache-2.0** licenses as described in [`LICENSE`](LICENSE).
+By submitting a contribution to this repository, you agree that your contribution is licensed under the **MIT License** as described in [`LICENSE`](LICENSE).
 

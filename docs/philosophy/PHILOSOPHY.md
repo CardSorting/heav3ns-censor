@@ -1,3 +1,7 @@
+[🏠 Home (`README.md`)](../../README.md) &rsaquo; [📚 Docs Portal (`docs/`)](../README.md) &rsaquo; **🎨 Artistic Preservation Philosophy**
+
+---
+
 # HEAV3NS-CENSOR: Artistic Preservation & Post-Production Philosophy
 
 **Document ID:** `DOC-PHIL-001`  
