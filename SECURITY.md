@@ -37,3 +37,4 @@ If you discover a security vulnerability, a verification bypass (e.g., a censors
 1. **Do NOT open a public issue** if the vulnerability could cause accidental distribution of uncensored assets in production deployments.
 2. Open a private security advisory via [GitHub Security Advisories](https://github.com/CardSorting/heav3ns-censor/security/advisories/new) or contact the **HEAV3NS** maintainers directly.
 3. Include a minimal reproducible `--region` command or unit test demonstrating the issue. We aim to triage and patch verified mathematical or security issues within 48 hours alongside a documented engineering postmortem in [`docs/postmortems/`](docs/postmortems/).
+

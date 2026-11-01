@@ -116,6 +116,20 @@ fn mcp_tool_definitions() -> Value {
             }
         },
         {
+            "name": "heav3ns_onboard",
+            "description": "Generate a context-aware, role-specific onboarding and handoff packet ('agent', 'developer', 'stakeholder', or 'all') with live workspace commands, invariants, and documentation map.",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "role": {
+                        "type": "string",
+                        "enum": ["agent", "developer", "stakeholder", "all"],
+                        "description": "Target persona (default: 'agent')"
+                    }
+                }
+            }
+        },
+        {
             "name": "heav3ns_doctor",
             "description": "Run a comprehensive cryptographic (SHA-256), bit-exact preservation, escalation-isolation, and orphan-hygiene health audit across the workspace.",
             "inputSchema": {
@@ -268,6 +282,11 @@ fn dispatch_tool_call(workspace: &Workspace, tool_name: &str, args: &Value) -> R
         "heav3ns_status" => {
             let status = workspace.status_summary()?;
             Ok(serde_json::to_value(status)?)
+        }
+        "heav3ns_onboard" => {
+            let role = args.get("role").and_then(|s| s.as_str()).unwrap_or("agent");
+            let packet = workspace.onboard(role)?;
+            Ok(serde_json::to_value(packet)?)
         }
         "heav3ns_doctor" => {
             let fix = args.get("fix").and_then(|b| b.as_bool()).unwrap_or(false);

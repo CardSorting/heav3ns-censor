@@ -1,9 +1,18 @@
+[🏠 Home (`README.md`)](../../README.md) &rsaquo; [📚 Knowledgebase (`INDEX.md`)](../knowledgebase/INDEX.md) &rsaquo; **🏛️ Executive & Studio Stakeholder Handoff**
+
+---
+
 # HEAV3NS-CENSOR: Executive & Studio Stakeholder Handoff Guide
 
 **Document ID:** `DOC-HANDOFF-001`  
 **Engine Version:** `heav3ns-censor v4.0.0`  
 **Prepared For:** MAJO (Executive Chair), EGG (Principal Artist), & Studio Operations  
 **Prepared By:** Deputy Gemini (Autonomous Post-Production Department)  
+
+> [!TIP]
+> **Looking for Technical or Agent Onboarding?**  
+> - **Autonomous AI Agents:** Start at [`docs/onboarding/AGENT_ONBOARDING.md`](../onboarding/AGENT_ONBOARDING.md) or run `./target/release/heav3ns-censor onboard --role agent`.  
+> - **Rust Developers & Researchers:** Start at [`docs/onboarding/DEVELOPER_ONBOARDING.md`](../onboarding/DEVELOPER_ONBOARDING.md) or run `./target/release/heav3ns-censor onboard --role developer`.  
 
 ---
 
@@ -65,6 +74,8 @@ HEAV3NS-CENSOR/
 
 Open [`ledger/dashboard.html`](../../ledger/dashboard.html) in any modern browser (no local server required; uses relative paths):
 
+![4-Panel Broadcast QC Slate Example](../../assets/previews/heav3ns_01_explicit_study_63116478_contact_sheet.png)
+
 1. **6-Tab Multi-Resolution Switcher (Keys `1`–`6`):**
    - `[1] 4-Panel QC Slate`: Side-by-side view of Original + Target Contours, Published Edition, 540p Thumbnail Sim, and Bit-Exact Modification Heatmap.
    - `[2] Published Edition`: Full-resolution PNG output.
@@ -72,9 +83,9 @@ Open [`ledger/dashboard.html`](../../ledger/dashboard.html) in any modern browse
    - `[4] 540p Thumb Sim`: Simulated mobile/feed thumbnail (`Q75` JPEG).
    - `[5] VLM Coordinate Grid`: Burned-in `Normalized1000` cyan/yellow rulers and pink interior anchors.
    - `[6] Untouched Original`: Archived master file from `assets/originals/`.
-2. **Interactive Coordinate & Bounding-Box Inspector:**
+2. **Interactive Coordinate & Action Preset Generator:**
    - **Hover** over any image to read live `Cursor Pixels: (X, Y)` and `Norm1000: (X, Y)`.
-   - **Click and drag** across any region (even directly on a quadrant of the 4-Panel QC Slate) to draw a cyan rubber-band box and automatically generate a ready-to-run `--region` CLI command with one-click **Copy CLI**.
+   - **Select a Preset (`Mosaic`, `Pill Bar (Auto)`, `3x Zoom-Crop`, `Approve Original`, `Escalate`)** and **click-and-drag** across any region (even directly on a quadrant of the 4-Panel QC Slate) to draw a cyan rubber-band box and automatically generate a ready-to-run CLI command with one-click **Copy CLI**.
 
 ---
 

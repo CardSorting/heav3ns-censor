@@ -19,7 +19,8 @@ use workspace::{ExecuteOptions, Workspace};
 #[command(
     name = "heav3ns-censor",
     version = "4.0.0",
-    about = "Autonomous Japanese-Style Censorship & Publication Post-Processing Agentic Studio Engine for HEAV3NS"
+    about = "Autonomous Japanese-Style Censorship & Publication Post-Processing Agentic Studio Engine for HEAV3NS",
+    after_help = "ROLE-BASED QUICKSTART EXAMPLES:\n  # 1. Interactive Role Onboarding (agent | developer | stakeholder | all):\n  heav3ns-censor onboard --role agent\n\n  # 2. Batch-Ingest & Render VLM Coordinate Grids + Candidate Hotspots:\n  heav3ns-censor batch-prepare\n\n  # 3. 3x Magnified Zoom-Crop with Burned-In Global Pixel Coordinates:\n  heav3ns-censor inspect --asset-id heav3ns_01 --crop \"420,480,160,140:pixels\"\n\n  # 4. Execute Localized Censorship (Mosaic + Rotated Pill Bar with 'auto' contrast):\n  heav3ns-censor execute --asset-id heav3ns_01 \\\n    --region \"r1=mosaic:440,500,120,100:pixels:rect:14:0:explicit_lower_anatomy\" \\\n    --region \"r2=solid_bar:444,314,112,52:pixels:pill:auto@6.0:0:kuro_nuri_cleft_bar\"\n\n  # 5. Cryptographic SHA-256, Bit-Exact Preservation, & Hygiene Audit:\n  heav3ns-censor doctor --fix"
 )]
 struct Cli {
     /// Workspace root directory (defaults to current working directory)
@@ -37,6 +38,13 @@ enum Commands {
 
     /// Output current workspace pipeline status, asset queues, next recommended action, and ledger paths as JSON
     Status,
+
+    /// Generate a context-aware, role-specific onboarding & handoff guide (`agent`, `developer`, `stakeholder`, or `all`)
+    Onboard {
+        /// Target persona: `agent`, `developer`, `stakeholder`, or `all`
+        #[arg(long, default_value = "all")]
+        role: String,
+    },
 
     /// Run a comprehensive cryptographic (SHA-256), bit-exact preservation, escalation-isolation, and orphan-hygiene audit
     Doctor {
@@ -292,6 +300,10 @@ fn main() -> Result<()> {
         Commands::Status => {
             let status = workspace.status_summary()?;
             println!("{}", serde_json::to_string_pretty(&status)?);
+        }
+        Commands::Onboard { role } => {
+            let packet = workspace.onboard(&role)?;
+            println!("{}", serde_json::to_string_pretty(&packet)?);
         }
         Commands::Doctor { fix } => {
             let report = workspace.run_doctor(fix)?;

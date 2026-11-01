@@ -10,9 +10,22 @@
 [![MCP Protocol](https://img.shields.io/badge/MCP-2024--11--05_stdio-ff328c.svg)](src/mcp.rs)
 [![Preservation Invariant](https://img.shields.io/badge/exterior_pixel_diff-0_px_(bit_exact)-3fb950.svg)](docs/whitepaper/TECHNICAL_WHITEPAPER.md)
 
-**[Philosophy](docs/philosophy/PHILOSOPHY.md)** • **[Stakeholder Handoff](docs/stakeholder-handoff/STAKEHOLDER_HANDOFF.md)** • **[Technical Whitepaper](docs/whitepaper/TECHNICAL_WHITEPAPER.md)** • **[Knowledgebase](docs/knowledgebase/INDEX.md)** • **[ADRs](docs/adrs/)** • **[Playbooks](docs/playbooks/)** • **[Postmortems](docs/postmortems/)** • **[Contributing](CONTRIBUTING.md)**
+**[🤖 Agent Onboarding](docs/onboarding/AGENT_ONBOARDING.md)** • **[🛠️ Developer Onboarding](docs/onboarding/DEVELOPER_ONBOARDING.md)** • **[🏛️ Stakeholder Handoff](docs/stakeholder-handoff/STAKEHOLDER_HANDOFF.md)** • **[Philosophy](docs/philosophy/PHILOSOPHY.md)** • **[Whitepaper](docs/whitepaper/TECHNICAL_WHITEPAPER.md)** • **[Knowledgebase](docs/knowledgebase/INDEX.md)** • **[ADRs](docs/adrs/)** • **[Playbooks](docs/playbooks/)** • **[Postmortems](docs/postmortems/)**
 
 </div>
+
+---
+
+## Start Here: 60-Second Role-Based Onboarding & Handoff Hub
+
+Choose your role to jump straight to your tailored workflow, or run `./target/release/heav3ns-censor onboard --role <role>`:
+
+| Persona | Primary Goal | Dedicated Guide | Live CLI Self-Onboarding |
+| :--- | :--- | :--- | :--- |
+| **🤖 Autonomous AI Agent** (`Deputy Gemini` / MCP Client) | Ingest `assets/inbox/`, inspect VLM coordinate grids, apply localized censorship or escalate ambiguity, and verify with `doctor --fix`. | **[Agent Onboarding Guide &rarr;](docs/onboarding/AGENT_ONBOARDING.md)**<br/>*(+ [`AGENTS.md`](AGENTS.md) & [`SKILL.md`](.agents/skills/heav3ns-censor-operator/SKILL.md))* | `./target/release/heav3ns-censor onboard --role agent` |
+| **🏛️ Studio Stakeholders** (**MAJO**, Executive Chair & **EGG**, Principal Artist) | Drop master art in `assets/inbox/`, inspect the **4-Panel QC Slate** in [`ledger/dashboard.html`](ledger/dashboard.html), and review escalations in [`escalations_review.md`](ledger/escalations_review.md). | **[Stakeholder Handoff Guide &rarr;](docs/stakeholder-handoff/STAKEHOLDER_HANDOFF.md)**<br/>*(+ [`Philosophy`](docs/philosophy/PHILOSOPHY.md))* | `./target/release/heav3ns-censor onboard --role stakeholder` |
+| **🛠️ Rust Developer / Contributor** | Understand the 6-module Rust architecture (`src/`), run the 8 mathematical invariant tests, or add a new SDF shape/policy profile. | **[Developer Onboarding Guide &rarr;](docs/onboarding/DEVELOPER_ONBOARDING.md)**<br/>*(+ [`CONTRIBUTING.md`](CONTRIBUTING.md))* | `./target/release/heav3ns-censor onboard --role developer` |
+| **🔬 Academic / CV Researcher** | Study the inverse-rotated analytical SDFs, remainder-strip edge pooling, and fractional-step multi-scale JPEG verification math. | **[Technical Whitepaper &rarr;](docs/whitepaper/TECHNICAL_WHITEPAPER.md)**<br/>*(+ [`ADRs`](docs/adrs/) & [`Postmortems`](docs/postmortems/))* | `cargo test --release` |
 
 ---
 
@@ -21,6 +34,20 @@
 **`heav3ns-censor`** is an autonomous, cryptographically auditable post-production censorship engine written in Rust for **HEAV3NS** (**MAJO**, Executive Chair; **EGG**, Principal Artist; **Deputy Gemini**, Commissioned Autonomous Agent).
 
 Unlike generative diffusion/inpainting tools that hallucinate brushwork or alter surrounding composition, `heav3ns-censor` pairs **multimodal Vision-Language Model (VLM) spatial grounding** with a **deterministic Signed Distance Field (SDF) pixel engine**. It guarantees that every pixel outside the declared localized censorship masks remains **100% bit-identical** ($\text{RGBA}_{\text{pub}}(x,y) \equiv \text{RGBA}_{\text{orig}}(x,y)$) to the artist's untouched master file, while mathematically verifying that obscured regions survive `1080p` (`Q85` JPEG) and `540p` (`Q75` Thumbnail JPEG) distribution downscaling.
+
+---
+
+## Visual Pipeline Showcase (Coarse-to-Fine VLM Grounding & 4-Panel QC Slate)
+
+| Stage 1: VLM Coordinate Grid (`*_inspect_grid.png`) | Stage 2: 3x Magnified Zoom-Crop (`*_zoom_crop.png`) |
+| :---: | :---: |
+| ![VLM Coordinate Grid](assets/inspect/heav3ns_01_explicit_study_63116478_inspect_grid.png) | ![3x Magnified Zoom-Crop](assets/inspect/heav3ns_01_explicit_study_63116478_zoom_crop.png) |
+| *Burned-in `Normalized1000` cyan `X100..X900` & yellow `Y100..Y900` rulers + pink interior `(300,300)`..`(700,700)` anchors.* | *3x nearest-neighbor magnification (`inspect --crop`) with burned-in global pixel coordinates (`X420..X580`).* |
+
+### Stage 3: Automated 4-Panel Broadcast QC Slate (`*_contact_sheet.png`)
+Every `execute` run automatically generates a 4-panel verification contact sheet comparing **(1) Original + Exact SDF Contours**, **(2) Published Censored Edition**, **(3) 540p Thumbnail JPEG Simulation (`Q75`)**, and **(4) Bit-Exact Modification Heatmap** (`0` exterior diff pixels):
+
+![4-Panel Broadcast QC Slate](assets/previews/heav3ns_01_explicit_study_63116478_contact_sheet.png)
 
 ---
 

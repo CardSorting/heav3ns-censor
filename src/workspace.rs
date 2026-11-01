@@ -132,6 +132,20 @@ pub struct InspectCliTemplates {
     pub escalate_example: String,
 }
 
+#[derive(Debug, Serialize)]
+pub struct OnboardingPacket {
+    pub engine_version: String,
+    pub selected_role: String,
+    pub commission_authority: String,
+    pub principal_artist: String,
+    pub commissioned_agent: String,
+    pub core_invariants: Vec<String>,
+    pub role_quickstart_steps: Vec<String>,
+    pub live_workspace_commands: Vec<String>,
+    pub documentation_map: std::collections::BTreeMap<String, String>,
+    pub status_summary: WorkspaceStatusSummary,
+}
+
 /// Atomically writes `bytes` to `target_path` via a sibling temporary file + `sync_all()` + `rename()`.
 pub fn atomic_write_bytes(target_path: &Path, bytes: &[u8]) -> Result<()> {
     if let Some(parent) = target_path.parent() {
@@ -1178,6 +1192,117 @@ impl Workspace {
         })
     }
 
+    /// Generates a role-tailored, context-aware onboarding and handoff packet (`agent`, `developer`, `stakeholder`, or `all`).
+    pub fn onboard(&self, role: &str) -> Result<OnboardingPacket> {
+        let status = self.status_summary()?;
+        let ledger = self.load_ledger()?;
+        let normalized_role = match role.trim().to_lowercase().as_str() {
+            "agent" | "ai" | "deputy" => "agent",
+            "dev" | "developer" | "engineer" | "researcher" => "developer",
+            "stakeholder" | "executive" | "artist" | "majo" | "egg" => "stakeholder",
+            _ => "all",
+        };
+
+        let sample_asset = ledger
+            .assets
+            .keys()
+            .next()
+            .cloned()
+            .unwrap_or_else(|| "heav3ns_01".to_string());
+
+        let role_steps = match normalized_role {
+            "agent" => vec![
+                "1. [INGEST & PREPARE] Run `./target/release/heav3ns-censor batch-prepare` (or MCP `heav3ns_batch_prepare`) to archive SHA-256 originals and render Normalized1000 VLM coordinate grids + hotspot hints.".to_string(),
+                "2. [VISUAL GROUNDING] Use `read_file` on `archive_original_path` and `inspect_grid_path`. For small/angled details, run `inspect --crop \"x,y,w,h:pixels\"` to generate a 3x magnified crop with burned-in global coordinates.".to_string(),
+                "3. [TRIAGE & EXECUTE] Classify into `explicit_requires_intervention` (`execute`), `artistic_nudity_pass` / `suggestive_pass` (`approve-original`), or `ambiguous_escalate` (`escalate`). Use `--append` for incremental region edits.".to_string(),
+                "4. [VERIFY & AUDIT] Inspect `assets/previews/<ID>_contact_sheet.png` (4-Panel Broadcast QC Slate) and run `./target/release/heav3ns-censor doctor --fix` to confirm `overall_healthy == true`.".to_string(),
+            ],
+            "developer" => vec![
+                "1. [BUILD & TEST] Run `cargo test --release && cargo build --release` to execute all 8 mathematical SDF, remainder-pooling, and state-hygiene unit tests.".to_string(),
+                "2. [ARCHITECTURE TOUR] Read `src/models.rs` (SDF geometry & BTreeMap ledger) -> `src/engine.rs` (immutable-source spatial filters & multi-scale JPEG verifier) -> `src/workspace.rs` (RAII lock & atomic persistence) -> `src/mcp.rs` (JSON-RPC 2.0 server).".to_string(),
+                "3. [WHITEPAPER & ADRs] Review `docs/whitepaper/TECHNICAL_WHITEPAPER.md`, `docs/adrs/ADR-0001..0004`, and `docs/postmortems/PM-001..004` before modifying spatial kernels.".to_string(),
+                "4. [DOCTOR GATE] Always run `./target/release/heav3ns-censor doctor --fix` before committing.".to_string(),
+            ],
+            "stakeholder" => vec![
+                "1. [FOR EGG - PRINCIPAL ARTIST] Drop master illustrations into `assets/inbox/`. Untouched originals are permanently preserved in `assets/originals/` with SHA-256 verification.".to_string(),
+                "2. [FOR MAJO - EXECUTIVE CHAIR] Open `ledger/dashboard.html` in any browser to inspect the 4-Panel Broadcast QC Slates, or read `ledger/publication_report.md` and `ledger/escalations_review.md`.".to_string(),
+                "3. [INTERACTIVE COORDINATE PICKER] In `ledger/dashboard.html`, drag a box over any image to measure exact coordinates and generate a 1-click CLI command for custom adjustments.".to_string(),
+                "4. [HEALTH VERIFICATION] Run `./target/release/heav3ns-censor doctor` anytime to verify 100% bit-exact preservation across all assets.".to_string(),
+            ],
+            _ => vec![
+                "[AGENT TRACK] Run `batch-prepare` -> VLM `read_file` on `*_inspect_grid.png` -> `execute` / `approve-original` / `escalate` -> `doctor --fix` (see `docs/onboarding/AGENT_ONBOARDING.md`).".to_string(),
+                "[DEVELOPER TRACK] Run `cargo test --release` -> explore `src/engine.rs` & `docs/whitepaper/TECHNICAL_WHITEPAPER.md` (see `docs/onboarding/DEVELOPER_ONBOARDING.md`).".to_string(),
+                "[STAKEHOLDER TRACK] Open `ledger/dashboard.html` and `ledger/escalations_review.md` (see `docs/stakeholder-handoff/STAKEHOLDER_HANDOFF.md`).".to_string(),
+            ],
+        };
+
+        let mut doc_map = std::collections::BTreeMap::new();
+        doc_map.insert("01_readme_portal".to_string(), "README.md".to_string());
+        doc_map.insert(
+            "02_agent_onboarding".to_string(),
+            "docs/onboarding/AGENT_ONBOARDING.md".to_string(),
+        );
+        doc_map.insert(
+            "03_developer_onboarding".to_string(),
+            "docs/onboarding/DEVELOPER_ONBOARDING.md".to_string(),
+        );
+        doc_map.insert(
+            "04_stakeholder_handoff".to_string(),
+            "docs/stakeholder-handoff/STAKEHOLDER_HANDOFF.md".to_string(),
+        );
+        doc_map.insert(
+            "05_philosophy".to_string(),
+            "docs/philosophy/PHILOSOPHY.md".to_string(),
+        );
+        doc_map.insert(
+            "06_technical_whitepaper".to_string(),
+            "docs/whitepaper/TECHNICAL_WHITEPAPER.md".to_string(),
+        );
+        doc_map.insert(
+            "07_knowledgebase_index".to_string(),
+            "docs/knowledgebase/INDEX.md".to_string(),
+        );
+        doc_map.insert(
+            "08_playbooks_dir".to_string(),
+            "docs/playbooks/".to_string(),
+        );
+        doc_map.insert("09_adrs_dir".to_string(), "docs/adrs/".to_string());
+        doc_map.insert(
+            "10_postmortems_dir".to_string(),
+            "docs/postmortems/".to_string(),
+        );
+
+        Ok(OnboardingPacket {
+            engine_version: ledger.version,
+            selected_role: normalized_role.to_string(),
+            commission_authority: ledger.commission_authority,
+            principal_artist: ledger.principal_artist,
+            commissioned_agent: ledger.commissioned_agent,
+            core_invariants: vec![
+                "1. Artistic Preservation is Absolute: non_censored_pixel_diff_count == 0 (100% bit-exact RGBA outside SDF masks).".to_string(),
+                "2. Immutable Master Archive: Untouched originals are preserved in assets/originals/ with SHA-256 verification.".to_string(),
+                "3. Multi-Scale JPEG Resilience: Every censorship region is verified across Native (Mean + P95 Peak), 1080p (Q85 JPEG), and 540p (Q75 Thumbnail JPEG).".to_string(),
+                "4. Escalation Safety Isolation: Escalating an asset automatically revokes and deletes any prior published edition.".to_string(),
+            ],
+            role_quickstart_steps: role_steps,
+            live_workspace_commands: vec![
+                "./target/release/heav3ns-censor status".to_string(),
+                "./target/release/heav3ns-censor batch-prepare".to_string(),
+                format!(
+                    "./target/release/heav3ns-censor inspect --asset-id {} --crop \"420,480,160,140:pixels\"",
+                    sample_asset
+                ),
+                format!(
+                    "./target/release/heav3ns-censor execute --asset-id {} --append --region \"r1=mosaic:440,500,120,100:pixels:rect:auto:0:explicit_anatomy\"",
+                    sample_asset
+                ),
+                "./target/release/heav3ns-censor doctor --fix".to_string(),
+            ],
+            documentation_map: doc_map,
+            status_summary: status,
+        })
+    }
+
     /// Generates Markdown reports (`ledger/publication_report.md` and `ledger/escalations_review.md`)
     /// AND the Interactive Studio QC Dashboard (`ledger/dashboard.html`).
     pub fn sync_markdown_reports(&self) -> Result<()> {
@@ -1493,8 +1618,17 @@ impl Workspace {
                         <button class="vtab" onclick="switchImg(this, '{grid_rel}', 'single')">[5] VLM Coordinate Grid</button>
                         <button class="vtab" onclick="switchImg(this, '{orig_rel}', 'single')">[6] Untouched Original</button>
                     </div>
-                    <div class="coord-hud">
-                        <span class="coord-readout">Hover or drag on image to measure coordinates &amp; generate <code>--region</code> CLI</span>
+                    <div class="coord-hud" data-cmd-type="mosaic">
+                        <div class="hud-left">
+                            <span class="coord-readout">Hover or drag on image to measure coordinates &amp; generate CLI</span>
+                            <div class="cmd-type-group">
+                                <button class="ctbtn active" onclick="setCmdType(this, 'mosaic')">Mosaic</button>
+                                <button class="ctbtn" onclick="setCmdType(this, 'pill_bar')">Pill Bar (Auto)</button>
+                                <button class="ctbtn" onclick="setCmdType(this, 'crop')">3x Zoom-Crop</button>
+                                <button class="ctbtn" onclick="setQuickCmd(this, 'approve')">Approve Original</button>
+                                <button class="ctbtn" onclick="setQuickCmd(this, 'escalate')">Escalate</button>
+                            </div>
+                        </div>
                         <div class="cli-gen">
                             <input type="text" class="cli-out" readonly value="./target/release/heav3ns-censor inspect --asset-id {id}" />
                             <button class="copy-btn" onclick="copyCli(this)">Copy CLI</button>
@@ -1694,7 +1828,49 @@ impl Workspace {
     margin-bottom: 10px;
     font-size: 11px;
   }}
-  .coord-readout {{ color: var(--cyan); font-weight: 600; }}
+  .hud-left {{ display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }}
+  .coord-readout {{ color: var(--cyan); font-weight: 600; min-width: 240px; }}
+  .cmd-type-group {{ display: flex; gap: 4px; flex-wrap: wrap; }}
+  .ctbtn {{
+    background: #090b10;
+    color: var(--muted);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 3px 8px;
+    cursor: pointer;
+    font-size: 10px;
+    font-family: inherit;
+  }}
+  .ctbtn.active, .ctbtn:hover {{ color: var(--cyan); border-color: var(--cyan); background: rgba(0,255,213,0.1); }}
+  .onboard-drawer {{
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 16px;
+    margin-bottom: 20px;
+    font-size: 12px;
+  }}
+  .onboard-drawer summary {{
+    cursor: pointer;
+    color: var(--cyan);
+    font-weight: 700;
+    user-select: none;
+  }}
+  .role-grid {{
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 12px;
+    margin-top: 12px;
+  }}
+  .role-box {{
+    background: var(--panel-alt);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 10px 12px;
+    line-height: 1.5;
+  }}
+  .role-box h4 {{ margin: 0 0 6px 0; color: var(--text); font-size: 12px; }}
+  .role-box a {{ color: var(--cyan); text-decoration: none; }}
   .cli-gen {{ display: flex; gap: 6px; flex: 1; min-width: 280px; justify-content: flex-end; }}
   .cli-out {{
     background: #07090e;
@@ -1759,6 +1935,32 @@ impl Workspace {
     <div class="kpi"><div class="k-val" style="color:var(--pink)">{escalated}</div><div class="k-lbl">Escalated for Review</div></div>
     <div class="kpi"><div class="k-val" style="color:var(--cyan)">100%</div><div class="k-lbl">Bit-Exact Preservation</div></div>
   </div>
+
+  <details class="onboard-drawer">
+    <summary>Studio Handoff &amp; Role-Based Onboarding Guide (EGG • MAJO • Deputy Gemini • Developers)</summary>
+    <div class="role-grid">
+      <div class="role-box">
+        <h4>1. Principal Artist (EGG)</h4>
+        Drop master files in <code>assets/inbox/</code>. Originals are archived untouched in <code>assets/originals/</code> with SHA-256 verification. Drag on any image below to measure or adjust a censorship region.<br/>
+        <a href="../docs/stakeholder-handoff/STAKEHOLDER_HANDOFF.md">Read Stakeholder Handoff &rarr;</a>
+      </div>
+      <div class="role-box">
+        <h4>2. Executive Chair (MAJO)</h4>
+        Filter by <strong>Escalated</strong> below or open <a href="escalations_review.md">escalations_review.md</a> to resolve ambiguous edge cases. Open <a href="publication_report.md">publication_report.md</a> for release sign-off.<br/>
+        <a href="../docs/philosophy/PHILOSOPHY.md">Read Studio Philosophy &rarr;</a>
+      </div>
+      <div class="role-box">
+        <h4>3. Autonomous Agent (Deputy Gemini)</h4>
+        Run <code>batch-prepare</code> &rarr; VLM inspect <code>*_inspect_grid.png</code> &rarr; <code>execute</code> / <code>approve-original</code> / <code>escalate</code> &rarr; <code>doctor --fix</code>.<br/>
+        <a href="../docs/onboarding/AGENT_ONBOARDING.md">Read Agent Runbook &rarr;</a>
+      </div>
+      <div class="role-box">
+        <h4>4. Developers &amp; Researchers</h4>
+        Run <code>./target/release/heav3ns-censor onboard --role developer</code> or <code>cargo test --release</code>.<br/>
+        <a href="../docs/whitepaper/TECHNICAL_WHITEPAPER.md">Read Technical Whitepaper &rarr;</a>
+      </div>
+    </div>
+  </details>
 
   <div class="toolbar">
     <div class="filter-group">
@@ -1871,10 +2073,41 @@ impl Workspace {
         const rnh = Math.max(4, Math.round((rh / pt.h) * 1000));
 
         readout.innerHTML = `Selection Pixels: <code>${{rx}},${{ry}},${{rw}},${{rh}}</code> • Norm1000: <code>${{rnx}},${{rny}},${{rnw}},${{rnh}}</code>`;
-        card.querySelector('.cli-out').value =
-          `./target/release/heav3ns-censor execute --asset-id ${{card.dataset.id}} --append --region "mosaic:${{rx}},${{ry}},${{rw}},${{rh}}:pixels:rect:auto:0:explicit_anatomy"`;
+        const hud = card.querySelector('.coord-hud');
+        const cmdType = hud.dataset.cmdType || 'mosaic';
+        if (cmdType === 'pill_bar') {{
+          card.querySelector('.cli-out').value =
+            `./target/release/heav3ns-censor execute --asset-id ${{card.dataset.id}} --append --region "solid_bar:${{rx}},${{ry}},${{rw}},${{rh}}:pixels:pill:auto@0.0:0:kuro_nuri_cleft"`;
+        }} else if (cmdType === 'crop') {{
+          card.querySelector('.cli-out').value =
+            `./target/release/heav3ns-censor inspect --asset-id ${{card.dataset.id}} --crop "${{rx}},${{ry}},${{rw}},${{rh}}:pixels"`;
+        }} else {{
+          card.querySelector('.cli-out').value =
+            `./target/release/heav3ns-censor execute --asset-id ${{card.dataset.id}} --append --region "mosaic:${{rx}},${{ry}},${{rw}},${{rh}}:pixels:rect:auto:0:explicit_anatomy"`;
+        }}
       }} else {{
         readout.innerHTML = `Cursor Pixels: <code>(${{pt.ax}}, ${{pt.ay}})</code> • Norm1000: <code>(${{nx}}, ${{ny}})</code>`;
+      }}
+    }}
+
+    function setCmdType(btn, type) {{
+      const hud = btn.closest('.coord-hud');
+      hud.dataset.cmdType = type;
+      hud.querySelectorAll('.ctbtn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+    }}
+
+    function setQuickCmd(btn, action) {{
+      const card = btn.closest('.card');
+      const hud = btn.closest('.coord-hud');
+      hud.querySelectorAll('.ctbtn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      if (action === 'approve') {{
+        card.querySelector('.cli-out').value =
+          `./target/release/heav3ns-censor approve-original --asset-id ${{card.dataset.id}} --classification artistic_nudity_pass --rationale "Classical artistic nudity with zero explicit genital detail."`;
+      }} else if (action === 'escalate') {{
+        card.querySelector('.cli-out').value =
+          `./target/release/heav3ns-censor escalate --asset-id ${{card.dataset.id}} --category "stylized_anatomy_ambiguity" --reason "Requires executive/artist review by MAJO and EGG."`;
       }}
     }}
 

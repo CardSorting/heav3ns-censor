@@ -46,3 +46,4 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 - Initial Rust studio engine (`heav3ns-censor`) with `ingest`, `inspect`, `execute`, `approve-original`, `escalate`, and JSON-RPC 2.0 `mcp` stdio server fulfilling [`commission.md`](commission.md).
+

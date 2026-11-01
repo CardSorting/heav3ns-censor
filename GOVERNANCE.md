@@ -26,3 +26,4 @@
    Additions or adjustments to obscenity/platform policy profiles (`jp_article_175_standard`, `kuro_nuri_graphic`, `social_media_safe`) are governed by **MAJO** (Executive Chair) and documented in [`KB-01`](docs/knowledgebase/01-japanese-article-175-and-platform-standards.md).
 3. **Artistic Ambiguity Escalations:**  
    In production studio workflows, any asset flagged as `AmbiguousEscalate` is isolated from `assets/published/` until reviewed by **MAJO** and/or **EGG**.
+

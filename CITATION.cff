@@ -30,3 +30,4 @@ abstract: >-
   100% bit-exact preservation of all pixels outside the localized masks while verifying
   both mean and 95th-percentile peak gradient suppression across native resolution, 1080p
   (Q85 JPEG), and 540p (Q75 JPEG) downscaling.
+

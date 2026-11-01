@@ -161,7 +161,49 @@
     margin-bottom: 10px;
     font-size: 11px;
   }
-  .coord-readout { color: var(--cyan); font-weight: 600; }
+  .hud-left { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+  .coord-readout { color: var(--cyan); font-weight: 600; min-width: 240px; }
+  .cmd-type-group { display: flex; gap: 4px; flex-wrap: wrap; }
+  .ctbtn {
+    background: #090b10;
+    color: var(--muted);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 3px 8px;
+    cursor: pointer;
+    font-size: 10px;
+    font-family: inherit;
+  }
+  .ctbtn.active, .ctbtn:hover { color: var(--cyan); border-color: var(--cyan); background: rgba(0,255,213,0.1); }
+  .onboard-drawer {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 16px;
+    margin-bottom: 20px;
+    font-size: 12px;
+  }
+  .onboard-drawer summary {
+    cursor: pointer;
+    color: var(--cyan);
+    font-weight: 700;
+    user-select: none;
+  }
+  .role-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 12px;
+    margin-top: 12px;
+  }
+  .role-box {
+    background: var(--panel-alt);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 10px 12px;
+    line-height: 1.5;
+  }
+  .role-box h4 { margin: 0 0 6px 0; color: var(--text); font-size: 12px; }
+  .role-box a { color: var(--cyan); text-decoration: none; }
   .cli-gen { display: flex; gap: 6px; flex: 1; min-width: 280px; justify-content: flex-end; }
   .cli-out {
     background: #07090e;
@@ -227,6 +269,32 @@
     <div class="kpi"><div class="k-val" style="color:var(--cyan)">100%</div><div class="k-lbl">Bit-Exact Preservation</div></div>
   </div>
 
+  <details class="onboard-drawer">
+    <summary>Studio Handoff &amp; Role-Based Onboarding Guide (EGG • MAJO • Deputy Gemini • Developers)</summary>
+    <div class="role-grid">
+      <div class="role-box">
+        <h4>1. Principal Artist (EGG)</h4>
+        Drop master files in <code>assets/inbox/</code>. Originals are archived untouched in <code>assets/originals/</code> with SHA-256 verification. Drag on any image below to measure or adjust a censorship region.<br/>
+        <a href="../docs/stakeholder-handoff/STAKEHOLDER_HANDOFF.md">Read Stakeholder Handoff &rarr;</a>
+      </div>
+      <div class="role-box">
+        <h4>2. Executive Chair (MAJO)</h4>
+        Filter by <strong>Escalated</strong> below or open <a href="escalations_review.md">escalations_review.md</a> to resolve ambiguous edge cases. Open <a href="publication_report.md">publication_report.md</a> for release sign-off.<br/>
+        <a href="../docs/philosophy/PHILOSOPHY.md">Read Studio Philosophy &rarr;</a>
+      </div>
+      <div class="role-box">
+        <h4>3. Autonomous Agent (Deputy Gemini)</h4>
+        Run <code>batch-prepare</code> &rarr; VLM inspect <code>*_inspect_grid.png</code> &rarr; <code>execute</code> / <code>approve-original</code> / <code>escalate</code> &rarr; <code>doctor --fix</code>.<br/>
+        <a href="../docs/onboarding/AGENT_ONBOARDING.md">Read Agent Runbook &rarr;</a>
+      </div>
+      <div class="role-box">
+        <h4>4. Developers &amp; Researchers</h4>
+        Run <code>./target/release/heav3ns-censor onboard --role developer</code> or <code>cargo test --release</code>.<br/>
+        <a href="../docs/whitepaper/TECHNICAL_WHITEPAPER.md">Read Technical Whitepaper &rarr;</a>
+      </div>
+    </div>
+  </details>
+
   <div class="toolbar">
     <div class="filter-group">
       <button class="fbtn active" onclick="filterCards('all', this)">All (3)</button>
@@ -284,8 +352,17 @@
                         <button class="vtab" onclick="switchImg(this, '../assets/inspect/heav3ns_01_explicit_study_63116478_inspect_grid.png', 'single')">[5] VLM Coordinate Grid</button>
                         <button class="vtab" onclick="switchImg(this, '../assets/originals/heav3ns_01_explicit_study_63116478_original.png', 'single')">[6] Untouched Original</button>
                     </div>
-                    <div class="coord-hud">
-                        <span class="coord-readout">Hover or drag on image to measure coordinates &amp; generate <code>--region</code> CLI</span>
+                    <div class="coord-hud" data-cmd-type="mosaic">
+                        <div class="hud-left">
+                            <span class="coord-readout">Hover or drag on image to measure coordinates &amp; generate CLI</span>
+                            <div class="cmd-type-group">
+                                <button class="ctbtn active" onclick="setCmdType(this, 'mosaic')">Mosaic</button>
+                                <button class="ctbtn" onclick="setCmdType(this, 'pill_bar')">Pill Bar (Auto)</button>
+                                <button class="ctbtn" onclick="setCmdType(this, 'crop')">3x Zoom-Crop</button>
+                                <button class="ctbtn" onclick="setQuickCmd(this, 'approve')">Approve Original</button>
+                                <button class="ctbtn" onclick="setQuickCmd(this, 'escalate')">Escalate</button>
+                            </div>
+                        </div>
                         <div class="cli-gen">
                             <input type="text" class="cli-out" readonly value="./target/release/heav3ns-censor inspect --asset-id heav3ns_01_explicit_study_63116478" />
                             <button class="copy-btn" onclick="copyCli(this)">Copy CLI</button>
@@ -318,8 +395,17 @@
                         <button class="vtab" onclick="switchImg(this, '../assets/inspect/heav3ns_02_artistic_silhouette_c199216e_inspect_grid.png', 'single')">[5] VLM Coordinate Grid</button>
                         <button class="vtab" onclick="switchImg(this, '../assets/originals/heav3ns_02_artistic_silhouette_c199216e_original.png', 'single')">[6] Untouched Original</button>
                     </div>
-                    <div class="coord-hud">
-                        <span class="coord-readout">Hover or drag on image to measure coordinates &amp; generate <code>--region</code> CLI</span>
+                    <div class="coord-hud" data-cmd-type="mosaic">
+                        <div class="hud-left">
+                            <span class="coord-readout">Hover or drag on image to measure coordinates &amp; generate CLI</span>
+                            <div class="cmd-type-group">
+                                <button class="ctbtn active" onclick="setCmdType(this, 'mosaic')">Mosaic</button>
+                                <button class="ctbtn" onclick="setCmdType(this, 'pill_bar')">Pill Bar (Auto)</button>
+                                <button class="ctbtn" onclick="setCmdType(this, 'crop')">3x Zoom-Crop</button>
+                                <button class="ctbtn" onclick="setQuickCmd(this, 'approve')">Approve Original</button>
+                                <button class="ctbtn" onclick="setQuickCmd(this, 'escalate')">Escalate</button>
+                            </div>
+                        </div>
                         <div class="cli-gen">
                             <input type="text" class="cli-out" readonly value="./target/release/heav3ns-censor inspect --asset-id heav3ns_02_artistic_silhouette_c199216e" />
                             <button class="copy-btn" onclick="copyCli(this)">Copy CLI</button>
@@ -353,8 +439,17 @@
                         <button class="vtab" onclick="switchImg(this, '../assets/inspect/heav3ns_03_biomech_ambiguity_05522fca_inspect_grid.png', 'single')">[5] VLM Coordinate Grid</button>
                         <button class="vtab" onclick="switchImg(this, '../assets/originals/heav3ns_03_biomech_ambiguity_05522fca_original.png', 'single')">[6] Untouched Original</button>
                     </div>
-                    <div class="coord-hud">
-                        <span class="coord-readout">Hover or drag on image to measure coordinates &amp; generate <code>--region</code> CLI</span>
+                    <div class="coord-hud" data-cmd-type="mosaic">
+                        <div class="hud-left">
+                            <span class="coord-readout">Hover or drag on image to measure coordinates &amp; generate CLI</span>
+                            <div class="cmd-type-group">
+                                <button class="ctbtn active" onclick="setCmdType(this, 'mosaic')">Mosaic</button>
+                                <button class="ctbtn" onclick="setCmdType(this, 'pill_bar')">Pill Bar (Auto)</button>
+                                <button class="ctbtn" onclick="setCmdType(this, 'crop')">3x Zoom-Crop</button>
+                                <button class="ctbtn" onclick="setQuickCmd(this, 'approve')">Approve Original</button>
+                                <button class="ctbtn" onclick="setQuickCmd(this, 'escalate')">Escalate</button>
+                            </div>
+                        </div>
                         <div class="cli-gen">
                             <input type="text" class="cli-out" readonly value="./target/release/heav3ns-censor inspect --asset-id heav3ns_03_biomech_ambiguity_05522fca" />
                             <button class="copy-btn" onclick="copyCli(this)">Copy CLI</button>
@@ -467,10 +562,41 @@
         const rnh = Math.max(4, Math.round((rh / pt.h) * 1000));
 
         readout.innerHTML = `Selection Pixels: <code>${rx},${ry},${rw},${rh}</code> • Norm1000: <code>${rnx},${rny},${rnw},${rnh}</code>`;
-        card.querySelector('.cli-out').value =
-          `./target/release/heav3ns-censor execute --asset-id ${card.dataset.id} --append --region "mosaic:${rx},${ry},${rw},${rh}:pixels:rect:auto:0:explicit_anatomy"`;
+        const hud = card.querySelector('.coord-hud');
+        const cmdType = hud.dataset.cmdType || 'mosaic';
+        if (cmdType === 'pill_bar') {
+          card.querySelector('.cli-out').value =
+            `./target/release/heav3ns-censor execute --asset-id ${card.dataset.id} --append --region "solid_bar:${rx},${ry},${rw},${rh}:pixels:pill:auto@0.0:0:kuro_nuri_cleft"`;
+        } else if (cmdType === 'crop') {
+          card.querySelector('.cli-out').value =
+            `./target/release/heav3ns-censor inspect --asset-id ${card.dataset.id} --crop "${rx},${ry},${rw},${rh}:pixels"`;
+        } else {
+          card.querySelector('.cli-out').value =
+            `./target/release/heav3ns-censor execute --asset-id ${card.dataset.id} --append --region "mosaic:${rx},${ry},${rw},${rh}:pixels:rect:auto:0:explicit_anatomy"`;
+        }
       } else {
         readout.innerHTML = `Cursor Pixels: <code>(${pt.ax}, ${pt.ay})</code> • Norm1000: <code>(${nx}, ${ny})</code>`;
+      }
+    }
+
+    function setCmdType(btn, type) {
+      const hud = btn.closest('.coord-hud');
+      hud.dataset.cmdType = type;
+      hud.querySelectorAll('.ctbtn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+    }
+
+    function setQuickCmd(btn, action) {
+      const card = btn.closest('.card');
+      const hud = btn.closest('.coord-hud');
+      hud.querySelectorAll('.ctbtn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      if (action === 'approve') {
+        card.querySelector('.cli-out').value =
+          `./target/release/heav3ns-censor approve-original --asset-id ${card.dataset.id} --classification artistic_nudity_pass --rationale "Classical artistic nudity with zero explicit genital detail."`;
+      } else if (action === 'escalate') {
+        card.querySelector('.cli-out').value =
+          `./target/release/heav3ns-censor escalate --asset-id ${card.dataset.id} --category "stylized_anatomy_ambiguity" --reason "Requires executive/artist review by MAJO and EGG."`;
       }
     }
 

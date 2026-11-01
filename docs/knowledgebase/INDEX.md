@@ -1,6 +1,20 @@
-# HEAV3NS-CENSOR Knowledgebase
+[🏠 Home (`README.md`)](../../README.md) &rsaquo; **📚 Knowledgebase Master Index**
 
-Welcome to the central engineering and domain knowledgebase for **`heav3ns-censor` (`v4.0.0`)**. This documentation suite is structured for studio operators, autonomous AI agents, computer vision researchers, and open-source contributors.
+---
+
+# HEAV3NS-CENSOR Knowledgebase & Documentation Hub
+
+Welcome to the central engineering and domain knowledgebase for **`heav3ns-censor` (`v4.0.0`)**. This documentation suite is structured following the **Diátaxis Framework** (*Onboarding & Tutorials*, *Operational Playbooks*, *Domain Reference*, and *Architecture & Postmortems*) for studio stakeholders, autonomous AI agents, computer vision researchers, and open-source contributors.
+
+---
+
+## 0. Role-Based Onboarding Tracks (`docs/onboarding/`)
+
+| Persona | Start Here | CLI Self-Onboarding Command |
+| :--- | :--- | :--- |
+| **🤖 Autonomous AI Agents (`Deputy Gemini`)** | [`docs/onboarding/AGENT_ONBOARDING.md`](../onboarding/AGENT_ONBOARDING.md) | `./target/release/heav3ns-censor onboard --role agent` |
+| **🛠️ Rust Developers & CV Researchers** | [`docs/onboarding/DEVELOPER_ONBOARDING.md`](../onboarding/DEVELOPER_ONBOARDING.md) | `./target/release/heav3ns-censor onboard --role developer` |
+| **🏛️ Studio Stakeholders (`MAJO` & `EGG`)** | [`docs/stakeholder-handoff/STAKEHOLDER_HANDOFF.md`](../stakeholder-handoff/STAKEHOLDER_HANDOFF.md) | `./target/release/heav3ns-censor onboard --role stakeholder` |
 
 ---
 
