@@ -1,69 +1,63 @@
-# KB-03: Dataset Cleaning, Multimodal AI Safety, & Non-Destructive Artistic Post-Production
+# KB-03: Data Annotation, False-Positive Suppression, Dataset Cleaning & Artistic Post-Production
 
 **Document ID:** `KB-03`  
-**Audience:** AI Safety & Alignment Researchers, Multimodal Dataset Curators, Computer Vision Engineers, and Studio Post-Production Leads (**MAJO** & **EGG**)  
+**Audience:** AI Safety & Alignment Researchers, Data Annotation & Curation Engineers, Computer Vision Researchers, and Studio Post-Production Leads (**MAJO** & **EGG**)  
 **License:** [MIT](../../LICENSE)  
 
 ---
 
-## 1. The Dual Mission: Dataset Sanitization & Studio Post-Production
+## 1. Why the Industry is Plagued with False Positives (And How We Fix It)
 
-Modern visual computing faces the exact same fundamental challenge across two seemingly distinct domains:
+Modern vision-language models (VLMs), safety classifiers, and content moderation detectors suffer from an endemic **False-Positive Crisis**:
+- **Root Cause #1 — Whole-Image Binary Labels Without Hard-Negative Boxes:** Traditional safety datasets only label whole images (`"unsafe"` vs. `"safe"`) or only draw bounding boxes around *positive* explicit violations. They never annotate **Verified Benign Hard-Negative Regions** (e.g., classical dorsal silhouettes, skin-tone lighting gradients, collarbone/shoulder contours, anime/manga muscle linework, or clothing seams). Consequently, detectors overfit to superficial skin-tone or high-contrast contour cues and flag benign artistic work as false positives.
+- **Root Cause #2 — Sample-Dropping Bias:** When a classifier flags an image, conventional pipelines delete the entire sample, erasing figurative art and anatomical corpora from pre-training splits.
+- **Root Cause #3 — Generative Inpainting Poisoning:** Scrubbing regions with diffusion inpainting alters every pixel via VAE decoding and injects hallucinated latent artifacts.
 
-1. **AI Safety, Security & Multimodal Dataset Curation:** How do we sanitize large-scale vision-language datasets (e.g., removing explicit anatomical regions, sensitive visual tokens, or compliance violations) **without** discarding entire artistic corpora (*sample-dropping bias*) and **without** injecting synthetic diffusion artifacts (*generative inpainting distribution shift*)?
-2. **Artistic Rendering & Publication Post-Production:** How do illustrators (**EGG**) and executive studio directors (**MAJO**) produce jurisdiction-compliant publication editions (Japanese Penal Code Article 175 *bokashi* mosaic, *kuro-nuri* / *shiro-nuri* solid graphic bars, feathered Gaussian blur) **without** altering a single pixel of brushwork, color grading, or alpha transparency outside the localized mask—while guaranteeing that the obscured region survives `1080p` social compression and `540p` mobile thumbnail downscaling?
+### Mirroring Industry-Standard Data Curation Platforms (`CVAT`, `Label Studio`, `Roboflow`, `Voxel51 FiftyOne`, `Scale Nucleus`)
+`heav3ns-censor` implements the proven **Contrastive Positive + Hard-Negative Region Annotation** architecture used by world-class computer vision curation platforms:
 
-**`heav3ns-censor`** unifies both domains under a single deterministic, cryptographically verified Rust engine.
-
----
-
-## 2. Eliminating Sample-Dropping Bias & Inpainting Poisoning in ML Datasets
-
-### 2.1 The Sample-Dropping Bias Problem
-Conventional dataset cleaning pipelines run a coarse whole-image NSFW classifier (e.g., CLIP-based safety filters) and **delete the entire image** whenever the score exceeds a threshold $\tau$. This creates severe representation collapse:
-- Classical figurative art, anatomical studies, life drawing, sculpture, and stylized character illustration are disproportionately purged as false positives.
-- Even when an image contains only a tiny localized non-compliant region ($1\text{--}2\%$ of canvas area), discarding the entire sample destroys $98\text{--}99\%$ of valid surrounding visual context (lighting, pose, composition, typography).
-
-### 2.2 The Generative Inpainting Poisoning Problem
-Attempting to "scrub" sensitive regions using latent diffusion inpainting introduces three fatal flaws for both safety research and studio art:
-1. **VAE Decode Bleed:** Encoding and decoding through a variational autoencoder alters every pixel across the entire image ($\text{RGBA}_{\text{out}}(x,y) \neq \text{RGBA}_{\text{orig}}(x,y)$).
-2. **Hallucinated Anatomy & Distribution Shift:** Diffusion inpainters hallucinate synthetic textures and uncanny pseudo-anatomical artifacts that contaminate downstream vision encoders during pre-training or fine-tuning.
-3. **Zero Auditability:** Stochastic sampling provides no deterministic mathematical guarantee that high-frequency edge features were actually suppressed across downscaled resolutions.
-
-### 2.3 The `heav3ns-censor` Three-Way Triage Solution
-Instead of binary whole-image deletion or stochastic inpainting, `heav3ns-censor` enforces a deterministic three-way triage that exports directly to [`ledger/dataset_manifest.jsonl`](../../ledger/dataset_manifest.jsonl):
-
-| Triage State | Curation Action (`curation_action`) | `is_safe_for_training_release` | Impact on Dataset & Studio Corpus |
-| :--- | :--- | :---: | :--- |
-| **`Verified`** (`explicit_requires_intervention`) | `"surgical_region_redaction"` | **`true`** | Redacts only the exact analytical SDF mask (`rect`, `ellipse`, `pill` at `@angle_deg`). Preserves $\ge 98\%$ of the image **100% bit-identically** (`exterior_pixel_diff_count == 0`). |
-| **`ApprovedOriginal`** (`artistic_nudity_pass` / `suggestive_pass`) | `"preserved_untouched_false_positive"` | **`true`** | Preserves classical silhouettes and non-explicit figurative art **100% untouched** (`SHA-256` identical to master), preventing classifier false-positive bias. |
-| **`Escalated`** (`ambiguous_escalate`) | `"quarantined_for_human_review"` | **`false`** | Automatically revokes any `published/` file and isolates ambiguous edge cases into a dedicated red-teaming & human-in-the-loop review split. |
+| Annotation Polarity | Class ID | CLI / MCP Command | Pixel Modification | Purpose in Model Training & Safety Evaluation |
+| :--- | :---: | :--- | :---: | :--- |
+| **`positive_intervention`** (`explicit_intervention_required`) | `1` | `execute` / `heav3ns_execute_censorship` | Applies localized SDF redaction (`0` exterior diff px) | Teaches detectors & VLMs the exact spatial boundaries of explicit anatomy requiring intervention. |
+| **`verified_benign_hard_negative`** (`false_positive_suppression`) | `0` | `annotate-negative` / `heav3ns_annotate_negative` *(+ auto-mined hotspots)* | **`0` pixels altered** (100% untouched) | Explicitly teaches detectors & safety filters what **not** to flag—eliminating false positives on classical silhouettes, skin highlights, and stylized linework. |
 
 ---
 
-## 3. Exporting Structured Datasets (`dataset_manifest.jsonl` & `DATASET_CARD.md`)
+## 2. Hard-Negative Annotation & Automatic Confuser Mining (`annotate-negative`)
 
-Run `export-dataset` via CLI or the `heav3ns_export_dataset` MCP tool:
+### 2.1 Automatic Hard-Negative Hotspot Mining
+Whenever `heav3ns-censor` processes an asset via `execute` or `approve-original`:
+1. The engine computes the top high-frequency gradient/contrast regions (`detect_candidate_hotspots`).
+2. Every hotspot whose Intersection-over-Union ($\text{IoU}$) with all positive intervention boxes is $< 0.10$ is a region that looked like a high-contrast candidate hotspot to a spatial detector, but was verified by the VLM/artist to be **benign artistic content**.
+3. These non-overlapping hotspots are automatically recorded as **`verified_benign_hard_negative` (`class_id = 0`)** bounding boxes!
+
+### 2.2 Explicit Hard-Negative Curation via CLI, MCP, or Interactive `dashboard.html`
+Researchers and artists can also explicitly annotate verified benign confuser regions without altering a single pixel of the artwork:
 
 ```bash
-# Export the full contrastive safety dataset (Verified + ApprovedOriginal + Escalated)
-./target/release/heav3ns-censor export-dataset
-
-# Export strictly the compliance-verified training split (excludes Escalated / Pending)
-./target/release/heav3ns-censor export-dataset --safe-only
+# Explicitly tag a benign confuser region + auto-mine non-overlapping hotspots
+./target/release/heav3ns-censor annotate-negative \
+  --asset-id heav3ns_02 \
+  --append \
+  --auto-mine-hotspots \
+  --region "neg_silhouette=280,140,440,720:pixels:rect:classical_dorsal_silhouette:Stylized dorsal anatomy with zero explicit detail"
 ```
 
-### 3.1 Multi-Format Bounding Box & SDF Schema
-Every record in `ledger/dataset_manifest.jsonl` includes pre-computed annotations across all three major computer vision & VLM standards:
+In **[`ledger/dashboard.html`](../../ledger/dashboard.html)**, click **`+ Hard-Negative (Benign)`** in the coordinate toolbar and drag an **Emerald Green** bounding box over any false-positive confuser region to generate the exact CLI command in 1 click.
 
-- **`bbox_xywh_px`**: `[x, y, width, height]` in absolute image pixels (**COCO Object Detection standard**).
-- **`bbox_xyxy_norm1000`**: `[x1, y1, x2, y2]` integer coordinates in `[0, 1000]` (**VLM Spatial Grounding token standard** used by Gemini, Qwen-VL, and LLaVA).
-- **`bbox_cxcywh_norm01`**: `[center_x, center_y, width, height]` floating-point coordinates in `[0.0, 1.0]` (**YOLO / Ultralytics standard**).
-- **`enclosing_aabb_px`**: `[ax, ay, aw, ah]` rotation-aware enclosing Axis-Aligned Bounding Box in pixels.
-- **`shape` & `angle_deg`**: Exact analytical Signed Distance Field geometry (`rect`, `ellipse`, `pill`) and rotation angle in degrees.
+---
 
-### 3.2 Paired Counterfactual Safety & Machine Unlearning Benchmarks
-Because `heav3ns-censor` preserves both `original_path` (`assets/originals/`, verified by `sha256_original`) and `sanitized_published_path` (`assets/published/`, verified by `sha256_published`) alongside exact pixel masks and multi-scale suppression telemetry, researchers can immediately construct:
-- **Concept Erasure & Machine Unlearning Pairs:** Train or evaluate unlearning algorithms on `(original_path, sanitized_published_path, annotations)` where the exterior background is guaranteed to have `0` confounding pixel differences.
-- **VLM Safety Grounding Benchmarks:** Evaluate whether multimodal models can accurately localize compliance-sensitive regions using `vlm_inspect_grid_path` and `bbox_xyxy_norm1000`.
-- **Adversarial Downscale & Thumbnail Robustness Benchmarks:** Test whether safety redactions survive `1080p Q85` and `540p Q75` JPEG compression (`multiscale_jpeg_1080p_q85_passed` & `multiscale_jpeg_540p_q75_passed`).
+## 3. Dual Industry-Standard Exports (`dataset_manifest.jsonl` & `annotations_coco.json`)
+
+Running `./target/release/heav3ns-censor export-dataset [--safe-only]` (or `sync-reports`) generates three synchronized artifacts in `ledger/`:
+
+1. **[`ledger/dataset_manifest.jsonl`](../../ledger/dataset_manifest.jsonl) (HuggingFace `datasets` / VLM Grounding JSONL):**
+   - Each line includes `positive_annotations_count`, `hard_negative_annotations_count`, `exterior_pixel_diff_count` (`0`), and an `annotations` array where every box carries:
+     - `polarity` (`"positive_intervention"` vs. `"verified_benign_hard_negative"`) & `class_id` (`1` vs. `0`)
+     - `bbox_xywh_px` (**COCO** `[x, y, w, h]`)
+     - `bbox_xyxy_norm1000` (**VLM Grounding Tokens** `[x1, y1, x2, y2]` in `[0..1000]`)
+     - `bbox_cxcywh_norm01` (**Ultralytics YOLO** `[cx, cy, w, h]` in `[0.0..1.0]`)
+2. **[`ledger/annotations_coco.json`](../../ledger/annotations_coco.json) (MS-COCO Object Detection & Hard-Negative Standard):**
+   - Ready for direct import into **CVAT**, **Label Studio**, **Roboflow**, **Voxel51 FiftyOne**, **MMDetection**, and **Detectron2** with categories `1: explicit_intervention_required` and `2: verified_benign_hard_negative`.
+3. **[`ledger/DATASET_CARD.md`](../../ledger/DATASET_CARD.md) (HuggingFace Hub Dataset Card):**
+   - Summarizes split counts, positive vs. hard-negative box counts, and cryptographic provenance.

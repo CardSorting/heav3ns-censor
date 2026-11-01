@@ -131,7 +131,7 @@ fn mcp_tool_definitions() -> Value {
         },
         {
             "name": "heav3ns_export_dataset",
-            "description": "Export a HuggingFace / JSONL dataset manifest (ledger/dataset_manifest.jsonl) and Dataset Card (ledger/DATASET_CARD.md) with COCO, VLM Normalized1000, and YOLO bounding boxes plus multi-scale JPEG safety telemetry.",
+            "description": "Export a HuggingFace / JSONL dataset manifest (ledger/dataset_manifest.jsonl), MS-COCO JSON (ledger/annotations_coco.json), and Dataset Card (ledger/DATASET_CARD.md) with positive intervention and verified hard-negative bounding boxes.",
             "inputSchema": {
                 "type": "object",
                 "properties": {
@@ -140,6 +140,37 @@ fn mcp_tool_definitions() -> Value {
                         "description": "If true, exports only compliance-verified training records (Verified and ApprovedOriginal), excluding Escalated items."
                     }
                 }
+            }
+        },
+        {
+            "name": "heav3ns_annotate_negative",
+            "description": "Annotate verified benign / hard-negative confuser regions on an asset without modifying any pixels, preventing false positives in downstream ML/VLM safety classifiers.",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "asset_id": {
+                        "type": "string",
+                        "description": "Asset ID, unique prefix, or filename"
+                    },
+                    "negative_regions": {
+                        "type": "array",
+                        "description": "Array of NegativeAnnotationRegion objects ({id, label, rationale, confuser_category, x, y, width, height, unit, shape})",
+                        "items": { "type": "object" }
+                    },
+                    "append": {
+                        "type": "boolean",
+                        "description": "If true, merges/upserts into existing hard-negative annotations."
+                    },
+                    "remove_region_ids": {
+                        "type": "array",
+                        "items": { "type": "string" }
+                    },
+                    "auto_mine_hotspots": {
+                        "type": "boolean",
+                        "description": "If true, automatically mines non-overlapping high-frequency hotspots as verified benign hard-negative boxes."
+                    }
+                },
+                "required": ["asset_id"]
             }
         },
         {
@@ -322,6 +353,43 @@ fn dispatch_tool_call(workspace: &Workspace, tool_name: &str, args: &Value) -> R
                 .unwrap_or(false);
             let report = workspace.export_dataset(safe_only)?;
             Ok(serde_json::to_value(report)?)
+        }
+        "heav3ns_annotate_negative" => {
+            let asset_id = args
+                .get("asset_id")
+                .and_then(|s| s.as_str())
+                .ok_or_else(|| anyhow::anyhow!("Missing asset_id"))?;
+            let neg_regions: Vec<crate::models::NegativeAnnotationRegion> =
+                if let Some(val) = args.get("negative_regions").cloned() {
+                    serde_json::from_value(val)?
+                } else {
+                    Vec::new()
+                };
+            let append = args
+                .get("append")
+                .and_then(|b| b.as_bool())
+                .unwrap_or(true);
+            let remove_region_ids: Vec<String> = args
+                .get("remove_region_ids")
+                .and_then(|v| v.as_array())
+                .map(|arr| {
+                    arr.iter()
+                        .filter_map(|x| x.as_str().map(|s| s.to_string()))
+                        .collect()
+                })
+                .unwrap_or_default();
+            let auto_mine_hotspots = args
+                .get("auto_mine_hotspots")
+                .and_then(|b| b.as_bool())
+                .unwrap_or(false);
+            let rec = workspace.annotate_negative(
+                asset_id,
+                neg_regions,
+                append,
+                remove_region_ids,
+                auto_mine_hotspots,
+            )?;
+            Ok(serde_json::to_value(rec)?)
         }
         "heav3ns_explain_asset" => {
             let asset_id = args

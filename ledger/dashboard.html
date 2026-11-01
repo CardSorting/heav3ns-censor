@@ -258,7 +258,7 @@
       <h1>HEAV3NS POST-PRODUCTION &amp; CENSORSHIP STUDIO QC (v4.0)</h1>
       <div class="meta">Commissioning Authority: <strong>MAJO, Executive Chair</strong> • Commissioned Agent: <strong>Deputy Gemini</strong> • Principal Artist: <strong>EGG</strong></div>
     </div>
-    <div class="meta">Shortcuts: <code>/</code> Search • <code>1-6</code> Switch Tab on Hovered Card • Drag on Image to Measure Region • Updated: 2026-11-01T22:28:20.607589+00:00</div>
+    <div class="meta">Shortcuts: <code>/</code> Search • <code>1-6</code> Switch Tab on Hovered Card • Drag on Image to Measure Region • Updated: 2026-11-01T23:42:14.189673+00:00</div>
   </header>
 
   <div class="kpi-grid">
@@ -364,6 +364,7 @@
                             <div class="cmd-type-group">
                                 <button class="ctbtn active" onclick="setCmdType(this, 'mosaic')">Mosaic</button>
                                 <button class="ctbtn" onclick="setCmdType(this, 'pill_bar')">Pill Bar (Auto)</button>
+                                <button class="ctbtn" onclick="setCmdType(this, 'hard_negative')" title="Annotate a verified benign confuser region to prevent classifier false positives without altering pixels">+ Hard-Negative (Benign)</button>
                                 <button class="ctbtn" onclick="setCmdType(this, 'crop')">3x Zoom-Crop</button>
                                 <button class="ctbtn" onclick="setQuickCmd(this, 'approve')">Approve Original</button>
                                 <button class="ctbtn" onclick="setQuickCmd(this, 'escalate')">Escalate</button>
@@ -379,8 +380,8 @@
                         <div class="sel-box"></div>
                     </div>
                     <details class="audit-log">
-                        <summary>Audit Trail (11 events)</summary>
-                        <ul><li><code>21:43:26 UTC</code> <strong>INGEST_AND_PRESERVE_ORIGINAL</strong> — Archived untouched original (1200x900) with SHA-256 63116478250d6168</li><li><code>21:43:36 UTC</code> <strong>GENERATE_INSPECTION_GRID</strong> — Generated coordinate overlay at /Users/bozoegg/Desktop/HEAV3NS-CENSOR/assets/inspect/heav3ns_01_explicit_study_63116478_inspect_grid.png</li><li><code>21:43:36 UTC</code> <strong>APPLY_AND_VERIFY_CENSORSHIP</strong> — Applied 2 localized region(s); verification passed: true (censored area: 1.48%)</li><li><code>21:55:41 UTC</code> <strong>GENERATE_INSPECTION_GRID</strong> — Generated coordinate overlay at /Users/bozoegg/Desktop/HEAV3NS-CENSOR/assets/inspect/heav3ns_01_explicit_study_63116478_inspect_grid.png</li><li><code>21:55:42 UTC</code> <strong>APPLY_AND_VERIFY_CENSORSHIP</strong> — Applied 2 localized region(s); verification passed: true (censored area: 1.48%)</li><li><code>22:08:47 UTC</code> <strong>GENERATE_INSPECTION_GRID</strong> — Generated coordinate overlay at /Users/bozoegg/Desktop/HEAV3NS-CENSOR/assets/inspect/heav3ns_01_explicit_study_63116478_inspect_grid.png (hotspots: 4, zoom_crop: true)</li><li><code>22:08:47 UTC</code> <strong>APPLY_AND_VERIFY_CENSORSHIP</strong> — Applied 2 localized region(s); verification passed: true (censored area: 1.45%)</li><li><code>22:11:38 UTC</code> <strong>APPLY_AND_VERIFY_CENSORSHIP</strong> — Applied 2 localized region(s); verification passed: true (censored area: 1.45%)</li><li><code>22:12:07 UTC</code> <strong>APPLY_AND_VERIFY_CENSORSHIP</strong> — Applied 2 localized region(s); verification passed: true (censored area: 1.60%)</li><li><code>22:28:20 UTC</code> <strong>APPLY_AND_VERIFY_CENSORSHIP</strong> — Applied 1 localized region(s) (append=false, removed=0); verification passed: true (censored area: 1.11%)</li><li><code>22:28:20 UTC</code> <strong>APPLY_AND_VERIFY_CENSORSHIP</strong> — Applied 2 localized region(s) (append=true, removed=0); verification passed: true (censored area: 1.60%)</li></ul>
+                        <summary>Audit Trail (12 events)</summary>
+                        <ul><li><code>21:43:26 UTC</code> <strong>INGEST_AND_PRESERVE_ORIGINAL</strong> — Archived untouched original (1200x900) with SHA-256 63116478250d6168</li><li><code>21:43:36 UTC</code> <strong>GENERATE_INSPECTION_GRID</strong> — Generated coordinate overlay at /Users/bozoegg/Desktop/HEAV3NS-CENSOR/assets/inspect/heav3ns_01_explicit_study_63116478_inspect_grid.png</li><li><code>21:43:36 UTC</code> <strong>APPLY_AND_VERIFY_CENSORSHIP</strong> — Applied 2 localized region(s); verification passed: true (censored area: 1.48%)</li><li><code>21:55:41 UTC</code> <strong>GENERATE_INSPECTION_GRID</strong> — Generated coordinate overlay at /Users/bozoegg/Desktop/HEAV3NS-CENSOR/assets/inspect/heav3ns_01_explicit_study_63116478_inspect_grid.png</li><li><code>21:55:42 UTC</code> <strong>APPLY_AND_VERIFY_CENSORSHIP</strong> — Applied 2 localized region(s); verification passed: true (censored area: 1.48%)</li><li><code>22:08:47 UTC</code> <strong>GENERATE_INSPECTION_GRID</strong> — Generated coordinate overlay at /Users/bozoegg/Desktop/HEAV3NS-CENSOR/assets/inspect/heav3ns_01_explicit_study_63116478_inspect_grid.png (hotspots: 4, zoom_crop: true)</li><li><code>22:08:47 UTC</code> <strong>APPLY_AND_VERIFY_CENSORSHIP</strong> — Applied 2 localized region(s); verification passed: true (censored area: 1.45%)</li><li><code>22:11:38 UTC</code> <strong>APPLY_AND_VERIFY_CENSORSHIP</strong> — Applied 2 localized region(s); verification passed: true (censored area: 1.45%)</li><li><code>22:12:07 UTC</code> <strong>APPLY_AND_VERIFY_CENSORSHIP</strong> — Applied 2 localized region(s); verification passed: true (censored area: 1.60%)</li><li><code>22:28:20 UTC</code> <strong>APPLY_AND_VERIFY_CENSORSHIP</strong> — Applied 1 localized region(s) (append=false, removed=0); verification passed: true (censored area: 1.11%)</li><li><code>22:28:20 UTC</code> <strong>APPLY_AND_VERIFY_CENSORSHIP</strong> — Applied 2 localized region(s) (append=true, removed=0); verification passed: true (censored area: 1.60%)</li><li><code>23:42:14 UTC</code> <strong>ANNOTATE_HARD_NEGATIVE_REGIONS</strong> — Updated verified benign hard-negative annotations (count=1, append=true, auto_mine=true)</li></ul>
                     </details>
                 </div><div class="card" data-status="approved" data-id="heav3ns_02_artistic_silhouette_c199216e" data-w="1000" data-h="1000" data-mode="single" data-search="heav3ns_02_artistic_silhouette_c199216e heav3ns_02_artistic_silhouette.png approved">
                     <div class="card-header">
@@ -408,6 +409,7 @@
                             <div class="cmd-type-group">
                                 <button class="ctbtn active" onclick="setCmdType(this, 'mosaic')">Mosaic</button>
                                 <button class="ctbtn" onclick="setCmdType(this, 'pill_bar')">Pill Bar (Auto)</button>
+                                <button class="ctbtn" onclick="setCmdType(this, 'hard_negative')" title="Annotate a verified benign confuser region to prevent classifier false positives without altering pixels">+ Hard-Negative (Benign)</button>
                                 <button class="ctbtn" onclick="setCmdType(this, 'crop')">3x Zoom-Crop</button>
                                 <button class="ctbtn" onclick="setQuickCmd(this, 'approve')">Approve Original</button>
                                 <button class="ctbtn" onclick="setQuickCmd(this, 'escalate')">Escalate</button>
@@ -423,8 +425,8 @@
                         <div class="sel-box"></div>
                     </div>
                     <details class="audit-log">
-                        <summary>Audit Trail (3 events)</summary>
-                        <ul><li><code>21:43:26 UTC</code> <strong>INGEST_AND_PRESERVE_ORIGINAL</strong> — Archived untouched original (1000x1000) with SHA-256 c199216e2bbcbe29</li><li><code>21:43:36 UTC</code> <strong>APPROVE_UNTOUCHED_FOR_PUBLICATION</strong> — Classification ArtisticNudityPass: Classical non-explicit artistic silhouette; zero censorship intervention required per Section 3.</li><li><code>22:08:47 UTC</code> <strong>GENERATE_INSPECTION_GRID</strong> — Generated coordinate overlay at /Users/bozoegg/Desktop/HEAV3NS-CENSOR/assets/inspect/heav3ns_02_artistic_silhouette_c199216e_inspect_grid.png (hotspots: 0, zoom_crop: false)</li></ul>
+                        <summary>Audit Trail (4 events)</summary>
+                        <ul><li><code>21:43:26 UTC</code> <strong>INGEST_AND_PRESERVE_ORIGINAL</strong> — Archived untouched original (1000x1000) with SHA-256 c199216e2bbcbe29</li><li><code>21:43:36 UTC</code> <strong>APPROVE_UNTOUCHED_FOR_PUBLICATION</strong> — Classification ArtisticNudityPass: Classical non-explicit artistic silhouette; zero censorship intervention required per Section 3.</li><li><code>22:08:47 UTC</code> <strong>GENERATE_INSPECTION_GRID</strong> — Generated coordinate overlay at /Users/bozoegg/Desktop/HEAV3NS-CENSOR/assets/inspect/heav3ns_02_artistic_silhouette_c199216e_inspect_grid.png (hotspots: 0, zoom_crop: false)</li><li><code>23:42:14 UTC</code> <strong>ANNOTATE_HARD_NEGATIVE_REGIONS</strong> — Updated verified benign hard-negative annotations (count=1, append=true, auto_mine=true)</li></ul>
                     </details>
                 </div><div class="card" data-status="escalated" data-id="heav3ns_03_biomech_ambiguity_05522fca" data-w="1000" data-h="800" data-mode="single" data-search="heav3ns_03_biomech_ambiguity_05522fca heav3ns_03_biomech_ambiguity.png escalated">
                     <div class="card-header">
@@ -453,6 +455,7 @@
                             <div class="cmd-type-group">
                                 <button class="ctbtn active" onclick="setCmdType(this, 'mosaic')">Mosaic</button>
                                 <button class="ctbtn" onclick="setCmdType(this, 'pill_bar')">Pill Bar (Auto)</button>
+                                <button class="ctbtn" onclick="setCmdType(this, 'hard_negative')" title="Annotate a verified benign confuser region to prevent classifier false positives without altering pixels">+ Hard-Negative (Benign)</button>
                                 <button class="ctbtn" onclick="setCmdType(this, 'crop')">3x Zoom-Crop</button>
                                 <button class="ctbtn" onclick="setQuickCmd(this, 'approve')">Approve Original</button>
                                 <button class="ctbtn" onclick="setQuickCmd(this, 'escalate')">Escalate</button>
@@ -587,12 +590,23 @@
         const hud = card.querySelector('.coord-hud');
         const cmdType = hud.dataset.cmdType || 'mosaic';
         if (cmdType === 'pill_bar') {
+          box.style.borderColor = 'var(--cyan)';
+          box.style.background = 'rgba(0, 255, 213, 0.14)';
           card.querySelector('.cli-out').value =
             `./target/release/heav3ns-censor execute --asset-id ${card.dataset.id} --append --region "solid_bar:${rx},${ry},${rw},${rh}:pixels:pill:auto@0.0:0:kuro_nuri_cleft"`;
+        } else if (cmdType === 'hard_negative') {
+          box.style.borderColor = 'var(--green)';
+          box.style.background = 'rgba(63, 185, 80, 0.16)';
+          card.querySelector('.cli-out').value =
+            `./target/release/heav3ns-censor annotate-negative --asset-id ${card.dataset.id} --append --region "neg1=${rx},${ry},${rw},${rh}:pixels:rect:benign_artistic_feature:Verified hard-negative confuser"`;
         } else if (cmdType === 'crop') {
+          box.style.borderColor = 'var(--amber)';
+          box.style.background = 'rgba(210, 153, 34, 0.14)';
           card.querySelector('.cli-out').value =
             `./target/release/heav3ns-censor inspect --asset-id ${card.dataset.id} --crop "${rx},${ry},${rw},${rh}:pixels"`;
         } else {
+          box.style.borderColor = 'var(--cyan)';
+          box.style.background = 'rgba(0, 255, 213, 0.14)';
           card.querySelector('.cli-out').value =
             `./target/release/heav3ns-censor execute --asset-id ${card.dataset.id} --append --region "mosaic:${rx},${ry},${rw},${rh}:pixels:rect:auto:0:explicit_anatomy"`;
         }

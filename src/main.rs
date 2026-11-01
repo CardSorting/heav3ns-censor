@@ -1,3 +1,4 @@
+#![recursion_limit = "512"]
 pub mod demo;
 pub mod engine;
 pub mod mcp;
@@ -8,7 +9,8 @@ pub mod workspace;
 use anyhow::{Context, Result};
 use clap::{Parser, Subcommand};
 use models::{
-    CensorshipClassification, CensorshipMethod, CensorshipRegion, CoordinateUnit, RegionShape,
+    CensorshipClassification, CensorshipMethod, CensorshipRegion, CoordinateUnit,
+    NegativeAnnotationRegion, RegionShape,
 };
 use policy::get_policy_guides;
 use serde_json::json;
@@ -173,11 +175,35 @@ enum Commands {
     /// Re-run verification and Markdown/HTML/JSONL report generation across the ledger
     SyncReports,
 
-    /// Export a HuggingFace / JSONL dataset manifest (`ledger/dataset_manifest.jsonl`) and Dataset Card (`ledger/DATASET_CARD.md`) with COCO, VLM Normalized1000, & YOLO bounding boxes
+    /// Export a HuggingFace / JSONL dataset manifest (`ledger/dataset_manifest.jsonl`), MS-COCO JSON (`ledger/annotations_coco.json`), and Dataset Card (`ledger/DATASET_CARD.md`) with positive & hard-negative bounding boxes
     ExportDataset {
         /// Export only compliance-verified training records (`Verified` and `ApprovedOriginal`), excluding `Escalated` or pending items
         #[arg(long)]
         safe_only: bool,
+    },
+
+    /// Annotate verified benign / hard-negative regions on an asset (`annotate-negative`) without modifying any pixels, preventing false positives in downstream ML/VLM classifiers
+    AnnotateNegative {
+        /// Asset ID, unique prefix, or filename in the ledger
+        #[arg(long)]
+        asset_id: String,
+
+        /// Shorthand hard-negative region spec: `[id=]x,y,w,h[:unit][:shape][:label][:rationale]`
+        /// Example: `neg1=320,180,360,640:pixels:rect:classical_dorsal_silhouette:Verified benign artistic contour`
+        #[arg(long = "region")]
+        region_specs: Vec<String>,
+
+        /// Incrementally merge/upsert `--region` specs into existing hard-negative annotations
+        #[arg(long)]
+        append: bool,
+
+        /// Remove one or more existing hard-negative region IDs (e.g. `--remove-region neg1`)
+        #[arg(long = "remove-region")]
+        remove_region_ids: Vec<String>,
+
+        /// Automatically mine non-overlapping high-frequency hotspots as verified benign hard-negative boxes
+        #[arg(long)]
+        auto_mine_hotspots: bool,
     },
 
     /// Generate synthetic HEAV3NS test assets in assets/inbox/ to demonstrate and test the autonomous pipeline
@@ -295,6 +321,83 @@ pub fn parse_shorthand_region(spec: &str, idx: usize) -> Result<CensorshipRegion
         treatment,
         angle_deg,
         feather_px,
+    })
+}
+
+/// Parses a verified benign hard-negative region shorthand:
+/// `[id=]x,y,w,h[:unit][:shape][:label][:rationale]`
+pub fn parse_negative_shorthand(spec: &str, idx: usize) -> Result<NegativeAnnotationRegion> {
+    let parts: Vec<&str> = spec.split(':').collect();
+    if parts.is_empty() {
+        anyhow::bail!(
+            "Invalid negative --region spec '{}'. Expected format [id=]x,y,w,h[:unit][:shape][:label][:rationale]",
+            spec
+        );
+    }
+    let (explicit_id, coord_part) = if let Some((id_part, c_part)) = parts[0].split_once('=') {
+        let eid = id_part.trim();
+        (
+            if eid.is_empty() {
+                None
+            } else {
+                Some(eid.to_string())
+            },
+            c_part.trim(),
+        )
+    } else {
+        (None, parts[0].trim())
+    };
+
+    let coords: Vec<f32> = coord_part
+        .split(',')
+        .map(|s| s.trim().parse::<f32>())
+        .collect::<std::result::Result<Vec<f32>, _>>()
+        .context("Failed to parse x,y,w,h coordinates in negative --region")?;
+    if coords.len() != 4 || coords.iter().any(|c| !c.is_finite()) {
+        anyhow::bail!(
+            "Expected 4 finite comma-separated coordinates x,y,w,h in '{}'",
+            coord_part
+        );
+    }
+
+    let unit = match parts.get(1).copied().unwrap_or("pixels") {
+        "normalized1000" | "norm1000" | "norm" => CoordinateUnit::Normalized1000,
+        "percent" | "pct" => CoordinateUnit::Percent,
+        _ => CoordinateUnit::Pixels,
+    };
+
+    let shape = match parts.get(2).copied().unwrap_or("rect") {
+        "ellipse" | "oval" | "circle" => RegionShape::Ellipse,
+        "pill" | "capsule" | "stadium" => RegionShape::Pill,
+        _ => RegionShape::Rect,
+    };
+
+    let label = parts
+        .get(3)
+        .map(|s| s.to_string())
+        .unwrap_or_else(|| format!("benign_confuser_{}", idx + 1));
+
+    let rationale = parts
+        .get(4)
+        .map(|s| s.to_string())
+        .unwrap_or_else(|| {
+            format!(
+                "Verified benign artistic feature ({}) — hard-negative annotation to prevent classifier false positives",
+                label
+            )
+        });
+
+    Ok(NegativeAnnotationRegion {
+        id: explicit_id.unwrap_or_else(|| format!("neg{}", idx + 1)),
+        label: label.clone(),
+        rationale,
+        confuser_category: label,
+        x: coords[0],
+        y: coords[1],
+        width: coords[2],
+        height: coords[3],
+        unit,
+        shape,
     })
 }
 
@@ -473,6 +576,38 @@ fn main() -> Result<()> {
         Commands::ExportDataset { safe_only } => {
             let report = workspace.export_dataset(safe_only)?;
             println!("{}", serde_json::to_string_pretty(&report)?);
+        }
+        Commands::AnnotateNegative {
+            asset_id,
+            region_specs,
+            append,
+            remove_region_ids,
+            auto_mine_hotspots,
+        } => {
+            let mut neg_regions = Vec::new();
+            for (idx, spec) in region_specs.iter().enumerate() {
+                let mut nr = parse_negative_shorthand(spec, idx)?;
+                let has_explicit_id = spec.split(':').next().unwrap_or("").contains('=');
+                if append && !has_explicit_id {
+                    nr.id = format!("auto_{}", idx + 1);
+                }
+                neg_regions.push(nr);
+            }
+            let record = workspace.annotate_negative(
+                &asset_id,
+                neg_regions,
+                append,
+                remove_region_ids,
+                auto_mine_hotspots,
+            )?;
+            println!(
+                "{}",
+                serde_json::to_string_pretty(&json!({
+                    "status": "hard_negative_annotations_updated",
+                    "hard_negative_count": record.negative_regions.len(),
+                    "asset": record
+                }))?
+            );
         }
         Commands::DemoAssets => {
             workspace.init()?;
@@ -880,6 +1015,62 @@ mod tests {
         // Verify researcher onboarding track
         let res_onboard = ws.onboard("researcher")?;
         assert_eq!(res_onboard.selected_role, "researcher");
+
+        let _ = std::fs::remove_dir_all(&tmp_ws);
+        Ok(())
+    }
+
+    #[test]
+    fn test_hard_negative_annotation_and_coco_export_prevents_false_positives() -> Result<()> {
+        let tmp_ws = env::temp_dir().join(format!("heav3ns_ws_v4_neg_{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&tmp_ws);
+        let ws = Workspace::new(&tmp_ws);
+        ws.init()?;
+        demo::generate_demo_inbox_assets(&ws.inbox_dir())?;
+        let ingested = ws.ingest_inbox("jp_article_175_standard")?;
+
+        // 1. Approve artistic silhouette (asset 1) -> auto-mines hard-negative contour hotspots
+        let art_rec = ws.approve_untouched(
+            &ingested[1].asset_id,
+            CensorshipClassification::ArtisticNudityPass,
+            "Classical dorsal silhouette",
+        )?;
+        assert!(
+            !art_rec.negative_regions.is_empty(),
+            "ApprovedOriginal asset must auto-mine benign hard-negative hotspots"
+        );
+
+        // 2. Explicitly annotate a verified benign confuser region via annotate_negative
+        let custom_neg = parse_negative_shorthand(
+            "neg_custom=280,140,440,720:pixels:rect:classical_dorsal_silhouette:Stylized dorsal anatomy with zero explicit detail",
+            0,
+        )?;
+        let updated_art = ws.annotate_negative(
+            &ingested[1].asset_id,
+            vec![custom_neg],
+            true,
+            Vec::new(),
+            false,
+        )?;
+        assert!(updated_art
+            .negative_regions
+            .iter()
+            .any(|n| n.id == "neg_custom"));
+
+        // 3. Export dataset and verify MS-COCO JSON + hard-negative polarity (class_id == 0)
+        let ds = ws.export_dataset(true)?;
+        assert!(ds.total_hard_negative_boxes >= 2);
+        assert!(std::path::Path::new(&ds.coco_annotations_path).exists());
+        let coco_raw = std::fs::read_to_string(&ds.coco_annotations_path)?;
+        let coco_val: serde_json::Value = serde_json::from_str(&coco_raw)?;
+        assert_eq!(coco_val["categories"].as_array().unwrap().len(), 2);
+        assert!(
+            coco_val["annotations"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|a| a["polarity"] == "verified_benign_hard_negative")
+        );
 
         let _ = std::fs::remove_dir_all(&tmp_ws);
         Ok(())

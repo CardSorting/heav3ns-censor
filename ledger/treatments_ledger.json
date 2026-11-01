@@ -3,7 +3,7 @@
   "commissioned_agent": "Deputy Gemini",
   "principal_artist": "EGG",
   "version": "4.0.0",
-  "updated_at": "2026-11-01T22:28:20.607589Z",
+  "updated_at": "2026-11-01T23:42:14.189673Z",
   "assets": {
     "heav3ns_01_explicit_study_63116478": {
       "asset_id": "heav3ns_01_explicit_study_63116478",
@@ -51,6 +51,20 @@
           },
           "angle_deg": 6.0,
           "feather_px": 0
+        }
+      ],
+      "negative_regions": [
+        {
+          "id": "auto_neg_1",
+          "label": "auto_mined_hotspot_4",
+          "rationale": "Auto-mined high-frequency benign region non-overlapping with positive interventions",
+          "confuser_category": "auto_mined_unredacted_hotspot",
+          "x": 360.0,
+          "y": 450.0,
+          "width": 120.0,
+          "height": 90.0,
+          "unit": "pixels",
+          "shape": "rect"
         }
       ],
       "inspect_grid_path": "/Users/bozoegg/Desktop/HEAV3NS-CENSOR/assets/inspect/heav3ns_01_explicit_study_63116478_inspect_grid.png",
@@ -179,10 +193,16 @@
           "action": "APPLY_AND_VERIFY_CENSORSHIP",
           "actor": "Deputy Gemini",
           "details": "Applied 2 localized region(s) (append=true, removed=0); verification passed: true (censored area: 1.60%)"
+        },
+        {
+          "timestamp": "2026-11-01T23:42:14.189664Z",
+          "action": "ANNOTATE_HARD_NEGATIVE_REGIONS",
+          "actor": "Deputy Gemini",
+          "details": "Updated verified benign hard-negative annotations (count=1, append=true, auto_mine=true)"
         }
       ],
       "created_at": "2026-11-01T21:43:26.269015Z",
-      "updated_at": "2026-11-01T22:28:20.607580Z"
+      "updated_at": "2026-11-01T23:42:14.189664Z"
     },
     "heav3ns_02_artistic_silhouette_c199216e": {
       "asset_id": "heav3ns_02_artistic_silhouette_c199216e",
@@ -196,6 +216,20 @@
       "classification": "artistic_nudity_pass",
       "policy_profile": "jp_article_175_standard",
       "regions": [],
+      "negative_regions": [
+        {
+          "id": "neg1",
+          "label": "classical_dorsal_silhouette",
+          "rationale": "Stylized dorsal anatomy with zero explicit detail",
+          "confuser_category": "classical_dorsal_silhouette",
+          "x": 280.0,
+          "y": 140.0,
+          "width": 440.0,
+          "height": 720.0,
+          "unit": "pixels",
+          "shape": "rect"
+        }
+      ],
       "inspect_grid_path": "/Users/bozoegg/Desktop/HEAV3NS-CENSOR/assets/inspect/heav3ns_02_artistic_silhouette_c199216e_inspect_grid.png",
       "published_edition_path": "/Users/bozoegg/Desktop/HEAV3NS-CENSOR/assets/published/heav3ns_02_artistic_silhouette_c199216e_published.png",
       "sha256_published": "c199216e2bbcbe294b430237cb007d3796441cd5fd619289c4d788b2c0f79329",
@@ -219,10 +253,16 @@
           "action": "GENERATE_INSPECTION_GRID",
           "actor": "Deputy Gemini",
           "details": "Generated coordinate overlay at /Users/bozoegg/Desktop/HEAV3NS-CENSOR/assets/inspect/heav3ns_02_artistic_silhouette_c199216e_inspect_grid.png (hotspots: 0, zoom_crop: false)"
+        },
+        {
+          "timestamp": "2026-11-01T23:42:14.067323Z",
+          "action": "ANNOTATE_HARD_NEGATIVE_REGIONS",
+          "actor": "Deputy Gemini",
+          "details": "Updated verified benign hard-negative annotations (count=1, append=true, auto_mine=true)"
         }
       ],
       "created_at": "2026-11-01T21:43:26.271525Z",
-      "updated_at": "2026-11-01T22:08:47.096068Z"
+      "updated_at": "2026-11-01T23:42:14.067322Z"
     },
     "heav3ns_03_biomech_ambiguity_05522fca": {
       "asset_id": "heav3ns_03_biomech_ambiguity_05522fca",
@@ -236,6 +276,7 @@
       "classification": "ambiguous_escalate",
       "policy_profile": "jp_article_175_standard",
       "regions": [],
+      "negative_regions": [],
       "inspect_grid_path": "/Users/bozoegg/Desktop/HEAV3NS-CENSOR/assets/inspect/heav3ns_03_biomech_ambiguity_05522fca_inspect_grid.png",
       "published_edition_path": null,
       "sha256_published": null,

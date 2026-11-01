@@ -1,0 +1,174 @@
+{
+  "annotations": [
+    {
+      "angle_deg": 0.0,
+      "area": 12000,
+      "bbox": [
+        440,
+        500,
+        120,
+        100
+      ],
+      "category_id": 1,
+      "category_name": "explicit_intervention_required",
+      "enclosing_aabb": [
+        440,
+        500,
+        120,
+        100
+      ],
+      "id": 1,
+      "image_id": 1,
+      "iscrowd": 0,
+      "label": "explicit_lower_anatomy",
+      "polarity": "positive_intervention",
+      "rationale": "Localized mosaic intervention on explicit_lower_anatomy",
+      "shape": "rect",
+      "treatment_method": "mosaic"
+    },
+    {
+      "angle_deg": 6.0,
+      "area": 5824,
+      "bbox": [
+        444,
+        314,
+        112,
+        52
+      ],
+      "category_id": 1,
+      "category_name": "explicit_intervention_required",
+      "enclosing_aabb": [
+        441,
+        308,
+        118,
+        64
+      ],
+      "id": 2,
+      "image_id": 1,
+      "iscrowd": 0,
+      "label": "kuro_nuri_cleft_bar",
+      "polarity": "positive_intervention",
+      "rationale": "Localized solid_bar intervention on kuro_nuri_cleft_bar",
+      "shape": "pill",
+      "treatment_method": "solid_bar"
+    },
+    {
+      "angle_deg": 0.0,
+      "area": 10800,
+      "bbox": [
+        360,
+        450,
+        120,
+        90
+      ],
+      "category_id": 2,
+      "category_name": "verified_benign_hard_negative",
+      "confuser_category": "auto_mined_unredacted_hotspot",
+      "enclosing_aabb": [
+        360,
+        450,
+        120,
+        90
+      ],
+      "id": 3,
+      "image_id": 1,
+      "iscrowd": 0,
+      "label": "auto_mined_hotspot_4",
+      "polarity": "verified_benign_hard_negative",
+      "rationale": "Auto-mined high-frequency benign region non-overlapping with positive interventions",
+      "shape": "rect",
+      "treatment_method": "none_preserved_untouched"
+    },
+    {
+      "angle_deg": 0.0,
+      "area": 316800,
+      "bbox": [
+        280,
+        140,
+        440,
+        720
+      ],
+      "category_id": 2,
+      "category_name": "verified_benign_hard_negative",
+      "confuser_category": "classical_dorsal_silhouette",
+      "enclosing_aabb": [
+        280,
+        140,
+        440,
+        720
+      ],
+      "id": 4,
+      "image_id": 2,
+      "iscrowd": 0,
+      "label": "classical_dorsal_silhouette",
+      "polarity": "verified_benign_hard_negative",
+      "rationale": "Stylized dorsal anatomy with zero explicit detail",
+      "shape": "rect",
+      "treatment_method": "none_preserved_untouched"
+    }
+  ],
+  "categories": [
+    {
+      "id": 1,
+      "name": "explicit_intervention_required",
+      "supercategory": "safety_positive_redaction"
+    },
+    {
+      "id": 2,
+      "name": "verified_benign_hard_negative",
+      "supercategory": "false_positive_suppression"
+    }
+  ],
+  "images": [
+    {
+      "asset_id": "heav3ns_01_explicit_study_63116478",
+      "file_name": "heav3ns_01_explicit_study.png",
+      "height": 900,
+      "id": 1,
+      "is_safe_for_training_release": true,
+      "original_path": "/Users/bozoegg/Desktop/HEAV3NS-CENSOR/assets/originals/heav3ns_01_explicit_study_63116478_original.png",
+      "sanitized_published_path": "/Users/bozoegg/Desktop/HEAV3NS-CENSOR/assets/published/heav3ns_01_explicit_study_63116478_published.png",
+      "sha256_original": "63116478250d616898851193d272177e9fbac64c209a44d90176d53a7145d365",
+      "status": "verified",
+      "width": 1200
+    },
+    {
+      "asset_id": "heav3ns_02_artistic_silhouette_c199216e",
+      "file_name": "heav3ns_02_artistic_silhouette.png",
+      "height": 1000,
+      "id": 2,
+      "is_safe_for_training_release": true,
+      "original_path": "/Users/bozoegg/Desktop/HEAV3NS-CENSOR/assets/originals/heav3ns_02_artistic_silhouette_c199216e_original.png",
+      "sanitized_published_path": "/Users/bozoegg/Desktop/HEAV3NS-CENSOR/assets/published/heav3ns_02_artistic_silhouette_c199216e_published.png",
+      "sha256_original": "c199216e2bbcbe294b430237cb007d3796441cd5fd619289c4d788b2c0f79329",
+      "status": "approved_original",
+      "width": 1000
+    },
+    {
+      "asset_id": "heav3ns_03_biomech_ambiguity_05522fca",
+      "file_name": "heav3ns_03_biomech_ambiguity.png",
+      "height": 800,
+      "id": 3,
+      "is_safe_for_training_release": false,
+      "original_path": "/Users/bozoegg/Desktop/HEAV3NS-CENSOR/assets/originals/heav3ns_03_biomech_ambiguity_05522fca_original.png",
+      "sanitized_published_path": null,
+      "sha256_original": "05522fca0c630e7b663ddb4522cfb302e45ca05eaea15bf7725b3df242d83822",
+      "status": "escalated",
+      "width": 1000
+    }
+  ],
+  "info": {
+    "contributor": "HEAV3NS Post-Production & AI Safety Research (MAJO, EGG, Deputy Gemini)",
+    "date_created": "2026-11-01T23:42:14.313665+00:00",
+    "description": "HEAV3NS Contrastive Positive & Hard-Negative Safety Dataset (MS-COCO Format)",
+    "version": "4.0.0",
+    "year": 2026
+  },
+  "licenses": [
+    {
+      "id": 1,
+      "name": "MIT License",
+      "url": "https://opensource.org/licenses/MIT"
+    }
+  ]
+}

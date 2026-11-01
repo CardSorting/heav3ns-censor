@@ -194,6 +194,96 @@ pub struct CandidateHotspot {
     pub hint: String,
 }
 
+fn default_confuser_category() -> String {
+    "benign_artistic_feature".to_string()
+}
+
+/// Verified Benign / Hard-Negative Region Annotation for False-Positive Suppression.
+/// Marks a spatial region (e.g., classical silhouette, stylized muscle linework, clothing seam,
+/// skin highlight) that resembles a trigger hotspot but is verified benign and MUST NOT be censored.
+/// Never alters a single pixel of the artwork; exported to JSONL, COCO, and YOLO training splits.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct NegativeAnnotationRegion {
+    pub id: String,
+    pub label: String,
+    pub rationale: String,
+    #[serde(default = "default_confuser_category")]
+    pub confuser_category: String,
+    pub x: f32,
+    pub y: f32,
+    pub width: f32,
+    pub height: f32,
+    #[serde(default)]
+    pub unit: CoordinateUnit,
+    #[serde(default)]
+    pub shape: RegionShape,
+}
+
+impl NegativeAnnotationRegion {
+    pub fn resolve_pixels(&self, img_w: u32, img_h: u32) -> (u32, u32, u32, u32) {
+        if img_w == 0 || img_h == 0 {
+            return (0, 0, 0, 0);
+        }
+        let x = if self.x.is_finite() { self.x } else { 0.0 };
+        let y = if self.y.is_finite() { self.y } else { 0.0 };
+        let width = if self.width.is_finite() { self.width } else { 1.0 };
+        let height = if self.height.is_finite() { self.height } else { 1.0 };
+
+        let (rx, ry, rw, rh) = match self.unit {
+            CoordinateUnit::Pixels => (x, y, width, height),
+            CoordinateUnit::Normalized1000 => (
+                (x / 1000.0) * img_w as f32,
+                (y / 1000.0) * img_h as f32,
+                (width / 1000.0) * img_w as f32,
+                (height / 1000.0) * img_h as f32,
+            ),
+            CoordinateUnit::Percent => (
+                (x / 100.0) * img_w as f32,
+                (y / 100.0) * img_h as f32,
+                (width / 100.0) * img_w as f32,
+                (height / 100.0) * img_h as f32,
+            ),
+        };
+
+        let x0 = (rx.round().max(0.0) as u32).min(img_w.saturating_sub(1));
+        let y0 = (ry.round().max(0.0) as u32).min(img_h.saturating_sub(1));
+        let max_w = img_w.saturating_sub(x0);
+        let max_h = img_h.saturating_sub(y0);
+        let w = (rw.round().max(1.0) as u32).min(max_w);
+        let h = (rh.round().max(1.0) as u32).min(max_h);
+        (x0, y0, w, h)
+    }
+}
+
+/// Computes Intersection-over-Union (IoU) between two pixel bounding boxes `(x, y, w, h)`.
+pub fn compute_box_iou(a: (u32, u32, u32, u32), b: (u32, u32, u32, u32)) -> f32 {
+    let ax1 = a.0 as f32;
+    let ay1 = a.1 as f32;
+    let ax2 = (a.0 + a.2) as f32;
+    let ay2 = (a.1 + a.3) as f32;
+
+    let bx1 = b.0 as f32;
+    let by1 = b.1 as f32;
+    let bx2 = (b.0 + b.2) as f32;
+    let by2 = (b.1 + b.3) as f32;
+
+    let ix1 = ax1.max(bx1);
+    let iy1 = ay1.max(by1);
+    let ix2 = ax2.min(bx2);
+    let iy2 = ay2.min(by2);
+
+    let iw = (ix2 - ix1).max(0.0);
+    let ih = (iy2 - iy1).max(0.0);
+    let inter = iw * ih;
+    if inter <= 0.0 {
+        return 0.0;
+    }
+    let area_a = (a.2 as f32) * (a.3 as f32);
+    let area_b = (b.2 as f32) * (b.3 as f32);
+    let union = (area_a + area_b - inter).max(1e-6);
+    inter / union
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RegionVerificationMetric {
     pub region_id: String,
@@ -254,6 +344,9 @@ pub struct AssetRecord {
     pub classification: Option<CensorshipClassification>,
     pub policy_profile: String,
     pub regions: Vec<CensorshipRegion>,
+    /// Verified benign / hard-negative regions annotated to suppress false positives in downstream ML/VLM classifiers
+    #[serde(default)]
+    pub negative_regions: Vec<NegativeAnnotationRegion>,
     pub inspect_grid_path: Option<String>,
     pub published_edition_path: Option<String>,
     pub sha256_published: Option<String>,

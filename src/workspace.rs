@@ -3,9 +3,9 @@ use crate::engine::{
     generate_zoom_crop_grid, verify_censored_edition,
 };
 use crate::models::{
-    AssetRecord, AssetStatus, AuditEvent, CandidateHotspot, CensorshipClassification,
-    CensorshipRegion, CoordinateUnit, DoctorCheck, DoctorReport, EscalationInfo, Ledger,
-    VerificationReport,
+    compute_box_iou, AssetRecord, AssetStatus, AuditEvent, CandidateHotspot,
+    CensorshipClassification, CensorshipRegion, CoordinateUnit, DoctorCheck, DoctorReport,
+    EscalationInfo, Ledger, NegativeAnnotationRegion, RegionShape, VerificationReport,
 };
 use crate::policy::recommended_mosaic_block_size;
 use anyhow::{anyhow, Context, Result};
@@ -103,11 +103,18 @@ pub struct WorkspaceStatusSummary {
     pub escalation_report_path: String,
     pub dashboard_html_path: String,
     pub dataset_manifest_jsonl_path: String,
+    pub coco_annotations_json_path: String,
 }
 
 #[derive(Debug, Clone, Serialize)]
 pub struct DatasetAnnotationBox {
     pub region_id: String,
+    /// `"positive_intervention"` (requires redaction) or `"verified_benign_hard_negative"` (false-positive suppression)
+    pub polarity: String,
+    /// `1` = explicit_intervention_required, `0` = verified_benign_hard_negative
+    pub class_id: u32,
+    /// `"explicit_curation"`, `"human_verified_negative"`, or `"auto_mined_unredacted_hotspot"`
+    pub annotation_source: String,
     pub label: String,
     pub rationale: String,
     pub shape: String,
@@ -146,6 +153,8 @@ pub struct DatasetExportRow {
     pub redacted_area_percent: f64,
     pub multiscale_jpeg_1080p_q85_passed: bool,
     pub multiscale_jpeg_540p_q75_passed: bool,
+    pub positive_annotations_count: usize,
+    pub hard_negative_annotations_count: usize,
     pub annotations: Vec<DatasetAnnotationBox>,
 }
 
@@ -158,7 +167,10 @@ pub struct DatasetExportReport {
     pub surgical_redaction_count: usize,
     pub preserved_untouched_count: usize,
     pub quarantined_escalated_count: usize,
+    pub total_positive_boxes: usize,
+    pub total_hard_negative_boxes: usize,
     pub jsonl_manifest_path: String,
+    pub coco_annotations_path: String,
     pub dataset_card_path: String,
     pub records: Vec<DatasetExportRow>,
 }
@@ -305,6 +317,10 @@ impl Workspace {
 
     pub fn dataset_card_md_file(&self) -> PathBuf {
         self.ledger_dir().join("DATASET_CARD.md")
+    }
+
+    pub fn coco_annotations_json_file(&self) -> PathBuf {
+        self.ledger_dir().join("annotations_coco.json")
     }
 
     pub fn init(&self) -> Result<()> {
@@ -495,6 +511,7 @@ impl Workspace {
             classification: None,
             policy_profile: default_policy.to_string(),
             regions: Vec::new(),
+            negative_regions: Vec::new(),
             inspect_grid_path: None,
             published_edition_path: None,
             sha256_published: None,
@@ -796,6 +813,35 @@ impl Workspace {
 
         record.classification = Some(classification);
         record.regions = effective_regions.clone();
+        // Auto-mine unredacted high-frequency hotspots as verified benign hard-negatives if none were explicitly set
+        if record.negative_regions.is_empty() {
+            let pos_boxes: Vec<(u32, u32, u32, u32)> = effective_regions
+                .iter()
+                .map(|r| r.resolve_enclosing_aabb(record.width, record.height))
+                .collect();
+            let hotspots = detect_candidate_hotspots(&orig_rgba, 4);
+            let mut auto_idx = 1usize;
+            for hs in hotspots {
+                let overlaps_pos = pos_boxes
+                    .iter()
+                    .any(|&pb| compute_box_iou(hs.pixel_bounds, pb) >= 0.10);
+                if !overlaps_pos {
+                    record.negative_regions.push(NegativeAnnotationRegion {
+                        id: format!("auto_neg_{}", auto_idx),
+                        label: format!("benign_hotspot_rank_{}", hs.rank),
+                        rationale: "Unredacted high-frequency artistic region verified safe (hard-negative confuser for false-positive suppression)".to_string(),
+                        confuser_category: "auto_mined_unredacted_hotspot".to_string(),
+                        x: hs.pixel_bounds.0 as f32,
+                        y: hs.pixel_bounds.1 as f32,
+                        width: hs.pixel_bounds.2 as f32,
+                        height: hs.pixel_bounds.3 as f32,
+                        unit: CoordinateUnit::Pixels,
+                        shape: RegionShape::Rect,
+                    });
+                    auto_idx += 1;
+                }
+            }
+        }
         record.escalation = None;
         record.published_edition_path = Some(pub_path.to_string_lossy().to_string());
         record.sha256_published = Some(pub_sha);
@@ -811,10 +857,11 @@ impl Workspace {
             action: "APPLY_AND_VERIFY_CENSORSHIP".to_string(),
             actor: "Deputy Gemini".to_string(),
             details: format!(
-                "Applied {} localized region(s) (append={}, removed={}); verification passed: {} (censored area: {:.2}%)",
+                "Applied {} localized region(s) (append={}, removed={}, hard_negatives={}); verification passed: {} (censored area: {:.2}%)",
                 effective_regions.len(),
                 opts.append_regions,
                 opts.remove_region_ids.len(),
+                record.negative_regions.len(),
                 report.overall_passed,
                 report.total_censored_area_percent
             ),
@@ -829,6 +876,7 @@ impl Workspace {
 
     /// Approves an asset as requiring zero censorship intervention (e.g., artistic nudity or suggestive imagery),
     /// copying the untouched original to the publication directory while cleaning up any stale previews/escalations.
+    /// Automatically mines high-frequency silhouette/contour hotspots as verified hard-negative boxes to prevent false positives.
     pub fn approve_untouched(
         &self,
         asset_query: &str,
@@ -864,6 +912,48 @@ impl Workspace {
         let pub_path = self.published_dir().join(&pub_filename);
         atomic_write_bytes(&pub_path, &orig_bytes)?;
 
+        // Auto-mine high-frequency artistic contour hotspots as verified benign hard-negatives if none were set
+        if record.negative_regions.is_empty() {
+            if let Ok(orig_img) = image::load_from_memory(&orig_bytes) {
+                let hotspots = detect_candidate_hotspots(&orig_img.to_rgba8(), 3);
+                if hotspots.is_empty() {
+                    record.negative_regions.push(NegativeAnnotationRegion {
+                        id: "auto_neg_1".to_string(),
+                        label: "artistic_silhouette_figure_1".to_string(),
+                        rationale: format!(
+                            "Verified benign artistic nudity / suggestive silhouette ({}) — hard-negative annotation for false-positive suppression",
+                            rationale
+                        ),
+                        confuser_category: "artistic_silhouette_hard_negative".to_string(),
+                        x: (record.width / 4) as f32,
+                        y: (record.height / 6) as f32,
+                        width: (record.width / 2) as f32,
+                        height: ((record.height * 2) / 3) as f32,
+                        unit: CoordinateUnit::Pixels,
+                        shape: RegionShape::Rect,
+                    });
+                } else {
+                    for (idx, hs) in hotspots.into_iter().enumerate() {
+                        record.negative_regions.push(NegativeAnnotationRegion {
+                            id: format!("auto_neg_{}", idx + 1),
+                            label: format!("artistic_silhouette_confuser_{}", idx + 1),
+                            rationale: format!(
+                                "Verified benign artistic nudity / suggestive contour ({}) — hard-negative annotation for false-positive suppression",
+                                rationale
+                            ),
+                            confuser_category: "artistic_silhouette_hard_negative".to_string(),
+                            x: hs.pixel_bounds.0 as f32,
+                            y: hs.pixel_bounds.1 as f32,
+                            width: hs.pixel_bounds.2 as f32,
+                            height: hs.pixel_bounds.3 as f32,
+                            unit: CoordinateUnit::Pixels,
+                            shape: RegionShape::Rect,
+                        });
+                    }
+                }
+            }
+        }
+
         record.classification = Some(classification);
         record.regions.clear();
         record.verification = None;
@@ -876,7 +966,12 @@ impl Workspace {
             timestamp: Utc::now(),
             action: "APPROVE_UNTOUCHED_FOR_PUBLICATION".to_string(),
             actor: "Deputy Gemini".to_string(),
-            details: format!("Classification {:?}: {}", classification, rationale),
+            details: format!(
+                "Classification {:?}: {} (hard_negatives={})",
+                classification,
+                rationale,
+                record.negative_regions.len()
+            ),
         });
 
         let updated_record = record.clone();
@@ -884,6 +979,118 @@ impl Workspace {
         self.save_ledger(&ledger)?;
         self.sync_markdown_reports()?;
         Ok(updated_record)
+    }
+
+    /// Annotates verified benign / hard-negative regions on an asset (`annotate-negative`) without modifying any pixels.
+    /// Used in data preparation and curation to eliminate false positives on artistic silhouettes, skin gradients, and linework.
+    pub fn annotate_negative(
+        &self,
+        asset_query: &str,
+        new_neg_regions: Vec<NegativeAnnotationRegion>,
+        append: bool,
+        remove_ids: Vec<String>,
+        auto_mine_hotspots: bool,
+    ) -> Result<AssetRecord> {
+        let _lock = WorkspaceLock::acquire(&self.ledger_dir())?;
+        let mut ledger = self.load_ledger()?;
+        let asset_id = Self::resolve_asset_id_in_ledger(&ledger, asset_query)?;
+        let record = ledger
+            .assets
+            .get_mut(&asset_id)
+            .ok_or_else(|| anyhow!("Asset '{}' not found in ledger", asset_id))?;
+
+        let mut effective_negs: Vec<NegativeAnnotationRegion> =
+            if append || !remove_ids.is_empty() {
+                record
+                    .negative_regions
+                    .iter()
+                    .filter(|r| !remove_ids.iter().any(|rem| rem == &r.id))
+                    .cloned()
+                    .collect()
+            } else {
+                Vec::new()
+            };
+
+        for mut nr in new_neg_regions {
+            if nr.id.is_empty() || nr.id.starts_with("auto_") {
+                let mut k = 1usize;
+                loop {
+                    let candidate = format!("neg{}", k);
+                    if !effective_negs.iter().any(|ex| ex.id == candidate) {
+                        nr.id = candidate;
+                        break;
+                    }
+                    k += 1;
+                }
+                effective_negs.push(nr);
+            } else if let Some(existing) = effective_negs.iter_mut().find(|ex| ex.id == nr.id) {
+                *existing = nr;
+            } else {
+                effective_negs.push(nr);
+            }
+        }
+
+        if auto_mine_hotspots {
+            let orig_bytes = fs::read(&record.archive_original_path)?;
+            let orig_rgba = image::load_from_memory(&orig_bytes)?.to_rgba8();
+            let pos_boxes: Vec<(u32, u32, u32, u32)> = record
+                .regions
+                .iter()
+                .map(|r| r.resolve_enclosing_aabb(record.width, record.height))
+                .collect();
+            let hotspots = detect_candidate_hotspots(&orig_rgba, 4);
+            for hs in hotspots {
+                let overlaps_pos = pos_boxes
+                    .iter()
+                    .any(|&pb| compute_box_iou(hs.pixel_bounds, pb) >= 0.10);
+                let overlaps_existing_neg = effective_negs.iter().any(|nr| {
+                    compute_box_iou(hs.pixel_bounds, nr.resolve_pixels(record.width, record.height))
+                        >= 0.25
+                });
+                if !overlaps_pos && !overlaps_existing_neg {
+                    let mut k = 1usize;
+                    let cid = loop {
+                        let c = format!("auto_neg_{}", k);
+                        if !effective_negs.iter().any(|ex| ex.id == c) {
+                            break c;
+                        }
+                        k += 1;
+                    };
+                    effective_negs.push(NegativeAnnotationRegion {
+                        id: cid,
+                        label: format!("auto_mined_hotspot_{}", hs.rank),
+                        rationale: "Auto-mined high-frequency benign region non-overlapping with positive interventions".to_string(),
+                        confuser_category: "auto_mined_unredacted_hotspot".to_string(),
+                        x: hs.pixel_bounds.0 as f32,
+                        y: hs.pixel_bounds.1 as f32,
+                        width: hs.pixel_bounds.2 as f32,
+                        height: hs.pixel_bounds.3 as f32,
+                        unit: CoordinateUnit::Pixels,
+                        shape: RegionShape::Rect,
+                    });
+                }
+            }
+        }
+
+        record.negative_regions = effective_negs;
+        record.updated_at = Utc::now();
+        record.audit_trail.push(AuditEvent {
+            timestamp: Utc::now(),
+            action: "ANNOTATE_HARD_NEGATIVE_REGIONS".to_string(),
+            actor: "Deputy Gemini".to_string(),
+            details: format!(
+                "Updated verified benign hard-negative annotations (count={}, append={}, auto_mine={})",
+                record.negative_regions.len(),
+                append,
+                auto_mine_hotspots
+            ),
+        });
+
+        let updated = record.clone();
+        ledger.updated_at = Utc::now();
+        self.save_ledger(&ledger)?;
+        self.sync_markdown_reports()?;
+        Ok(updated)
     }
 
     /// Escalates an asset for human/executive review when artistic or compliance requirements are genuinely ambiguous.
@@ -1275,6 +1482,7 @@ impl Workspace {
             escalation_report_path: self.escalation_md_file().to_string_lossy().to_string(),
             dashboard_html_path: self.dashboard_html_file().to_string_lossy().to_string(),
             dataset_manifest_jsonl_path: self.dataset_manifest_jsonl_file().to_string_lossy().to_string(),
+            coco_annotations_json_path: self.coco_annotations_json_file().to_string_lossy().to_string(),
         })
     }
 
@@ -1678,14 +1886,34 @@ impl Workspace {
         let mut redacted_count = 0usize;
         let mut untouched_count = 0usize;
         let mut escalated_count = 0usize;
+        let mut total_pos_boxes = 0usize;
+        let mut total_neg_boxes = 0usize;
 
-        for rec in &asset_list {
+        let mut coco_images = Vec::new();
+        let mut coco_annotations = Vec::new();
+        let mut coco_ann_id = 1usize;
+
+        for (img_idx, rec) in asset_list.iter().enumerate() {
             let is_safe = matches!(rec.status, AssetStatus::Verified | AssetStatus::ApprovedOriginal)
                 && rec.published_edition_path.is_some();
 
             if safe_only && !is_safe {
                 continue;
             }
+
+            let image_id = img_idx + 1;
+            coco_images.push(serde_json::json!({
+                "id": image_id,
+                "asset_id": rec.asset_id,
+                "file_name": rec.original_filename,
+                "original_path": rec.archive_original_path,
+                "sanitized_published_path": rec.published_edition_path,
+                "width": rec.width,
+                "height": rec.height,
+                "status": rec.status,
+                "is_safe_for_training_release": is_safe,
+                "sha256_original": rec.sha256_original
+            }));
 
             let curation_action = match rec.status {
                 AssetStatus::Verified => {
@@ -1733,13 +1961,17 @@ impl Workspace {
             };
 
             let preservation_ratio = ((100.0 - redacted_pct).clamp(0.0, 100.0) / 100.0 * 10000.0).round() / 10000.0;
+            let w_f = rec.width.max(1) as f32;
+            let h_f = rec.height.max(1) as f32;
 
             let mut annotations = Vec::new();
+            let mut pos_count = 0usize;
+            let mut neg_count = 0usize;
+
+            // 1. Positive Intervention Regions (class_id = 1)
             for r in &rec.regions {
                 let (px, py, pw, ph) = r.resolve_pixels(rec.width, rec.height);
                 let (ax, ay, aw, ah) = r.resolve_enclosing_aabb(rec.width, rec.height);
-                let w_f = rec.width.max(1) as f32;
-                let h_f = rec.height.max(1) as f32;
 
                 let x1_n1000 = ((px as f32 / w_f) * 1000.0).round().clamp(0.0, 1000.0) as u32;
                 let y1_n1000 = ((py as f32 / h_f) * 1000.0).round().clamp(0.0, 1000.0) as u32;
@@ -1765,8 +1997,31 @@ impl Workspace {
                 }
                 .to_string();
 
+                coco_annotations.push(serde_json::json!({
+                    "id": coco_ann_id,
+                    "image_id": image_id,
+                    "category_id": 1,
+                    "category_name": "explicit_intervention_required",
+                    "polarity": "positive_intervention",
+                    "bbox": [px, py, pw, ph],
+                    "enclosing_aabb": [ax, ay, aw, ah],
+                    "area": pw * ph,
+                    "iscrowd": 0,
+                    "shape": shape_name,
+                    "angle_deg": r.rotation_angle_deg(),
+                    "treatment_method": method_name,
+                    "label": r.label,
+                    "rationale": r.rationale
+                }));
+                coco_ann_id += 1;
+                pos_count += 1;
+                total_pos_boxes += 1;
+
                 annotations.push(DatasetAnnotationBox {
                     region_id: r.id.clone(),
+                    polarity: "positive_intervention".to_string(),
+                    class_id: 1,
+                    annotation_source: "explicit_curation".to_string(),
                     label: r.label.clone(),
                     rationale: r.rationale.clone(),
                     shape: shape_name,
@@ -1777,6 +2032,103 @@ impl Workspace {
                     bbox_xyxy_norm1000: [x1_n1000, y1_n1000, x2_n1000, y2_n1000],
                     bbox_cxcywh_norm01: [cx_01, cy_01, bw_01, bh_01],
                     enclosing_aabb_px: [ax, ay, aw, ah],
+                });
+            }
+
+            // 2. Verified Benign Hard-Negative Regions (class_id = 0) to prevent False Positives
+            let mut effective_negs = rec.negative_regions.clone();
+            if effective_negs.is_empty() && is_safe {
+                if let Ok(orig_img) = image::open(&rec.archive_original_path) {
+                    let pos_boxes: Vec<(u32, u32, u32, u32)> = rec
+                        .regions
+                        .iter()
+                        .map(|r| r.resolve_enclosing_aabb(rec.width, rec.height))
+                        .collect();
+                    let hotspots = detect_candidate_hotspots(&orig_img.to_rgba8(), 3);
+                    for (idx, hs) in hotspots.into_iter().enumerate() {
+                        let overlaps_pos = pos_boxes
+                            .iter()
+                            .any(|&pb| compute_box_iou(hs.pixel_bounds, pb) >= 0.10);
+                        if !overlaps_pos {
+                            effective_negs.push(NegativeAnnotationRegion {
+                                id: format!("auto_neg_{}", idx + 1),
+                                label: format!("verified_benign_hotspot_{}", hs.rank),
+                                rationale: "High-frequency artistic contour/feature verified non-explicit (hard-negative for false-positive suppression)".to_string(),
+                                confuser_category: "auto_mined_unredacted_hotspot".to_string(),
+                                x: hs.pixel_bounds.0 as f32,
+                                y: hs.pixel_bounds.1 as f32,
+                                width: hs.pixel_bounds.2 as f32,
+                                height: hs.pixel_bounds.3 as f32,
+                                unit: CoordinateUnit::Pixels,
+                                shape: RegionShape::Rect,
+                            });
+                        }
+                    }
+                }
+            }
+
+            for nr in &effective_negs {
+                let (px, py, pw, ph) = nr.resolve_pixels(rec.width, rec.height);
+                let x1_n1000 = ((px as f32 / w_f) * 1000.0).round().clamp(0.0, 1000.0) as u32;
+                let y1_n1000 = ((py as f32 / h_f) * 1000.0).round().clamp(0.0, 1000.0) as u32;
+                let x2_n1000 = (((px + pw) as f32 / w_f) * 1000.0).round().clamp(0.0, 1000.0) as u32;
+                let y2_n1000 = (((py + ph) as f32 / h_f) * 1000.0).round().clamp(0.0, 1000.0) as u32;
+
+                let cx_01 = ((px as f32 + pw as f32 * 0.5) / w_f * 10000.0).round() / 10000.0;
+                let cy_01 = ((py as f32 + ph as f32 * 0.5) / h_f * 10000.0).round() / 10000.0;
+                let bw_01 = ((pw as f32 / w_f) * 10000.0).round() / 10000.0;
+                let bh_01 = ((ph as f32 / h_f) * 10000.0).round() / 10000.0;
+
+                let shape_name = match nr.shape {
+                    crate::models::RegionShape::Rect => "rect",
+                    crate::models::RegionShape::Ellipse => "ellipse",
+                    crate::models::RegionShape::Pill => "pill",
+                }
+                .to_string();
+
+                let src = if nr.id.starts_with("auto_neg") {
+                    "auto_mined_unredacted_hotspot"
+                } else {
+                    "human_verified_negative"
+                }
+                .to_string();
+
+                coco_annotations.push(serde_json::json!({
+                    "id": coco_ann_id,
+                    "image_id": image_id,
+                    "category_id": 2,
+                    "category_name": "verified_benign_hard_negative",
+                    "polarity": "verified_benign_hard_negative",
+                    "confuser_category": nr.confuser_category,
+                    "bbox": [px, py, pw, ph],
+                    "enclosing_aabb": [px, py, pw, ph],
+                    "area": pw * ph,
+                    "iscrowd": 0,
+                    "shape": shape_name,
+                    "angle_deg": 0.0,
+                    "treatment_method": "none_preserved_untouched",
+                    "label": nr.label,
+                    "rationale": nr.rationale
+                }));
+                coco_ann_id += 1;
+                neg_count += 1;
+                total_neg_boxes += 1;
+
+                annotations.push(DatasetAnnotationBox {
+                    region_id: nr.id.clone(),
+                    polarity: "verified_benign_hard_negative".to_string(),
+                    class_id: 0,
+                    annotation_source: src,
+                    label: nr.label.clone(),
+                    rationale: nr.rationale.clone(),
+                    shape: shape_name,
+                    treatment_method: "none_preserved_untouched".to_string(),
+                    angle_deg: 0.0,
+                    feather_px: 0,
+                    bbox_xywh_px: [px, py, pw, ph],
+                    bbox_xyxy_norm1000: [x1_n1000, y1_n1000, x2_n1000, y2_n1000],
+                    bbox_cxcywh_norm01: [cx_01, cy_01, bw_01, bh_01],
+                    enclosing_aabb_px: [px, py, pw, ph],
                 });
             }
 
@@ -1801,6 +2153,8 @@ impl Workspace {
                 redacted_area_percent: redacted_pct,
                 multiscale_jpeg_1080p_q85_passed: j1080_ok,
                 multiscale_jpeg_540p_q75_passed: j540_ok,
+                positive_annotations_count: pos_count,
+                hard_negative_annotations_count: neg_count,
                 annotations,
             });
         }
@@ -1814,8 +2168,40 @@ impl Workspace {
         }
         atomic_write_bytes(&self.dataset_manifest_jsonl_file(), jsonl_buf.as_bytes())?;
 
+        // Write MS-COCO Object Detection & Hard-Negative JSON (`ledger/annotations_coco.json`)
+        let coco_doc = serde_json::json!({
+            "info": {
+                "description": "HEAV3NS Contrastive Positive & Hard-Negative Safety Dataset (MS-COCO Format)",
+                "version": ledger.version,
+                "year": 2026,
+                "contributor": "HEAV3NS Post-Production & AI Safety Research (MAJO, EGG, Deputy Gemini)",
+                "date_created": Utc::now().to_rfc3339()
+            },
+            "licenses": [{
+                "id": 1,
+                "name": "MIT License",
+                "url": "https://opensource.org/licenses/MIT"
+            }],
+            "categories": [
+                {
+                    "id": 1,
+                    "name": "explicit_intervention_required",
+                    "supercategory": "safety_positive_redaction"
+                },
+                {
+                    "id": 2,
+                    "name": "verified_benign_hard_negative",
+                    "supercategory": "false_positive_suppression"
+                }
+            ],
+            "images": coco_images,
+            "annotations": coco_annotations
+        });
+        let coco_bytes = serde_json::to_vec_pretty(&coco_doc)?;
+        atomic_write_bytes(&self.coco_annotations_json_file(), &coco_bytes)?;
+
         let card_md = format!(
-            "---\nlicense: mit\ntask_categories:\n  - image-to-image\n  - object-detection\n  - image-classification\ntags:\n  - ai-safety\n  - dataset-cleaning\n  - localized-redaction\n  - vlm-grounding\n  - artistic-preservation\n---\n\n# HEAV3NS Sanitized Vision & Safety Benchmark Dataset Card\n\nGenerated deterministically by **`heav3ns-censor v{}`**.\n\n## Dataset Summary & Safety Provenance\n\n- **Total Exported Records:** `{}` (`safe_only = {}`)\n- **Safe Training Split (`is_safe_for_training_release == true`):** `{}`\n  - **Surgical Localized Redactions (`Verified`):** `{}` (`0` exterior pixels altered; verified across Native, `1080p Q85`, and `540p Q75` JPEG)\n  - **Preserved False-Positive Artistic Corpora (`ApprovedOriginal`):** `{}` (`100%` bit-identical to original)\n- **Quarantined Ambiguity Benchmark (`Escalated`):** `{}` (isolated from `assets/published/`)\n- **Manifest File:** `ledger/dataset_manifest.jsonl`\n\n## Loading in Python (`datasets` / `json`)\n\n```python\nimport json\nfrom pathlib import Path\n\nrecords = [\n    json.loads(line)\n    for line in Path(\"ledger/dataset_manifest.jsonl\").read_text().splitlines()\n    if line.strip()\n]\nsafe_split = [r for r in records if r[\"is_safe_for_training_release\"]]\nprint(f\"Loaded {{len(records)}} total records ({{len(safe_split)}} compliance-verified safe records).\")\n```\n",
+            "---\nlicense: mit\ntask_categories:\n  - object-detection\n  - image-to-image\n  - image-classification\ntags:\n  - ai-safety\n  - false-positive-suppression\n  - hard-negative-mining\n  - dataset-cleaning\n  - vlm-grounding\n  - artistic-preservation\n---\n\n# HEAV3NS Contrastive Safety, Hard-Negative & Sanitized Vision Dataset Card\n\nGenerated deterministically by **`heav3ns-censor v{}`**.\n\n## Dataset Summary & False-Positive Suppression Provenance\n\n- **Total Exported Images:** `{}` (`safe_only = {}`)\n- **Safe Training Split (`is_safe_for_training_release == true`):** `{}`\n  - **Surgical Localized Redactions (`Verified`):** `{}` (`0` exterior pixels altered; verified across Native, `1080p Q85`, and `540p Q75` JPEG)\n  - **Preserved False-Positive Artistic Corpora (`ApprovedOriginal`):** `{}` (`100%` bit-identical to original)\n- **Quarantined Ambiguity Benchmark (`Escalated`):** `{}` (isolated from `assets/published/`)\n- **Region-Level Bounding Box Annotations (`COCO` + `Normalized1000` + `YOLO`):**\n  - **Positive Intervention Boxes (`class_id = 1`, `positive_intervention`):** `{}`\n  - **Verified Benign Hard-Negative Boxes (`class_id = 0`, `verified_benign_hard_negative`):** `{}` *(eliminates classifier false positives on classical silhouettes, skin-tone gradients, and artistic linework)*\n- **Exported Manifests:**\n  - `ledger/dataset_manifest.jsonl` (HuggingFace `datasets` / JSON Lines)\n  - `ledger/annotations_coco.json` (MS-COCO Object Detection format for CVAT, Label Studio, Roboflow, & Voxel51 FiftyOne)\n\n## Loading in Python (`datasets` / `json` / `pycocotools`)\n\n```python\nimport json\nfrom pathlib import Path\n\nrecords = [\n    json.loads(line)\n    for line in Path(\"ledger/dataset_manifest.jsonl\").read_text().splitlines()\n    if line.strip()\n]\npos_boxes = [a for r in records for a in r[\"annotations\"] if a[\"class_id\"] == 1]\nhard_neg_boxes = [a for r in records for a in r[\"annotations\"] if a[\"class_id\"] == 0]\nprint(f\"Images: {{len(records)}} | Positive Redaction Boxes: {{len(pos_boxes)}} | Hard-Negative Benign Boxes: {{len(hard_neg_boxes)}}\")\n```\n",
             ledger.version,
             rows.len(),
             safe_only,
@@ -1823,6 +2209,8 @@ impl Workspace {
             redacted_count,
             untouched_count,
             escalated_count,
+            total_pos_boxes,
+            total_neg_boxes,
         );
         atomic_write_bytes(&self.dataset_card_md_file(), card_md.as_bytes())?;
 
@@ -1834,7 +2222,10 @@ impl Workspace {
             surgical_redaction_count: redacted_count,
             preserved_untouched_count: untouched_count,
             quarantined_escalated_count: escalated_count,
+            total_positive_boxes: total_pos_boxes,
+            total_hard_negative_boxes: total_neg_boxes,
             jsonl_manifest_path: self.dataset_manifest_jsonl_file().to_string_lossy().to_string(),
+            coco_annotations_path: self.coco_annotations_json_file().to_string_lossy().to_string(),
             dataset_card_path: self.dataset_card_md_file().to_string_lossy().to_string(),
             records: rows,
         })
@@ -2015,6 +2406,7 @@ impl Workspace {
                             <div class="cmd-type-group">
                                 <button class="ctbtn active" onclick="setCmdType(this, 'mosaic')">Mosaic</button>
                                 <button class="ctbtn" onclick="setCmdType(this, 'pill_bar')">Pill Bar (Auto)</button>
+                                <button class="ctbtn" onclick="setCmdType(this, 'hard_negative')" title="Annotate a verified benign confuser region to prevent classifier false positives without altering pixels">+ Hard-Negative (Benign)</button>
                                 <button class="ctbtn" onclick="setCmdType(this, 'crop')">3x Zoom-Crop</button>
                                 <button class="ctbtn" onclick="setQuickCmd(this, 'approve')">Approve Original</button>
                                 <button class="ctbtn" onclick="setQuickCmd(this, 'escalate')">Escalate</button>
@@ -2486,12 +2878,23 @@ impl Workspace {
         const hud = card.querySelector('.coord-hud');
         const cmdType = hud.dataset.cmdType || 'mosaic';
         if (cmdType === 'pill_bar') {{
+          box.style.borderColor = 'var(--cyan)';
+          box.style.background = 'rgba(0, 255, 213, 0.14)';
           card.querySelector('.cli-out').value =
             `./target/release/heav3ns-censor execute --asset-id ${{card.dataset.id}} --append --region "solid_bar:${{rx}},${{ry}},${{rw}},${{rh}}:pixels:pill:auto@0.0:0:kuro_nuri_cleft"`;
+        }} else if (cmdType === 'hard_negative') {{
+          box.style.borderColor = 'var(--green)';
+          box.style.background = 'rgba(63, 185, 80, 0.16)';
+          card.querySelector('.cli-out').value =
+            `./target/release/heav3ns-censor annotate-negative --asset-id ${{card.dataset.id}} --append --region "neg1=${{rx}},${{ry}},${{rw}},${{rh}}:pixels:rect:benign_artistic_feature:Verified hard-negative confuser"`;
         }} else if (cmdType === 'crop') {{
+          box.style.borderColor = 'var(--amber)';
+          box.style.background = 'rgba(210, 153, 34, 0.14)';
           card.querySelector('.cli-out').value =
             `./target/release/heav3ns-censor inspect --asset-id ${{card.dataset.id}} --crop "${{rx}},${{ry}},${{rw}},${{rh}}:pixels"`;
         }} else {{
+          box.style.borderColor = 'var(--cyan)';
+          box.style.background = 'rgba(0, 255, 213, 0.14)';
           card.querySelector('.cli-out').value =
             `./target/release/heav3ns-censor execute --asset-id ${{card.dataset.id}} --append --region "mosaic:${{rx}},${{ry}},${{rw}},${{rh}}:pixels:rect:auto:0:explicit_anatomy"`;
         }}

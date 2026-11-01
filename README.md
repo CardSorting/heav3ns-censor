@@ -8,8 +8,9 @@
 [![Rust 2021](https://img.shields.io/badge/rust-2021_edition-orange.svg)](Cargo.toml)
 [![Version](https://img.shields.io/badge/version-4.0.0-00ffd5.svg)](CHANGELOG.md)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-[![MCP Protocol](https://img.shields.io/badge/MCP-13_tools_stdio-ff328c.svg)](src/mcp.rs)
-[![Dataset Export](https://img.shields.io/badge/dataset_export-JSONL_%7C_COCO_%7C_YOLO-9b59b6.svg)](docs/knowledgebase/03-dataset-cleaning-and-ai-safety-research.md)
+[![MCP Protocol](https://img.shields.io/badge/MCP-14_tools_stdio-ff328c.svg)](src/mcp.rs)
+[![Dataset Export](https://img.shields.io/badge/dataset_export-JSONL_%7C_MS--COCO_%7C_YOLO-9b59b6.svg)](docs/knowledgebase/03-dataset-cleaning-and-ai-safety-research.md)
+[![False Positive Defense](https://img.shields.io/badge/data_annotation-Hard--Negative_Mining-3fb950.svg)](docs/knowledgebase/03-dataset-cleaning-and-ai-safety-research.md)
 [![Preservation Invariant](https://img.shields.io/badge/exterior_pixel_diff-0_px_(bit_exact)-3fb950.svg)](docs/whitepaper/TECHNICAL_WHITEPAPER.md)
 
 **[🔬 Dataset & Safety Research](docs/knowledgebase/03-dataset-cleaning-and-ai-safety-research.md)** • **[🎨 Artist & Studio Handoff](docs/stakeholder-handoff/STAKEHOLDER_HANDOFF.md)** • **[🤖 Agent Onboarding](docs/onboarding/AGENT_ONBOARDING.md)** • **[🛠️ Developer Guide](docs/onboarding/DEVELOPER_ONBOARDING.md)** • **[Philosophy](docs/philosophy/PHILOSOPHY.md)** • **[Whitepaper](docs/whitepaper/TECHNICAL_WHITEPAPER.md)** • **[Docs Portal](docs/README.md)** • **[ADRs](docs/adrs/README.md)** • **[Playbooks](docs/playbooks/README.md)** • **[Postmortems](docs/postmortems/README.md)**
@@ -43,11 +44,12 @@ Both **multimodal AI dataset curation** and **digital illustration post-producti
 | Dimension | Bulk Classifier Filtering (Sample Dropping) | Generative Diffusion Inpainting | Manual Raster Editing (Photoshop / CSP) | **`heav3ns-censor` (v4.0 Rust Engine)** |
 | :--- | :---: | :---: | :---: | :---: |
 | **Exterior Pixel Preservation** | N/A (Deletes image) | ❌ Corrupts entire canvas via VAE decode | ⚠️ Prone to layer/export drift | ✅ **100% Bit-Exact (`0` diff px outside SDF mask)** |
+| **False-Positive Suppression (Hard-Negatives)** | ❌ High false-positive rate on art/skin | ❌ No negative region labels | ❌ No structured annotations | ✅ **Explicit (`annotate-negative`) + Auto-Mined Hard-Negative Boxes (`class_id: 0`)** |
 | **Preserves Figurative Art Corpora?** | ❌ Purges artistic nudity as false positives | ⚠️ Overwrites original brushwork | ✅ Manual human triage | ✅ **3-Way Triage (`Verified`, `ApprovedOriginal`, `Escalated`)** |
 | **Zero Synthetic Hallucinations** | ✅ | ❌ Injects latent diffusion artifacts | ✅ | ✅ **Deterministic Mathematical Operators Only** |
 | **Multi-Scale `540p` / `1080p` JPEG Proof** | ❌ | ❌ | ❌ Visual guesswork | ✅ **Automated Mean + $P_{95}$ Peak Gradient Verification** |
-| **Structured ML Dataset Export** | ❌ | ❌ | ❌ | ✅ **`dataset_manifest.jsonl` (`COCO` + `Normalized1000` + `YOLO`)** |
-| **Autonomous VLM Agent & Studio UX** | ❌ | ❌ | ❌ Manual labor | ✅ **13-Tool MCP Server + Interactive `dashboard.html`** |
+| **CVAT / Label Studio / Roboflow / HF Export** | ❌ | ❌ | ❌ | ✅ **`dataset_manifest.jsonl` + `annotations_coco.json` (`COCO` + `Norm1000` + `YOLO`)** |
+| **Autonomous VLM Agent & Studio UX** | ❌ | ❌ | ❌ Manual labor | ✅ **14-Tool MCP Server + Interactive `dashboard.html`** |
 
 ---
 
@@ -125,26 +127,31 @@ cargo test --release
 cargo build --release
 ```
 
-### Track A: AI Safety & Dataset Cleaning Workflow (`export-dataset`)
+### Track A: Data Annotation, False-Positive Suppression & Dataset Export (`annotate-negative` & `export-dataset`)
 
 ```bash
 # 1. Batch-ingest raw corpus and render VLM coordinate grids + high-frequency hotspot hints
 ./target/release/heav3ns-censor batch-prepare
 
-# 2. Apply surgical localized redaction, preserve non-explicit art, or quarantine ambiguous items
+# 2. Apply surgical localized redaction (Positive class_id=1) or preserve non-explicit art (Untouched)
 ./target/release/heav3ns-censor execute --asset-id heav3ns_01 \
   --region "r1=mosaic:440,500,120,100:pixels:rect:14:0:explicit_lower_anatomy" \
   --region "r2=solid_bar:444,314,112,52:pixels:pill:auto@6.0:0:kuro_nuri_cleft_bar"
 ./target/release/heav3ns-censor approve-original --asset-id heav3ns_02 \
   --classification artistic_nudity_pass --rationale "Classical dorsal silhouette; preserve untouched."
+
+# 3. Annotate verified benign Hard-Negative regions (class_id=0) + auto-mine non-overlapping hotspots
+#    (Zero pixels modified! Eliminates classifier false positives on classical silhouettes & skin gradients)
+./target/release/heav3ns-censor annotate-negative --asset-id heav3ns_02 --append --auto-mine-hotspots \
+  --region "neg1=280,140,440,720:pixels:rect:classical_dorsal_silhouette:Verified benign artistic contour"
+
+# 4. Quarantine ambiguous edge cases & export JSONL + MS-COCO dataset (--safe-only excludes quarantined items)
 ./target/release/heav3ns-censor escalate --asset-id heav3ns_03 \
   --category "stylized_anatomy_ambiguity" --reason "Quarantine for human safety review."
-
-# 3. Export compliance-verified JSONL dataset manifest (--safe-only excludes quarantined items)
 ./target/release/heav3ns-censor export-dataset --safe-only
 ```
 
-Load the exported [`ledger/dataset_manifest.jsonl`](ledger/dataset_manifest.jsonl) directly in Python / PyTorch / HuggingFace `datasets`:
+Load the exported [`ledger/dataset_manifest.jsonl`](ledger/dataset_manifest.jsonl) or MS-COCO [`ledger/annotations_coco.json`](ledger/annotations_coco.json) directly in Python, **CVAT**, **Label Studio**, **Roboflow**, or **Voxel51 FiftyOne**:
 
 ```python
 import json
@@ -152,9 +159,12 @@ from pathlib import Path
 
 records = [json.loads(line) for line in Path("ledger/dataset_manifest.jsonl").read_text().splitlines()]
 for rec in records:
-    print(rec["asset_id"], rec["curation_action"], f"Preserved: {rec['exterior_preservation_ratio']*100:.2f}%")
-    for ann in rec["annotations"]:
-        print("  COCO xywh (px):", ann["bbox_xywh_px"], "| VLM norm1000:", ann["bbox_xyxy_norm1000"], "| YOLO:", ann["bbox_cxcywh_norm01"])
+    print(
+        rec["asset_id"],
+        f"Positives (class 1): {rec['positive_annotations_count']} | "
+        f"Hard-Negatives (class 0): {rec['hard_negative_annotations_count']} | "
+        f"Preserved: {rec['exterior_preservation_ratio']*100:.2f}%"
+    )
 ```
 
 ### Track B: Artistic Rendering & Studio Post-Production Workflow (`EGG` & `MAJO`)
@@ -176,7 +186,7 @@ for rec in records:
 
 Then open **[`ledger/dashboard.html`](ledger/dashboard.html)** in any browser to:
 - Press **`[o]`** (or click **`[o] A/B Compare Original`**) on any asset card to toggle instantly between the Published Edition and the Untouched Master Archive.
-- Click and drag a bounding box directly on any image to measure exact coordinates and generate a 1-click CLI command.
+- Click **`+ Hard-Negative (Benign)`** or **`Mosaic`** in the coordinate toolbar and drag a bounding box directly on any image to measure exact coordinates and generate a 1-click CLI command.
 
 ---
 
@@ -192,9 +202,10 @@ Then open **[`ledger/dashboard.html`](ledger/dashboard.html)** in any browser to
 | `batch-prepare` | Ingests all new `assets/inbox/` files, archives SHA-256 masters, and renders VLM coordinate grids + hotspots. |
 | `inspect --asset-id <id> [--crop <spec>]` | Generates coordinate inspection grid and optional $3\times$ nearest-neighbor zoom-crop with global pixel rulers. |
 | `execute --asset-id <id> --region <spec>` | Applies localized SDF censorship (`--append`, `--remove-region`, `--dry-run`) and verifies multi-scale JPEG survival. |
-| `approve-original --asset-id <id>` | Approves non-explicit artistic nudity untouched (`100%` bit-identical export to `assets/published/`). |
+| `approve-original --asset-id <id>` | Approves non-explicit artistic nudity untouched (`100%` bit-identical export) + auto-mines hard-negative hotspots. |
+| `annotate-negative --asset-id <id>` | Tags verified benign / hard-negative boxes (`--region`, `--append`, `--auto-mine-hotspots`) with **`0` pixel changes**. |
 | `escalate --asset-id <id>` | Quarantines ambiguous assets to `ledger/escalations_review.md` and revokes any prior `published/` file. |
-| `export-dataset [--safe-only]` | Exports `ledger/dataset_manifest.jsonl` (`COCO` + `Normalized1000` + `YOLO`) and `ledger/DATASET_CARD.md`. |
+| `export-dataset [--safe-only]` | Exports `ledger/dataset_manifest.jsonl`, MS-COCO `ledger/annotations_coco.json`, and `ledger/DATASET_CARD.md`. |
 | `doctor [--fix]` | Runs the 9-point cryptographic `SHA-256`, bit-exact preservation, escalation-isolation, and orphan-hygiene audit. |
 
 ### Region Shorthand Syntax (`--region`)
@@ -216,7 +227,7 @@ Then open **[`ledger/dashboard.html`](ledger/dashboard.html)** in any browser to
 
 ---
 
-## Model Context Protocol (MCP) Server Integration (13 Tools)
+## Model Context Protocol (MCP) Server Integration (14 Tools)
 
 `heav3ns-censor` includes a native JSON-RPC 2.0 `stdio` MCP server (`./target/release/heav3ns-censor mcp`), pre-configured in [`.agents/mcp_config.json`](.agents/mcp_config.json):
 
@@ -224,14 +235,15 @@ Then open **[`ledger/dashboard.html`](ledger/dashboard.html)** in any browser to
 | :--- | :--- |
 | `heav3ns_onboard` | Returns a role-tailored (`agent`, `researcher`, `developer`, `stakeholder`, `all`) onboarding packet. |
 | `heav3ns_explain_asset` | Returns a complete diagnostic, cryptographic integrity, and handoff explanation card for a single asset. |
-| `heav3ns_export_dataset` | Exports `ledger/dataset_manifest.jsonl` (`COCO` + `Normalized1000` + `YOLO`) and `ledger/DATASET_CARD.md` (`safe_only: bool`). |
+| `heav3ns_annotate_negative` | Annotates verified benign / hard-negative confuser regions (`auto_mine_hotspots: bool`) without altering pixels. |
+| `heav3ns_export_dataset` | Exports `ledger/dataset_manifest.jsonl`, MS-COCO `ledger/annotations_coco.json`, and `ledger/DATASET_CARD.md`. |
 | `heav3ns_status` | Returns pipeline queues, ledger paths, and `next_recommended_action`. |
 | `heav3ns_doctor` | Runs the 9-point cryptographic SHA-256, preservation, and orphan-hygiene audit (`fix: bool`). |
 | `heav3ns_batch_prepare` | Ingests all new `inbox/` files and renders VLM inspection grids + hotspot hints in one call. |
 | `heav3ns_ingest` | Ingests a specific file or scans `assets/inbox/`. |
 | `heav3ns_inspect` | Generates coordinate inspection grid and optional $3\times$ magnified zoom-crop (`crop`). |
 | `heav3ns_execute_censorship` | Executes localized censorship with `append`, `remove_region_ids`, and `dry_run` support. |
-| `heav3ns_approve_original` | Approves artistic/suggestive nudity untouched with SHA-256 verification. |
+| `heav3ns_approve_original` | Approves artistic/suggestive nudity untouched with SHA-256 verification + auto-mined hard negatives. |
 | `heav3ns_escalate` | Quarantines ambiguous assets to `ledger/escalations_review.md` and revokes any published file. |
 | `heav3ns_reset_asset` | Resets an asset to `PendingInspection` while preserving its untouched original. |
 | `heav3ns_policy_guide` | Outputs Japanese Article 175 and platform policy profiles as structured JSON. |
@@ -251,9 +263,9 @@ Then open **[`ledger/dashboard.html`](ledger/dashboard.html)** in any browser to
 
 ---
 
-## Empirical Verification & Benchmark Suite (9 Automated Tests)
+## Empirical Verification & Benchmark Suite (10 Automated Tests)
 
-Run `cargo test --release` to execute all 9 automated mathematical, dataset-curation, and state-hygiene unit tests:
+Run `cargo test --release` to execute all 10 automated mathematical, hard-negative annotation, and state-hygiene unit tests:
 
 | Test Suite | Invariant Verified | Status |
 | :--- | :--- | :---: |
@@ -266,6 +278,7 @@ Run `cargo test --release` to execute all 9 automated mathematical, dataset-cura
 | `test_degenerate_tiny_region_rejected_by_verifier` | Degenerate $2\times2\text{px}$ region (`0` interior eroded samples) hard-fails verification (`passed == false`) | **PASS** |
 | `test_incremental_region_append_upsert_remove_and_dry_run` | Verifies `--append`, `id=` in-place upsert, `--remove-region`, `--dry-run`, `onboard`, and `explain` | **PASS** |
 | `test_dataset_cleaning_jsonl_export_and_safety_filtering` | Verifies `export-dataset` (`COCO` + `Normalized1000` + `YOLO` boxes) and `--safe-only` quarantine filtering | **PASS** |
+| `test_hard_negative_annotation_and_coco_export_prevents_false_positives` | Verifies `annotate-negative`, auto-mined benign hotspot IoU filtering, and `annotations_coco.json` export | **PASS** |
 
 ---
 
