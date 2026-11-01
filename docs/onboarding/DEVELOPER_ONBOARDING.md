@@ -81,3 +81,4 @@ Before modifying the spatial kernels in `src/engine.rs`, read our 4 engineering 
 ---
 
 **Next Steps:** [📄 Technical Whitepaper (`TECHNICAL_WHITEPAPER.md`)](../whitepaper/TECHNICAL_WHITEPAPER.md) • [📐 Architecture Decision Records (`docs/adrs/`)](../adrs/ADR-0001-deterministic-pixel-engine-over-generative-inpainting.md) • [🤝 Contributing Guide (`CONTRIBUTING.md`)](../../CONTRIBUTING.md)
+
