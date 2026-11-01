@@ -1,6 +1,6 @@
 use crate::engine::{
-    apply_censorship_regions, detect_candidate_hotspots, generate_inspection_grid,
-    generate_zoom_crop_grid, verify_censored_edition,
+    apply_censorship_regions, detect_candidate_hotspots, evaluate_region_confuser_hardness,
+    generate_inspection_grid, generate_zoom_crop_grid, verify_censored_edition,
 };
 use crate::models::{
     compute_box_iou, AssetRecord, AssetStatus, AuditEvent, CandidateHotspot,
@@ -104,6 +104,7 @@ pub struct WorkspaceStatusSummary {
     pub dashboard_html_path: String,
     pub dataset_manifest_jsonl_path: String,
     pub coco_annotations_json_path: String,
+    pub vlm_safety_sft_jsonl_path: String,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -115,6 +116,10 @@ pub struct DatasetAnnotationBox {
     pub class_id: u32,
     /// `"explicit_curation"`, `"human_verified_negative"`, or `"auto_mined_unredacted_hotspot"`
     pub annotation_source: String,
+    /// Taxonomy of the target or false-positive confuser (e.g. `"composite_skin_and_crease_confuser"`, `"skin_tone_anatomical_silhouette"`)
+    pub confuser_category: String,
+    /// Quantitative False-Positive Confuser Hardness Score (`0.0..100.0`) for curriculum active learning
+    pub fp_hardness_score: f32,
     pub label: String,
     pub rationale: String,
     pub shape: String,
@@ -171,6 +176,7 @@ pub struct DatasetExportReport {
     pub total_hard_negative_boxes: usize,
     pub jsonl_manifest_path: String,
     pub coco_annotations_path: String,
+    pub vlm_sft_jsonl_path: String,
     pub dataset_card_path: String,
     pub records: Vec<DatasetExportRow>,
 }
@@ -321,6 +327,10 @@ impl Workspace {
 
     pub fn coco_annotations_json_file(&self) -> PathBuf {
         self.ledger_dir().join("annotations_coco.json")
+    }
+
+    pub fn vlm_sft_jsonl_file(&self) -> PathBuf {
+        self.ledger_dir().join("vlm_safety_sft.jsonl")
     }
 
     pub fn init(&self) -> Result<()> {
@@ -813,12 +823,19 @@ impl Workspace {
 
         record.classification = Some(classification);
         record.regions = effective_regions.clone();
-        // Auto-mine unredacted high-frequency hotspots as verified benign hard-negatives if none were explicitly set
+        let pos_boxes: Vec<(u32, u32, u32, u32)> = effective_regions
+            .iter()
+            .map(|r| r.resolve_enclosing_aabb(record.width, record.height))
+            .collect();
+
+        // Polarity De-Confliction: automatically prune any hard-negative regions that overlap active positive regions (IoU >= 0.20)
+        record.negative_regions.retain(|nr| {
+            let nb = nr.resolve_pixels(record.width, record.height);
+            !pos_boxes.iter().any(|&pb| compute_box_iou(nb, pb) >= 0.20)
+        });
+
+        // Auto-mine unredacted high-frequency hotspots as verified benign hard-negatives if none remain
         if record.negative_regions.is_empty() {
-            let pos_boxes: Vec<(u32, u32, u32, u32)> = effective_regions
-                .iter()
-                .map(|r| r.resolve_enclosing_aabb(record.width, record.height))
-                .collect();
             let hotspots = detect_candidate_hotspots(&orig_rgba, 4);
             let mut auto_idx = 1usize;
             for hs in hotspots {
@@ -830,7 +847,8 @@ impl Workspace {
                         id: format!("auto_neg_{}", auto_idx),
                         label: format!("benign_hotspot_rank_{}", hs.rank),
                         rationale: "Unredacted high-frequency artistic region verified safe (hard-negative confuser for false-positive suppression)".to_string(),
-                        confuser_category: "auto_mined_unredacted_hotspot".to_string(),
+                        confuser_category: hs.confuser_category,
+                        fp_hardness_score: hs.fp_hardness_score,
                         x: hs.pixel_bounds.0 as f32,
                         y: hs.pixel_bounds.1 as f32,
                         width: hs.pixel_bounds.2 as f32,
@@ -840,6 +858,15 @@ impl Workspace {
                     });
                     auto_idx += 1;
                 }
+            }
+        }
+        // Re-evaluate confuser hardness scores for all active hard-negative regions
+        for nr in &mut record.negative_regions {
+            let (nx, ny, nw, nh) = nr.resolve_pixels(record.width, record.height);
+            let (_e, hardness, cat) = evaluate_region_confuser_hardness(&orig_rgba, nx, ny, nw, nh);
+            nr.fp_hardness_score = hardness;
+            if nr.confuser_category.is_empty() || nr.confuser_category == "benign_artistic_feature" {
+                nr.confuser_category = cat;
             }
         }
         record.escalation = None;
@@ -915,8 +942,15 @@ impl Workspace {
         // Auto-mine high-frequency artistic contour hotspots as verified benign hard-negatives if none were set
         if record.negative_regions.is_empty() {
             if let Ok(orig_img) = image::load_from_memory(&orig_bytes) {
-                let hotspots = detect_candidate_hotspots(&orig_img.to_rgba8(), 3);
+                let orig_rgba = orig_img.to_rgba8();
+                let hotspots = detect_candidate_hotspots(&orig_rgba, 3);
                 if hotspots.is_empty() {
+                    let fx = record.width / 4;
+                    let fy = record.height / 6;
+                    let fw = record.width / 2;
+                    let fh = (record.height * 2) / 3;
+                    let (_e, hardness, cat) =
+                        evaluate_region_confuser_hardness(&orig_rgba, fx, fy, fw, fh);
                     record.negative_regions.push(NegativeAnnotationRegion {
                         id: "auto_neg_1".to_string(),
                         label: "artistic_silhouette_figure_1".to_string(),
@@ -924,11 +958,12 @@ impl Workspace {
                             "Verified benign artistic nudity / suggestive silhouette ({}) — hard-negative annotation for false-positive suppression",
                             rationale
                         ),
-                        confuser_category: "artistic_silhouette_hard_negative".to_string(),
-                        x: (record.width / 4) as f32,
-                        y: (record.height / 6) as f32,
-                        width: (record.width / 2) as f32,
-                        height: ((record.height * 2) / 3) as f32,
+                        confuser_category: cat,
+                        fp_hardness_score: hardness,
+                        x: fx as f32,
+                        y: fy as f32,
+                        width: fw as f32,
+                        height: fh as f32,
                         unit: CoordinateUnit::Pixels,
                         shape: RegionShape::Rect,
                     });
@@ -941,7 +976,8 @@ impl Workspace {
                                 "Verified benign artistic nudity / suggestive contour ({}) — hard-negative annotation for false-positive suppression",
                                 rationale
                             ),
-                            confuser_category: "artistic_silhouette_hard_negative".to_string(),
+                            confuser_category: hs.confuser_category,
+                            fp_hardness_score: hs.fp_hardness_score,
                             x: hs.pixel_bounds.0 as f32,
                             y: hs.pixel_bounds.1 as f32,
                             width: hs.pixel_bounds.2 as f32,
@@ -999,6 +1035,14 @@ impl Workspace {
             .get_mut(&asset_id)
             .ok_or_else(|| anyhow!("Asset '{}' not found in ledger", asset_id))?;
 
+        let orig_bytes = fs::read(&record.archive_original_path)?;
+        let orig_rgba = image::load_from_memory(&orig_bytes)?.to_rgba8();
+        let pos_boxes: Vec<(u32, u32, u32, u32)> = record
+            .regions
+            .iter()
+            .map(|r| r.resolve_enclosing_aabb(record.width, record.height))
+            .collect();
+
         let mut effective_negs: Vec<NegativeAnnotationRegion> =
             if append || !remove_ids.is_empty() {
                 record
@@ -1011,7 +1055,21 @@ impl Workspace {
                 Vec::new()
             };
 
+        let mut skipped_polarity_conflicts = 0usize;
         for mut nr in new_neg_regions {
+            let nb = nr.resolve_pixels(record.width, record.height);
+            // Polarity Conflict Prevention: never allow a hard-negative box to overlap an active positive intervention box (IoU >= 0.20)
+            if pos_boxes.iter().any(|&pb| compute_box_iou(nb, pb) >= 0.20) {
+                skipped_polarity_conflicts += 1;
+                continue;
+            }
+            let (_e, hardness, auto_cat) =
+                evaluate_region_confuser_hardness(&orig_rgba, nb.0, nb.1, nb.2, nb.3);
+            nr.fp_hardness_score = hardness;
+            if nr.confuser_category.is_empty() || nr.confuser_category == "benign_artistic_feature" {
+                nr.confuser_category = auto_cat;
+            }
+
             if nr.id.is_empty() || nr.id.starts_with("auto_") {
                 let mut k = 1usize;
                 loop {
@@ -1031,18 +1089,11 @@ impl Workspace {
         }
 
         if auto_mine_hotspots {
-            let orig_bytes = fs::read(&record.archive_original_path)?;
-            let orig_rgba = image::load_from_memory(&orig_bytes)?.to_rgba8();
-            let pos_boxes: Vec<(u32, u32, u32, u32)> = record
-                .regions
-                .iter()
-                .map(|r| r.resolve_enclosing_aabb(record.width, record.height))
-                .collect();
             let hotspots = detect_candidate_hotspots(&orig_rgba, 4);
             for hs in hotspots {
                 let overlaps_pos = pos_boxes
                     .iter()
-                    .any(|&pb| compute_box_iou(hs.pixel_bounds, pb) >= 0.10);
+                    .any(|&pb| compute_box_iou(hs.pixel_bounds, pb) >= 0.15);
                 let overlaps_existing_neg = effective_negs.iter().any(|nr| {
                     compute_box_iou(hs.pixel_bounds, nr.resolve_pixels(record.width, record.height))
                         >= 0.25
@@ -1060,7 +1111,8 @@ impl Workspace {
                         id: cid,
                         label: format!("auto_mined_hotspot_{}", hs.rank),
                         rationale: "Auto-mined high-frequency benign region non-overlapping with positive interventions".to_string(),
-                        confuser_category: "auto_mined_unredacted_hotspot".to_string(),
+                        confuser_category: hs.confuser_category,
+                        fp_hardness_score: hs.fp_hardness_score,
                         x: hs.pixel_bounds.0 as f32,
                         y: hs.pixel_bounds.1 as f32,
                         width: hs.pixel_bounds.2 as f32,
@@ -1072,6 +1124,21 @@ impl Workspace {
             }
         }
 
+        // Final de-confliction & hardness score refresh on all effective negative regions
+        effective_negs.retain(|nr| {
+            let nb = nr.resolve_pixels(record.width, record.height);
+            !pos_boxes.iter().any(|&pb| compute_box_iou(nb, pb) >= 0.20)
+        });
+        for nr in &mut effective_negs {
+            let (nx, ny, nw, nh) = nr.resolve_pixels(record.width, record.height);
+            let (_e, hardness, auto_cat) =
+                evaluate_region_confuser_hardness(&orig_rgba, nx, ny, nw, nh);
+            nr.fp_hardness_score = hardness;
+            if nr.confuser_category.is_empty() {
+                nr.confuser_category = auto_cat;
+            }
+        }
+
         record.negative_regions = effective_negs;
         record.updated_at = Utc::now();
         record.audit_trail.push(AuditEvent {
@@ -1079,10 +1146,11 @@ impl Workspace {
             action: "ANNOTATE_HARD_NEGATIVE_REGIONS".to_string(),
             actor: "Deputy Gemini".to_string(),
             details: format!(
-                "Updated verified benign hard-negative annotations (count={}, append={}, auto_mine={})",
+                "Updated verified benign hard-negative annotations (count={}, append={}, auto_mine={}, skipped_polarity_conflicts={})",
                 record.negative_regions.len(),
                 append,
-                auto_mine_hotspots
+                auto_mine_hotspots,
+                skipped_polarity_conflicts
             ),
         });
 
@@ -1345,6 +1413,43 @@ impl Workspace {
                     ),
                 });
             }
+
+            // Data Annotation Polarity Hygiene: ensure zero positive/negative IoU >= 0.20 collisions
+            if !rec.regions.is_empty() && !rec.negative_regions.is_empty() {
+                let pos_boxes: Vec<(u32, u32, u32, u32)> = rec
+                    .regions
+                    .iter()
+                    .map(|r| r.resolve_enclosing_aabb(rec.width, rec.height))
+                    .collect();
+                let conflict_count = rec
+                    .negative_regions
+                    .iter()
+                    .filter(|nr| {
+                        let nb = nr.resolve_pixels(rec.width, rec.height);
+                        pos_boxes.iter().any(|&pb| compute_box_iou(nb, pb) >= 0.20)
+                    })
+                    .count();
+                checks.push(DoctorCheck {
+                    check_name: format!("annotation_polarity_conflict:{}", id),
+                    passed: conflict_count == 0,
+                    details: if conflict_count == 0 {
+                        format!(
+                            "Zero positive/hard-negative IoU collisions ({} pos, {} hard-neg boxes).",
+                            rec.regions.len(),
+                            rec.negative_regions.len()
+                        )
+                    } else {
+                        hints.push(format!(
+                            "Run `heav3ns-censor annotate-negative --asset-id {} --append` or `doctor --fix` to prune conflicting polarity boxes.",
+                            id
+                        ));
+                        format!(
+                            "Found {} hard-negative box(es) overlapping positive intervention regions (IoU >= 0.20)!",
+                            conflict_count
+                        )
+                    },
+                });
+            }
         }
 
         // Check for orphaned files across managed output directories
@@ -1483,6 +1588,7 @@ impl Workspace {
             dashboard_html_path: self.dashboard_html_file().to_string_lossy().to_string(),
             dataset_manifest_jsonl_path: self.dataset_manifest_jsonl_file().to_string_lossy().to_string(),
             coco_annotations_json_path: self.coco_annotations_json_file().to_string_lossy().to_string(),
+            vlm_safety_sft_jsonl_path: self.vlm_sft_jsonl_file().to_string_lossy().to_string(),
         })
     }
 
@@ -2022,6 +2128,8 @@ impl Workspace {
                     polarity: "positive_intervention".to_string(),
                     class_id: 1,
                     annotation_source: "explicit_curation".to_string(),
+                    confuser_category: "explicit_positive_target".to_string(),
+                    fp_hardness_score: 0.0,
                     label: r.label.clone(),
                     rationale: r.rationale.clone(),
                     shape: shape_name,
@@ -2039,22 +2147,24 @@ impl Workspace {
             let mut effective_negs = rec.negative_regions.clone();
             if effective_negs.is_empty() && is_safe {
                 if let Ok(orig_img) = image::open(&rec.archive_original_path) {
+                    let orig_rgba = orig_img.to_rgba8();
                     let pos_boxes: Vec<(u32, u32, u32, u32)> = rec
                         .regions
                         .iter()
                         .map(|r| r.resolve_enclosing_aabb(rec.width, rec.height))
                         .collect();
-                    let hotspots = detect_candidate_hotspots(&orig_img.to_rgba8(), 3);
+                    let hotspots = detect_candidate_hotspots(&orig_rgba, 3);
                     for (idx, hs) in hotspots.into_iter().enumerate() {
                         let overlaps_pos = pos_boxes
                             .iter()
-                            .any(|&pb| compute_box_iou(hs.pixel_bounds, pb) >= 0.10);
+                            .any(|&pb| compute_box_iou(hs.pixel_bounds, pb) >= 0.15);
                         if !overlaps_pos {
                             effective_negs.push(NegativeAnnotationRegion {
                                 id: format!("auto_neg_{}", idx + 1),
                                 label: format!("verified_benign_hotspot_{}", hs.rank),
                                 rationale: "High-frequency artistic contour/feature verified non-explicit (hard-negative for false-positive suppression)".to_string(),
-                                confuser_category: "auto_mined_unredacted_hotspot".to_string(),
+                                confuser_category: hs.confuser_category,
+                                fp_hardness_score: hs.fp_hardness_score,
                                 x: hs.pixel_bounds.0 as f32,
                                 y: hs.pixel_bounds.1 as f32,
                                 width: hs.pixel_bounds.2 as f32,
@@ -2100,6 +2210,7 @@ impl Workspace {
                     "category_name": "verified_benign_hard_negative",
                     "polarity": "verified_benign_hard_negative",
                     "confuser_category": nr.confuser_category,
+                    "fp_hardness_score": nr.fp_hardness_score,
                     "bbox": [px, py, pw, ph],
                     "enclosing_aabb": [px, py, pw, ph],
                     "area": pw * ph,
@@ -2119,6 +2230,8 @@ impl Workspace {
                     polarity: "verified_benign_hard_negative".to_string(),
                     class_id: 0,
                     annotation_source: src,
+                    confuser_category: nr.confuser_category.clone(),
+                    fp_hardness_score: nr.fp_hardness_score,
                     label: nr.label.clone(),
                     rationale: nr.rationale.clone(),
                     shape: shape_name,
@@ -2160,13 +2273,77 @@ impl Workspace {
         }
 
         let mut jsonl_buf = String::new();
+        let mut sft_buf = String::new();
         for row in &rows {
             if let Ok(line) = serde_json::to_string(row) {
                 jsonl_buf.push_str(&line);
                 jsonl_buf.push('\n');
             }
+
+            // Build ShareGPT / VLM Grounded Safety & False-Positive Suppression Instruction Pair
+            let pos_list: Vec<serde_json::Value> = row
+                .annotations
+                .iter()
+                .filter(|a| a.class_id == 1)
+                .map(|a| {
+                    serde_json::json!({
+                        "region_id": a.region_id,
+                        "label": a.label,
+                        "bbox_norm1000": a.bbox_xyxy_norm1000,
+                        "shape": a.shape,
+                        "treatment_method": a.treatment_method,
+                        "rationale": a.rationale
+                    })
+                })
+                .collect();
+            let neg_list: Vec<serde_json::Value> = row
+                .annotations
+                .iter()
+                .filter(|a| a.class_id == 0)
+                .map(|a| {
+                    serde_json::json!({
+                        "region_id": a.region_id,
+                        "label": a.label,
+                        "confuser_category": a.confuser_category,
+                        "fp_hardness_score": a.fp_hardness_score,
+                        "bbox_norm1000": a.bbox_xyxy_norm1000,
+                        "rationale": a.rationale
+                    })
+                })
+                .collect();
+
+            let assistant_answer = serde_json::json!({
+                "status": row.status,
+                "classification": row.classification,
+                "curation_action": row.curation_action,
+                "is_safe_for_training_release": row.is_safe_for_training_release,
+                "positive_interventions": pos_list,
+                "verified_benign_hard_negatives": neg_list
+            });
+
+            let sft_record = serde_json::json!({
+                "id": row.asset_id,
+                "image": row.original_path,
+                "sanitized_image": row.sanitized_published_path,
+                "curation_action": row.curation_action,
+                "conversations": [
+                    {
+                        "from": "human",
+                        "value": "<image>\nPerform localized safety grounding and false-positive confuser triage in Normalized1000 [x1, y1, x2, y2] coordinates. Distinguish explicit anatomical regions requiring surgical intervention (class_id=1) from verified benign artistic silhouettes, skin-tone gradients, and linework confusers that must be preserved untouched to prevent false positives (class_id=0)."
+                    },
+                    {
+                        "from": "gpt",
+                        "value": serde_json::to_string(&assistant_answer).unwrap_or_default()
+                    }
+                ]
+            });
+            if let Ok(sft_line) = serde_json::to_string(&sft_record) {
+                sft_buf.push_str(&sft_line);
+                sft_buf.push('\n');
+            }
         }
         atomic_write_bytes(&self.dataset_manifest_jsonl_file(), jsonl_buf.as_bytes())?;
+        atomic_write_bytes(&self.vlm_sft_jsonl_file(), sft_buf.as_bytes())?;
 
         // Write MS-COCO Object Detection & Hard-Negative JSON (`ledger/annotations_coco.json`)
         let coco_doc = serde_json::json!({
@@ -2201,7 +2378,7 @@ impl Workspace {
         atomic_write_bytes(&self.coco_annotations_json_file(), &coco_bytes)?;
 
         let card_md = format!(
-            "---\nlicense: mit\ntask_categories:\n  - object-detection\n  - image-to-image\n  - image-classification\ntags:\n  - ai-safety\n  - false-positive-suppression\n  - hard-negative-mining\n  - dataset-cleaning\n  - vlm-grounding\n  - artistic-preservation\n---\n\n# HEAV3NS Contrastive Safety, Hard-Negative & Sanitized Vision Dataset Card\n\nGenerated deterministically by **`heav3ns-censor v{}`**.\n\n## Dataset Summary & False-Positive Suppression Provenance\n\n- **Total Exported Images:** `{}` (`safe_only = {}`)\n- **Safe Training Split (`is_safe_for_training_release == true`):** `{}`\n  - **Surgical Localized Redactions (`Verified`):** `{}` (`0` exterior pixels altered; verified across Native, `1080p Q85`, and `540p Q75` JPEG)\n  - **Preserved False-Positive Artistic Corpora (`ApprovedOriginal`):** `{}` (`100%` bit-identical to original)\n- **Quarantined Ambiguity Benchmark (`Escalated`):** `{}` (isolated from `assets/published/`)\n- **Region-Level Bounding Box Annotations (`COCO` + `Normalized1000` + `YOLO`):**\n  - **Positive Intervention Boxes (`class_id = 1`, `positive_intervention`):** `{}`\n  - **Verified Benign Hard-Negative Boxes (`class_id = 0`, `verified_benign_hard_negative`):** `{}` *(eliminates classifier false positives on classical silhouettes, skin-tone gradients, and artistic linework)*\n- **Exported Manifests:**\n  - `ledger/dataset_manifest.jsonl` (HuggingFace `datasets` / JSON Lines)\n  - `ledger/annotations_coco.json` (MS-COCO Object Detection format for CVAT, Label Studio, Roboflow, & Voxel51 FiftyOne)\n\n## Loading in Python (`datasets` / `json` / `pycocotools`)\n\n```python\nimport json\nfrom pathlib import Path\n\nrecords = [\n    json.loads(line)\n    for line in Path(\"ledger/dataset_manifest.jsonl\").read_text().splitlines()\n    if line.strip()\n]\npos_boxes = [a for r in records for a in r[\"annotations\"] if a[\"class_id\"] == 1]\nhard_neg_boxes = [a for r in records for a in r[\"annotations\"] if a[\"class_id\"] == 0]\nprint(f\"Images: {{len(records)}} | Positive Redaction Boxes: {{len(pos_boxes)}} | Hard-Negative Benign Boxes: {{len(hard_neg_boxes)}}\")\n```\n",
+            "---\nlicense: mit\ntask_categories:\n  - object-detection\n  - image-to-image\n  - image-classification\ntags:\n  - ai-safety\n  - false-positive-suppression\n  - hard-negative-mining\n  - dataset-cleaning\n  - vlm-grounding\n  - artistic-preservation\n---\n\n# HEAV3NS Contrastive Safety, Hard-Negative & Sanitized Vision Dataset Card\n\nGenerated deterministically by **`heav3ns-censor v{}`**.\n\n## Dataset Summary & False-Positive Suppression Provenance\n\n- **Total Exported Images:** `{}` (`safe_only = {}`)\n- **Safe Training Split (`is_safe_for_training_release == true`):** `{}`\n  - **Surgical Localized Redactions (`Verified`):** `{}` (`0` exterior pixels altered; verified across Native, `1080p Q85`, and `540p Q75` JPEG)\n  - **Preserved False-Positive Artistic Corpora (`ApprovedOriginal`):** `{}` (`100%` bit-identical to original)\n- **Quarantined Ambiguity Benchmark (`Escalated`):** `{}` (isolated from `assets/published/`)\n- **Region-Level Bounding Box Annotations (`COCO` + `Normalized1000` + `YOLO`) & Confuser Hardness:**\n  - **Positive Intervention Boxes (`class_id = 1`, `positive_intervention`):** `{}`\n  - **Verified Benign Hard-Negative Boxes (`class_id = 0`, `verified_benign_hard_negative`):** `{}` *(eliminates classifier false positives on classical silhouettes, skin-tone gradients, and artistic linework; scored with quantitative `fp_hardness_score` in `[5.0..99.5]` and automatically de-conflicted so positive/negative boxes never collide)*\n- **Exported Manifests:**\n  - `ledger/dataset_manifest.jsonl` (HuggingFace `datasets` / JSON Lines with `fp_hardness_score` & `confuser_category`)\n  - `ledger/annotations_coco.json` (MS-COCO Object Detection format for CVAT, Label Studio, Roboflow, & Voxel51 FiftyOne)\n  - `ledger/vlm_safety_sft.jsonl` (ShareGPT / VLM Grounded Safety & False-Positive Suppression Instruction-Tuning Pairs)\n\n## Loading in Python (`datasets` / `json` / `pycocotools`)\n\n```python\nimport json\nfrom pathlib import Path\n\nrecords = [\n    json.loads(line)\n    for line in Path(\"ledger/dataset_manifest.jsonl\").read_text().splitlines()\n    if line.strip()\n]\npos_boxes = [a for r in records for a in r[\"annotations\"] if a[\"class_id\"] == 1]\nhard_neg_boxes = [a for r in records for a in r[\"annotations\"] if a[\"class_id\"] == 0]\nprint(f\"Images: {{len(records)}} | Positive Redaction Boxes: {{len(pos_boxes)}} | Hard-Negative Benign Boxes: {{len(hard_neg_boxes)}}\")\n```\n",
             ledger.version,
             rows.len(),
             safe_only,
@@ -2226,6 +2403,7 @@ impl Workspace {
             total_hard_negative_boxes: total_neg_boxes,
             jsonl_manifest_path: self.dataset_manifest_jsonl_file().to_string_lossy().to_string(),
             coco_annotations_path: self.coco_annotations_json_file().to_string_lossy().to_string(),
+            vlm_sft_jsonl_path: self.vlm_sft_jsonl_file().to_string_lossy().to_string(),
             dataset_card_path: self.dataset_card_md_file().to_string_lossy().to_string(),
             records: rows,
         })
@@ -2341,11 +2519,47 @@ impl Workspace {
                 }
             }
 
+            let mut neg_table_html = String::new();
+            if !rec.negative_regions.is_empty() {
+                let mut neg_rows = String::new();
+                for nr in &rec.negative_regions {
+                    let (nx, ny, nw, nh) = nr.resolve_pixels(rec.width, rec.height);
+                    neg_rows.push_str(&format!(
+                        r#"<tr>
+                            <td><code>{}</code></td>
+                            <td><code>{}</code></td>
+                            <td><code>{}</code></td>
+                            <td><code>({},{}, {}x{})</code></td>
+                            <td><strong>{:.1} / 100</strong></td>
+                            <td><span style="color:var(--green);font-weight:700">VERIFIED BENIGN (CLASS 0)</span></td>
+                        </tr>"#,
+                        nr.id,
+                        nr.label,
+                        nr.confuser_category,
+                        nx,
+                        ny,
+                        nw,
+                        nh,
+                        nr.fp_hardness_score
+                    ));
+                }
+                neg_table_html = format!(
+                    r#"<table class="region-table">
+                        <thead>
+                            <tr><th>Hard-Negative ID</th><th>Label</th><th>Confuser Taxonomy</th><th>Pixel Bounds</th><th>Confuser Hardness</th><th>Polarity</th></tr>
+                        </thead>
+                        <tbody>{}</tbody>
+                    </table>"#,
+                    neg_rows
+                );
+            }
+
             let telemetry_block = if let Some(v) = &rec.verification {
                 format!(
                     r#"<div class="metrics-bar">
                         <div><span class="lbl">Uncensored Pixel Fidelity:</span> <strong class="ok">100% Bit-Exact ({} diff px)</strong></div>
                         <div><span class="lbl">Localized Area:</span> <strong>{:.2}% of canvas</strong></div>
+                        <div><span class="lbl">Hard-Negative Confusers:</span> <strong style="color:var(--green)">{} Verified Benign</strong></div>
                         <div><span class="lbl">Downscale Survival (1080p &amp; 540p):</span> <strong class="ok">VERIFIED</strong></div>
                     </div>
                     <table class="region-table">
@@ -2353,8 +2567,13 @@ impl Workspace {
                             <tr><th>Region</th><th>Treatment</th><th>Enclosing AABB</th><th>Native Mean</th><th>Peak p95</th><th>1080p JPEG</th><th>540p Thumb</th><th>Status</th></tr>
                         </thead>
                         <tbody>{}</tbody>
-                    </table>"#,
-                    v.non_censored_pixel_diff_count, v.total_censored_area_percent, region_rows
+                    </table>
+                    {}"#,
+                    v.non_censored_pixel_diff_count,
+                    v.total_censored_area_percent,
+                    rec.negative_regions.len(),
+                    region_rows,
+                    neg_table_html
                 )
             } else if let Some(esc) = &rec.escalation {
                 format!(
@@ -2365,10 +2584,14 @@ impl Workspace {
                     esc.ambiguity_category, esc.reason, esc.agent_notes
                 )
             } else {
-                r#"<div class="metrics-bar approved-box">
-                    <div><strong>ARTISTIC NUDITY / SUGGESTIVE PASS:</strong> Untouched original approved for publication with zero censorship modification (SHA-256 bit-identical).</div>
-                </div>"#
-                .to_string()
+                format!(
+                    r#"<div class="metrics-bar approved-box">
+                        <div><strong>ARTISTIC NUDITY / SUGGESTIVE PASS:</strong> Untouched original approved for publication with zero censorship modification (SHA-256 bit-identical • {} hard-negative confuser box(es)).</div>
+                    </div>
+                    {}"#,
+                    rec.negative_regions.len(),
+                    neg_table_html
+                )
             };
 
             let mut audit_items = String::new();

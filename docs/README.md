@@ -45,6 +45,7 @@ Welcome to the complete engineering, operational, and academic documentation sui
 - **[`PLAYBOOK-02`: Precision Censorship & Incremental Region Editing](playbooks/PLAYBOOK-02-precision-censorship-and-incremental-region-editing.md)**
 - **[`PLAYBOOK-03`: Ambiguity Escalation, Revocation, & Artist Review](playbooks/PLAYBOOK-03-ambiguity-escalation-revocation-and-artist-review.md)**
 - **[`PLAYBOOK-04`: Workspace Doctor Audit & Incident Recovery](playbooks/PLAYBOOK-04-workspace-doctor-audit-and-incident-recovery.md)**
+- **[`PLAYBOOK-05`: Contrastive Data Annotation & False-Positive Suppression](playbooks/PLAYBOOK-05-data-annotation-and-false-positive-suppression.md)**
 
 ---
 

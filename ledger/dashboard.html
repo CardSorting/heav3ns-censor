@@ -258,7 +258,7 @@
       <h1>HEAV3NS POST-PRODUCTION &amp; CENSORSHIP STUDIO QC (v4.0)</h1>
       <div class="meta">Commissioning Authority: <strong>MAJO, Executive Chair</strong> • Commissioned Agent: <strong>Deputy Gemini</strong> • Principal Artist: <strong>EGG</strong></div>
     </div>
-    <div class="meta">Shortcuts: <code>/</code> Search • <code>1-6</code> Switch Tab on Hovered Card • Drag on Image to Measure Region • Updated: 2026-11-01T23:42:14.189673+00:00</div>
+    <div class="meta">Shortcuts: <code>/</code> Search • <code>1-6</code> Switch Tab on Hovered Card • Drag on Image to Measure Region • Updated: 2026-11-01T23:54:20.575921+00:00</div>
   </header>
 
   <div class="kpi-grid">
@@ -323,6 +323,7 @@
                     <div class="metrics-bar">
                         <div><span class="lbl">Uncensored Pixel Fidelity:</span> <strong class="ok">100% Bit-Exact (0 diff px)</strong></div>
                         <div><span class="lbl">Localized Area:</span> <strong>1.60% of canvas</strong></div>
+                        <div><span class="lbl">Hard-Negative Confusers:</span> <strong style="color:var(--green)">2 Verified Benign</strong></div>
                         <div><span class="lbl">Downscale Survival (1080p &amp; 540p):</span> <strong class="ok">VERIFIED</strong></div>
                     </div>
                     <table class="region-table">
@@ -347,6 +348,26 @@
                             <td><strong>98.4%</strong></td>
                             <td><strong>93.1%</strong></td>
                             <td><span class="pill-pass">PASS</span></td>
+                        </tr></tbody>
+                    </table>
+                    <table class="region-table">
+                        <thead>
+                            <tr><th>Hard-Negative ID</th><th>Label</th><th>Confuser Taxonomy</th><th>Pixel Bounds</th><th>Confuser Hardness</th><th>Polarity</th></tr>
+                        </thead>
+                        <tbody><tr>
+                            <td><code>auto_neg_1</code></td>
+                            <td><code>auto_mined_hotspot_4</code></td>
+                            <td><code>auto_mined_unredacted_hotspot</code></td>
+                            <td><code>(360,450, 120x90)</code></td>
+                            <td><strong>99.5 / 100</strong></td>
+                            <td><span style="color:var(--green);font-weight:700">VERIFIED BENIGN (CLASS 0)</span></td>
+                        </tr><tr>
+                            <td><code>auto_neg_2</code></td>
+                            <td><code>auto_mined_hotspot_3</code></td>
+                            <td><code>composite_skin_and_crease_confuser</code></td>
+                            <td><code>(360,540, 120x90)</code></td>
+                            <td><strong>99.5 / 100</strong></td>
+                            <td><span style="color:var(--green);font-weight:700">VERIFIED BENIGN (CLASS 0)</span></td>
                         </tr></tbody>
                     </table>
                     <div class="view-tabs">
@@ -380,8 +401,8 @@
                         <div class="sel-box"></div>
                     </div>
                     <details class="audit-log">
-                        <summary>Audit Trail (12 events)</summary>
-                        <ul><li><code>21:43:26 UTC</code> <strong>INGEST_AND_PRESERVE_ORIGINAL</strong> — Archived untouched original (1200x900) with SHA-256 63116478250d6168</li><li><code>21:43:36 UTC</code> <strong>GENERATE_INSPECTION_GRID</strong> — Generated coordinate overlay at /Users/bozoegg/Desktop/HEAV3NS-CENSOR/assets/inspect/heav3ns_01_explicit_study_63116478_inspect_grid.png</li><li><code>21:43:36 UTC</code> <strong>APPLY_AND_VERIFY_CENSORSHIP</strong> — Applied 2 localized region(s); verification passed: true (censored area: 1.48%)</li><li><code>21:55:41 UTC</code> <strong>GENERATE_INSPECTION_GRID</strong> — Generated coordinate overlay at /Users/bozoegg/Desktop/HEAV3NS-CENSOR/assets/inspect/heav3ns_01_explicit_study_63116478_inspect_grid.png</li><li><code>21:55:42 UTC</code> <strong>APPLY_AND_VERIFY_CENSORSHIP</strong> — Applied 2 localized region(s); verification passed: true (censored area: 1.48%)</li><li><code>22:08:47 UTC</code> <strong>GENERATE_INSPECTION_GRID</strong> — Generated coordinate overlay at /Users/bozoegg/Desktop/HEAV3NS-CENSOR/assets/inspect/heav3ns_01_explicit_study_63116478_inspect_grid.png (hotspots: 4, zoom_crop: true)</li><li><code>22:08:47 UTC</code> <strong>APPLY_AND_VERIFY_CENSORSHIP</strong> — Applied 2 localized region(s); verification passed: true (censored area: 1.45%)</li><li><code>22:11:38 UTC</code> <strong>APPLY_AND_VERIFY_CENSORSHIP</strong> — Applied 2 localized region(s); verification passed: true (censored area: 1.45%)</li><li><code>22:12:07 UTC</code> <strong>APPLY_AND_VERIFY_CENSORSHIP</strong> — Applied 2 localized region(s); verification passed: true (censored area: 1.60%)</li><li><code>22:28:20 UTC</code> <strong>APPLY_AND_VERIFY_CENSORSHIP</strong> — Applied 1 localized region(s) (append=false, removed=0); verification passed: true (censored area: 1.11%)</li><li><code>22:28:20 UTC</code> <strong>APPLY_AND_VERIFY_CENSORSHIP</strong> — Applied 2 localized region(s) (append=true, removed=0); verification passed: true (censored area: 1.60%)</li><li><code>23:42:14 UTC</code> <strong>ANNOTATE_HARD_NEGATIVE_REGIONS</strong> — Updated verified benign hard-negative annotations (count=1, append=true, auto_mine=true)</li></ul>
+                        <summary>Audit Trail (13 events)</summary>
+                        <ul><li><code>21:43:26 UTC</code> <strong>INGEST_AND_PRESERVE_ORIGINAL</strong> — Archived untouched original (1200x900) with SHA-256 63116478250d6168</li><li><code>21:43:36 UTC</code> <strong>GENERATE_INSPECTION_GRID</strong> — Generated coordinate overlay at /Users/bozoegg/Desktop/HEAV3NS-CENSOR/assets/inspect/heav3ns_01_explicit_study_63116478_inspect_grid.png</li><li><code>21:43:36 UTC</code> <strong>APPLY_AND_VERIFY_CENSORSHIP</strong> — Applied 2 localized region(s); verification passed: true (censored area: 1.48%)</li><li><code>21:55:41 UTC</code> <strong>GENERATE_INSPECTION_GRID</strong> — Generated coordinate overlay at /Users/bozoegg/Desktop/HEAV3NS-CENSOR/assets/inspect/heav3ns_01_explicit_study_63116478_inspect_grid.png</li><li><code>21:55:42 UTC</code> <strong>APPLY_AND_VERIFY_CENSORSHIP</strong> — Applied 2 localized region(s); verification passed: true (censored area: 1.48%)</li><li><code>22:08:47 UTC</code> <strong>GENERATE_INSPECTION_GRID</strong> — Generated coordinate overlay at /Users/bozoegg/Desktop/HEAV3NS-CENSOR/assets/inspect/heav3ns_01_explicit_study_63116478_inspect_grid.png (hotspots: 4, zoom_crop: true)</li><li><code>22:08:47 UTC</code> <strong>APPLY_AND_VERIFY_CENSORSHIP</strong> — Applied 2 localized region(s); verification passed: true (censored area: 1.45%)</li><li><code>22:11:38 UTC</code> <strong>APPLY_AND_VERIFY_CENSORSHIP</strong> — Applied 2 localized region(s); verification passed: true (censored area: 1.45%)</li><li><code>22:12:07 UTC</code> <strong>APPLY_AND_VERIFY_CENSORSHIP</strong> — Applied 2 localized region(s); verification passed: true (censored area: 1.60%)</li><li><code>22:28:20 UTC</code> <strong>APPLY_AND_VERIFY_CENSORSHIP</strong> — Applied 1 localized region(s) (append=false, removed=0); verification passed: true (censored area: 1.11%)</li><li><code>22:28:20 UTC</code> <strong>APPLY_AND_VERIFY_CENSORSHIP</strong> — Applied 2 localized region(s) (append=true, removed=0); verification passed: true (censored area: 1.60%)</li><li><code>23:42:14 UTC</code> <strong>ANNOTATE_HARD_NEGATIVE_REGIONS</strong> — Updated verified benign hard-negative annotations (count=1, append=true, auto_mine=true)</li><li><code>23:54:20 UTC</code> <strong>ANNOTATE_HARD_NEGATIVE_REGIONS</strong> — Updated verified benign hard-negative annotations (count=2, append=true, auto_mine=true, skipped_polarity_conflicts=0)</li></ul>
                     </details>
                 </div><div class="card" data-status="approved" data-id="heav3ns_02_artistic_silhouette_c199216e" data-w="1000" data-h="1000" data-mode="single" data-search="heav3ns_02_artistic_silhouette_c199216e heav3ns_02_artistic_silhouette.png approved">
                     <div class="card-header">
@@ -392,8 +413,21 @@
                         <span class="badge approved">APPROVED UNTOUCHED</span>
                     </div>
                     <div class="metrics-bar approved-box">
-                    <div><strong>ARTISTIC NUDITY / SUGGESTIVE PASS:</strong> Untouched original approved for publication with zero censorship modification (SHA-256 bit-identical).</div>
-                </div>
+                        <div><strong>ARTISTIC NUDITY / SUGGESTIVE PASS:</strong> Untouched original approved for publication with zero censorship modification (SHA-256 bit-identical • 1 hard-negative confuser box(es)).</div>
+                    </div>
+                    <table class="region-table">
+                        <thead>
+                            <tr><th>Hard-Negative ID</th><th>Label</th><th>Confuser Taxonomy</th><th>Pixel Bounds</th><th>Confuser Hardness</th><th>Polarity</th></tr>
+                        </thead>
+                        <tbody><tr>
+                            <td><code>neg1</code></td>
+                            <td><code>classical_dorsal_silhouette</code></td>
+                            <td><code>classical_dorsal_silhouette</code></td>
+                            <td><code>(280,140, 440x720)</code></td>
+                            <td><strong>5.0 / 100</strong></td>
+                            <td><span style="color:var(--green);font-weight:700">VERIFIED BENIGN (CLASS 0)</span></td>
+                        </tr></tbody>
+                    </table>
                     <div class="view-tabs">
                         <button class="vtab active" onclick="switchImg(this, '../assets/published/heav3ns_02_artistic_silhouette_c199216e_published.png', 'single')">[1] 4-Panel QC Slate</button>
                         <button class="vtab" onclick="switchImg(this, '../assets/published/heav3ns_02_artistic_silhouette_c199216e_published.png', 'single')">[2] Published Edition</button>
@@ -425,8 +459,8 @@
                         <div class="sel-box"></div>
                     </div>
                     <details class="audit-log">
-                        <summary>Audit Trail (4 events)</summary>
-                        <ul><li><code>21:43:26 UTC</code> <strong>INGEST_AND_PRESERVE_ORIGINAL</strong> — Archived untouched original (1000x1000) with SHA-256 c199216e2bbcbe29</li><li><code>21:43:36 UTC</code> <strong>APPROVE_UNTOUCHED_FOR_PUBLICATION</strong> — Classification ArtisticNudityPass: Classical non-explicit artistic silhouette; zero censorship intervention required per Section 3.</li><li><code>22:08:47 UTC</code> <strong>GENERATE_INSPECTION_GRID</strong> — Generated coordinate overlay at /Users/bozoegg/Desktop/HEAV3NS-CENSOR/assets/inspect/heav3ns_02_artistic_silhouette_c199216e_inspect_grid.png (hotspots: 0, zoom_crop: false)</li><li><code>23:42:14 UTC</code> <strong>ANNOTATE_HARD_NEGATIVE_REGIONS</strong> — Updated verified benign hard-negative annotations (count=1, append=true, auto_mine=true)</li></ul>
+                        <summary>Audit Trail (5 events)</summary>
+                        <ul><li><code>21:43:26 UTC</code> <strong>INGEST_AND_PRESERVE_ORIGINAL</strong> — Archived untouched original (1000x1000) with SHA-256 c199216e2bbcbe29</li><li><code>21:43:36 UTC</code> <strong>APPROVE_UNTOUCHED_FOR_PUBLICATION</strong> — Classification ArtisticNudityPass: Classical non-explicit artistic silhouette; zero censorship intervention required per Section 3.</li><li><code>22:08:47 UTC</code> <strong>GENERATE_INSPECTION_GRID</strong> — Generated coordinate overlay at /Users/bozoegg/Desktop/HEAV3NS-CENSOR/assets/inspect/heav3ns_02_artistic_silhouette_c199216e_inspect_grid.png (hotspots: 0, zoom_crop: false)</li><li><code>23:42:14 UTC</code> <strong>ANNOTATE_HARD_NEGATIVE_REGIONS</strong> — Updated verified benign hard-negative annotations (count=1, append=true, auto_mine=true)</li><li><code>23:54:20 UTC</code> <strong>ANNOTATE_HARD_NEGATIVE_REGIONS</strong> — Updated verified benign hard-negative annotations (count=1, append=true, auto_mine=true, skipped_polarity_conflicts=0)</li></ul>
                     </details>
                 </div><div class="card" data-status="escalated" data-id="heav3ns_03_biomech_ambiguity_05522fca" data-w="1000" data-h="800" data-mode="single" data-search="heav3ns_03_biomech_ambiguity_05522fca heav3ns_03_biomech_ambiguity.png escalated">
                     <div class="card-header">

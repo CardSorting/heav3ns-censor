@@ -44,11 +44,12 @@ Both **multimodal AI dataset curation** and **digital illustration post-producti
 | Dimension | Bulk Classifier Filtering (Sample Dropping) | Generative Diffusion Inpainting | Manual Raster Editing (Photoshop / CSP) | **`heav3ns-censor` (v4.0 Rust Engine)** |
 | :--- | :---: | :---: | :---: | :---: |
 | **Exterior Pixel Preservation** | N/A (Deletes image) | ❌ Corrupts entire canvas via VAE decode | ⚠️ Prone to layer/export drift | ✅ **100% Bit-Exact (`0` diff px outside SDF mask)** |
-| **False-Positive Suppression (Hard-Negatives)** | ❌ High false-positive rate on art/skin | ❌ No negative region labels | ❌ No structured annotations | ✅ **Explicit (`annotate-negative`) + Auto-Mined Hard-Negative Boxes (`class_id: 0`)** |
+| **False-Positive Suppression (Hard-Negatives)** | ❌ High false-positive rate on art/skin | ❌ No negative region labels | ❌ No structured annotations | ✅ **Explicit (`annotate-negative`) + Auto-Mined Hard-Negative Boxes (`class_id: 0`) with Confuser Hardness (`fp_hardness_score`)** |
+| **Label Polarity Conflict Prevention** | ❌ N/A | ❌ N/A | ❌ N/A | ✅ **Cleanlab / FiftyOne Style Automatic Polarity De-Confliction (`IoU < 0.20`) + `doctor` Audit** |
 | **Preserves Figurative Art Corpora?** | ❌ Purges artistic nudity as false positives | ⚠️ Overwrites original brushwork | ✅ Manual human triage | ✅ **3-Way Triage (`Verified`, `ApprovedOriginal`, `Escalated`)** |
 | **Zero Synthetic Hallucinations** | ✅ | ❌ Injects latent diffusion artifacts | ✅ | ✅ **Deterministic Mathematical Operators Only** |
 | **Multi-Scale `540p` / `1080p` JPEG Proof** | ❌ | ❌ | ❌ Visual guesswork | ✅ **Automated Mean + $P_{95}$ Peak Gradient Verification** |
-| **CVAT / Label Studio / Roboflow / HF Export** | ❌ | ❌ | ❌ | ✅ **`dataset_manifest.jsonl` + `annotations_coco.json` (`COCO` + `Norm1000` + `YOLO`)** |
+| **CVAT / Label Studio / Roboflow / HF / VLM SFT Export** | ❌ | ❌ | ❌ | ✅ **`dataset_manifest.jsonl` + `annotations_coco.json` + `vlm_safety_sft.jsonl` (`COCO` + `Norm1000` + `YOLO`)** |
 | **Autonomous VLM Agent & Studio UX** | ❌ | ❌ | ❌ Manual labor | ✅ **14-Tool MCP Server + Interactive `dashboard.html`** |
 
 ---
@@ -203,10 +204,10 @@ Then open **[`ledger/dashboard.html`](ledger/dashboard.html)** in any browser to
 | `inspect --asset-id <id> [--crop <spec>]` | Generates coordinate inspection grid and optional $3\times$ nearest-neighbor zoom-crop with global pixel rulers. |
 | `execute --asset-id <id> --region <spec>` | Applies localized SDF censorship (`--append`, `--remove-region`, `--dry-run`) and verifies multi-scale JPEG survival. |
 | `approve-original --asset-id <id>` | Approves non-explicit artistic nudity untouched (`100%` bit-identical export) + auto-mines hard-negative hotspots. |
-| `annotate-negative --asset-id <id>` | Tags verified benign / hard-negative boxes (`--region`, `--append`, `--auto-mine-hotspots`) with **`0` pixel changes**. |
+| `annotate-negative --asset-id <id>` | Tags verified benign / hard-negative boxes (`--region`, `--append`, `--auto-mine-hotspots`) with **`0` pixel changes**, `fp_hardness_score`, & automatic `IoU < 0.20` polarity de-confliction. |
 | `escalate --asset-id <id>` | Quarantines ambiguous assets to `ledger/escalations_review.md` and revokes any prior `published/` file. |
-| `export-dataset [--safe-only]` | Exports `ledger/dataset_manifest.jsonl`, MS-COCO `ledger/annotations_coco.json`, and `ledger/DATASET_CARD.md`. |
-| `doctor [--fix]` | Runs the 9-point cryptographic `SHA-256`, bit-exact preservation, escalation-isolation, and orphan-hygiene audit. |
+| `export-dataset [--safe-only]` | Exports `ledger/dataset_manifest.jsonl`, MS-COCO `ledger/annotations_coco.json`, VLM SFT `ledger/vlm_safety_sft.jsonl`, and `ledger/DATASET_CARD.md`. |
+| `doctor [--fix]` | Runs the 10-point cryptographic `SHA-256`, bit-exact preservation, escalation-isolation, polarity-hygiene, and orphan-hygiene audit. |
 
 ### Region Shorthand Syntax (`--region`)
 
@@ -263,9 +264,9 @@ Then open **[`ledger/dashboard.html`](ledger/dashboard.html)** in any browser to
 
 ---
 
-## Empirical Verification & Benchmark Suite (10 Automated Tests)
+## Empirical Verification & Benchmark Suite (11 Automated Tests)
 
-Run `cargo test --release` to execute all 10 automated mathematical, hard-negative annotation, and state-hygiene unit tests:
+Run `cargo test --release` to execute all 11 automated mathematical, hard-negative annotation, confuser-hardness, and state-hygiene unit tests:
 
 | Test Suite | Invariant Verified | Status |
 | :--- | :--- | :---: |
@@ -279,6 +280,7 @@ Run `cargo test --release` to execute all 10 automated mathematical, hard-negati
 | `test_incremental_region_append_upsert_remove_and_dry_run` | Verifies `--append`, `id=` in-place upsert, `--remove-region`, `--dry-run`, `onboard`, and `explain` | **PASS** |
 | `test_dataset_cleaning_jsonl_export_and_safety_filtering` | Verifies `export-dataset` (`COCO` + `Normalized1000` + `YOLO` boxes) and `--safe-only` quarantine filtering | **PASS** |
 | `test_hard_negative_annotation_and_coco_export_prevents_false_positives` | Verifies `annotate-negative`, auto-mined benign hotspot IoU filtering, and `annotations_coco.json` export | **PASS** |
+| `test_polarity_conflict_prevention_and_confuser_hardness_scoring` | Verifies automatic `IoU >= 0.20` positive/negative de-confliction, `fp_hardness_score` scoring, and `vlm_safety_sft.jsonl` export | **PASS** |
 
 ---
 
@@ -293,7 +295,7 @@ Run `cargo test --release` to execute all 10 automated mathematical, hard-negati
    - **[`KB-02`: Coordinate Systems & Multimodal VLM Grounding](docs/knowledgebase/02-coordinate-systems-and-vlm-grounding.md)**
    - **[`KB-03`: Dataset Cleaning, Multimodal AI Safety, & Non-Destructive Artistic Post-Production](docs/knowledgebase/03-dataset-cleaning-and-ai-safety-research.md)**
 3. **Architecture Decision Records ([`docs/adrs/README.md`](docs/adrs/README.md)):** [`ADR-0001`](docs/adrs/ADR-0001-deterministic-pixel-engine-over-generative-inpainting.md) • [`ADR-0002`](docs/adrs/ADR-0002-immutable-source-sampling-and-inverse-rotated-sdf-masks.md) • [`ADR-0003`](docs/adrs/ADR-0003-multiscale-jpeg-resilience-and-p95-peak-verification.md) • [`ADR-0004`](docs/adrs/ADR-0004-atomic-btree-ledger-and-dual-cli-mcp-interface.md)
-4. **Operational Playbooks ([`docs/playbooks/README.md`](docs/playbooks/README.md)):** [`PLAYBOOK-01`](docs/playbooks/PLAYBOOK-01-autonomous-batch-ingestion-and-vlm-triage.md) • [`PLAYBOOK-02`](docs/playbooks/PLAYBOOK-02-precision-censorship-and-incremental-region-editing.md) • [`PLAYBOOK-03`](docs/playbooks/PLAYBOOK-03-ambiguity-escalation-revocation-and-artist-review.md) • [`PLAYBOOK-04`](docs/playbooks/PLAYBOOK-04-workspace-doctor-audit-and-incident-recovery.md)
+4. **Operational Playbooks ([`docs/playbooks/README.md`](docs/playbooks/README.md)):** [`PLAYBOOK-01`](docs/playbooks/PLAYBOOK-01-autonomous-batch-ingestion-and-vlm-triage.md) • [`PLAYBOOK-02`](docs/playbooks/PLAYBOOK-02-precision-censorship-and-incremental-region-editing.md) • [`PLAYBOOK-03`](docs/playbooks/PLAYBOOK-03-ambiguity-escalation-revocation-and-artist-review.md) • [`PLAYBOOK-04`](docs/playbooks/PLAYBOOK-04-workspace-doctor-audit-and-incident-recovery.md) • [`PLAYBOOK-05`](docs/playbooks/PLAYBOOK-05-data-annotation-and-false-positive-suppression.md)
 5. **Engineering Postmortems ([`docs/postmortems/README.md`](docs/postmortems/README.md)):** [`PM-001`](docs/postmortems/PM-001-mosaic-remainder-strip-high-frequency-edge-leakage.md) • [`PM-002`](docs/postmortems/PM-002-rotated-aabb-clipping-and-background-gradient-dilution.md) • [`PM-003`](docs/postmortems/PM-003-downscaled-540p-fractional-mosaic-grid-misalignment.md) • [`PM-004`](docs/postmortems/PM-004-in-place-canvas-mutation-and-zero-sample-false-positives.md)
 
 ---

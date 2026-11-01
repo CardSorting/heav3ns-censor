@@ -24,12 +24,13 @@ Generated deterministically by **`heav3ns-censor v4.0.0`**.
   - **Surgical Localized Redactions (`Verified`):** `1` (`0` exterior pixels altered; verified across Native, `1080p Q85`, and `540p Q75` JPEG)
   - **Preserved False-Positive Artistic Corpora (`ApprovedOriginal`):** `1` (`100%` bit-identical to original)
 - **Quarantined Ambiguity Benchmark (`Escalated`):** `1` (isolated from `assets/published/`)
-- **Region-Level Bounding Box Annotations (`COCO` + `Normalized1000` + `YOLO`):**
+- **Region-Level Bounding Box Annotations (`COCO` + `Normalized1000` + `YOLO`) & Confuser Hardness:**
   - **Positive Intervention Boxes (`class_id = 1`, `positive_intervention`):** `2`
-  - **Verified Benign Hard-Negative Boxes (`class_id = 0`, `verified_benign_hard_negative`):** `2` *(eliminates classifier false positives on classical silhouettes, skin-tone gradients, and artistic linework)*
+  - **Verified Benign Hard-Negative Boxes (`class_id = 0`, `verified_benign_hard_negative`):** `3` *(eliminates classifier false positives on classical silhouettes, skin-tone gradients, and artistic linework; scored with quantitative `fp_hardness_score` in `[5.0..99.5]` and automatically de-conflicted so positive/negative boxes never collide)*
 - **Exported Manifests:**
-  - `ledger/dataset_manifest.jsonl` (HuggingFace `datasets` / JSON Lines)
+  - `ledger/dataset_manifest.jsonl` (HuggingFace `datasets` / JSON Lines with `fp_hardness_score` & `confuser_category`)
   - `ledger/annotations_coco.json` (MS-COCO Object Detection format for CVAT, Label Studio, Roboflow, & Voxel51 FiftyOne)
+  - `ledger/vlm_safety_sft.jsonl` (ShareGPT / VLM Grounded Safety & False-Positive Suppression Instruction-Tuning Pairs)
 
 ## Loading in Python (`datasets` / `json` / `pycocotools`)
 

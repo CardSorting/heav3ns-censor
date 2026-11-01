@@ -70,10 +70,39 @@
         120,
         90
       ],
+      "fp_hardness_score": 99.5,
       "id": 3,
       "image_id": 1,
       "iscrowd": 0,
       "label": "auto_mined_hotspot_4",
+      "polarity": "verified_benign_hard_negative",
+      "rationale": "Auto-mined high-frequency benign region non-overlapping with positive interventions",
+      "shape": "rect",
+      "treatment_method": "none_preserved_untouched"
+    },
+    {
+      "angle_deg": 0.0,
+      "area": 10800,
+      "bbox": [
+        360,
+        540,
+        120,
+        90
+      ],
+      "category_id": 2,
+      "category_name": "verified_benign_hard_negative",
+      "confuser_category": "composite_skin_and_crease_confuser",
+      "enclosing_aabb": [
+        360,
+        540,
+        120,
+        90
+      ],
+      "fp_hardness_score": 99.5,
+      "id": 4,
+      "image_id": 1,
+      "iscrowd": 0,
+      "label": "auto_mined_hotspot_3",
       "polarity": "verified_benign_hard_negative",
       "rationale": "Auto-mined high-frequency benign region non-overlapping with positive interventions",
       "shape": "rect",
@@ -97,7 +126,8 @@
         440,
         720
       ],
-      "id": 4,
+      "fp_hardness_score": 5.0,
+      "id": 5,
       "image_id": 2,
       "iscrowd": 0,
       "label": "classical_dorsal_silhouette",
@@ -159,7 +189,7 @@
   ],
   "info": {
     "contributor": "HEAV3NS Post-Production & AI Safety Research (MAJO, EGG, Deputy Gemini)",
-    "date_created": "2026-11-01T23:42:14.313665+00:00",
+    "date_created": "2026-11-01T23:54:20.703302+00:00",
     "description": "HEAV3NS Contrastive Positive & Hard-Negative Safety Dataset (MS-COCO Format)",
     "version": "4.0.0",
     "year": 2026

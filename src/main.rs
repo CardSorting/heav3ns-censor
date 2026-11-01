@@ -392,6 +392,7 @@ pub fn parse_negative_shorthand(spec: &str, idx: usize) -> Result<NegativeAnnota
         label: label.clone(),
         rationale,
         confuser_category: label,
+        fp_hardness_score: 0.0,
         x: coords[0],
         y: coords[1],
         width: coords[2],
@@ -569,6 +570,8 @@ fn main() -> Result<()> {
                     "escalation_report": workspace.escalation_md_file(),
                     "dashboard_html": workspace.dashboard_html_file(),
                     "dataset_manifest_jsonl": workspace.dataset_manifest_jsonl_file(),
+                    "coco_annotations_json": workspace.coco_annotations_json_file(),
+                    "vlm_safety_sft_jsonl": workspace.vlm_sft_jsonl_file(),
                     "dataset_card_md": workspace.dataset_card_md_file()
                 }))?
             );
@@ -1071,6 +1074,81 @@ mod tests {
                 .iter()
                 .any(|a| a["polarity"] == "verified_benign_hard_negative")
         );
+
+        let _ = std::fs::remove_dir_all(&tmp_ws);
+        Ok(())
+    }
+
+    #[test]
+    fn test_polarity_conflict_prevention_and_confuser_hardness_scoring() -> Result<()> {
+        let tmp_ws = env::temp_dir().join(format!("heav3ns_ws_v4_pol_{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&tmp_ws);
+        let ws = Workspace::new(&tmp_ws);
+        ws.init()?;
+        demo::generate_demo_inbox_assets(&ws.inbox_dir())?;
+        let ingested = ws.ingest_inbox("jp_article_175_standard")?;
+        let target_id = &ingested[0].asset_id;
+
+        // 1. Apply positive intervention region at (440, 500, 120, 100)
+        let r1 = parse_shorthand_region("mosaic:440,500,120,100:pixels:rect:14:0:explicit_anatomy", 0)?;
+        let (rec1, _) = ws.execute_censorship(
+            target_id,
+            CensorshipClassification::ExplicitRequiresIntervention,
+            vec![r1],
+            None,
+        )?;
+        assert_eq!(rec1.regions.len(), 1);
+        for nr in &rec1.negative_regions {
+            assert!(
+                nr.fp_hardness_score > 0.0,
+                "Auto-mined hard-negative must have a positive confuser hardness score"
+            );
+        }
+
+        // 2. Attempt to add a conflicting negative box right on top of the positive box (440, 500, 120, 100)
+        // AND a valid non-overlapping benign hard-negative box at (100, 100, 160, 160)
+        let neg_conflict = parse_negative_shorthand(
+            "neg_bad=445,505,110,90:pixels:rect:conflicting_box:Should be auto-rejected due to IoU >= 0.20 with r1",
+            0,
+        )?;
+        let neg_valid = parse_negative_shorthand(
+            "neg_good=100,100,160,160:pixels:rect:benign_artistic_feature:Valid non-overlapping hard negative",
+            1,
+        )?;
+        let rec2 = ws.annotate_negative(
+            target_id,
+            vec![neg_conflict, neg_valid],
+            true,
+            Vec::new(),
+            false,
+        )?;
+
+        assert!(
+            !rec2.negative_regions.iter().any(|n| n.id == "neg_bad"),
+            "Polarity collision prevention must reject hard-negative box overlapping positive region"
+        );
+        let good_neg = rec2
+            .negative_regions
+            .iter()
+            .find(|n| n.id == "neg_good")
+            .expect("Non-overlapping hard-negative box must be retained");
+        assert!(good_neg.fp_hardness_score >= 5.0);
+        assert_ne!(good_neg.confuser_category, "benign_artistic_feature");
+
+        // 3. Verify Doctor check passes with zero polarity collisions
+        let doc = ws.run_doctor(false)?;
+        assert!(doc.overall_healthy);
+        assert!(doc
+            .checks
+            .iter()
+            .any(|c| c.check_name.starts_with("annotation_polarity_conflict:") && c.passed));
+
+        // 4. Verify VLM Safety SFT JSONL export
+        let ds = ws.export_dataset(true)?;
+        assert!(std::path::Path::new(&ds.vlm_sft_jsonl_path).exists());
+        let sft_raw = std::fs::read_to_string(&ds.vlm_sft_jsonl_path)?;
+        assert!(sft_raw.contains("verified_benign_hard_negatives"));
+        assert!(sft_raw.contains("fp_hardness_score"));
 
         let _ = std::fs::remove_dir_all(&tmp_ws);
         Ok(())

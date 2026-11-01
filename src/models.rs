@@ -191,6 +191,11 @@ pub struct CandidateHotspot {
     pub pixel_bounds: (u32, u32, u32, u32),
     pub normalized1000_bounds: (u32, u32, u32, u32),
     pub detail_energy_score: f32,
+    /// Quantitative false-positive confuser hardness score (`0.0..100.0`) combining edge density and skin/warm-chroma ratio
+    #[serde(default)]
+    pub fp_hardness_score: f32,
+    #[serde(default = "default_confuser_category")]
+    pub confuser_category: String,
     pub hint: String,
 }
 
@@ -209,6 +214,9 @@ pub struct NegativeAnnotationRegion {
     pub rationale: String,
     #[serde(default = "default_confuser_category")]
     pub confuser_category: String,
+    /// Quantitative false-positive confuser hardness score (`0.0..100.0`) for active-learning curriculum sampling
+    #[serde(default)]
+    pub fp_hardness_score: f32,
     pub x: f32,
     pub y: f32,
     pub width: f32,

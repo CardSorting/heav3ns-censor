@@ -3,7 +3,7 @@
   "commissioned_agent": "Deputy Gemini",
   "principal_artist": "EGG",
   "version": "4.0.0",
-  "updated_at": "2026-11-01T23:42:14.189673Z",
+  "updated_at": "2026-11-01T23:54:20.575921Z",
   "assets": {
     "heav3ns_01_explicit_study_63116478": {
       "asset_id": "heav3ns_01_explicit_study_63116478",
@@ -59,8 +59,22 @@
           "label": "auto_mined_hotspot_4",
           "rationale": "Auto-mined high-frequency benign region non-overlapping with positive interventions",
           "confuser_category": "auto_mined_unredacted_hotspot",
+          "fp_hardness_score": 99.5,
           "x": 360.0,
           "y": 450.0,
+          "width": 120.0,
+          "height": 90.0,
+          "unit": "pixels",
+          "shape": "rect"
+        },
+        {
+          "id": "auto_neg_2",
+          "label": "auto_mined_hotspot_3",
+          "rationale": "Auto-mined high-frequency benign region non-overlapping with positive interventions",
+          "confuser_category": "composite_skin_and_crease_confuser",
+          "fp_hardness_score": 99.5,
+          "x": 360.0,
+          "y": 540.0,
           "width": 120.0,
           "height": 90.0,
           "unit": "pixels",
@@ -199,10 +213,16 @@
           "action": "ANNOTATE_HARD_NEGATIVE_REGIONS",
           "actor": "Deputy Gemini",
           "details": "Updated verified benign hard-negative annotations (count=1, append=true, auto_mine=true)"
+        },
+        {
+          "timestamp": "2026-11-01T23:54:20.460014Z",
+          "action": "ANNOTATE_HARD_NEGATIVE_REGIONS",
+          "actor": "Deputy Gemini",
+          "details": "Updated verified benign hard-negative annotations (count=2, append=true, auto_mine=true, skipped_polarity_conflicts=0)"
         }
       ],
       "created_at": "2026-11-01T21:43:26.269015Z",
-      "updated_at": "2026-11-01T23:42:14.189664Z"
+      "updated_at": "2026-11-01T23:54:20.460014Z"
     },
     "heav3ns_02_artistic_silhouette_c199216e": {
       "asset_id": "heav3ns_02_artistic_silhouette_c199216e",
@@ -222,6 +242,7 @@
           "label": "classical_dorsal_silhouette",
           "rationale": "Stylized dorsal anatomy with zero explicit detail",
           "confuser_category": "classical_dorsal_silhouette",
+          "fp_hardness_score": 5.0,
           "x": 280.0,
           "y": 140.0,
           "width": 440.0,
@@ -259,10 +280,16 @@
           "action": "ANNOTATE_HARD_NEGATIVE_REGIONS",
           "actor": "Deputy Gemini",
           "details": "Updated verified benign hard-negative annotations (count=1, append=true, auto_mine=true)"
+        },
+        {
+          "timestamp": "2026-11-01T23:54:20.575908Z",
+          "action": "ANNOTATE_HARD_NEGATIVE_REGIONS",
+          "actor": "Deputy Gemini",
+          "details": "Updated verified benign hard-negative annotations (count=1, append=true, auto_mine=true, skipped_polarity_conflicts=0)"
         }
       ],
       "created_at": "2026-11-01T21:43:26.271525Z",
-      "updated_at": "2026-11-01T23:42:14.067322Z"
+      "updated_at": "2026-11-01T23:54:20.575907Z"
     },
     "heav3ns_03_biomech_ambiguity_05522fca": {
       "asset_id": "heav3ns_03_biomech_ambiguity_05522fca",

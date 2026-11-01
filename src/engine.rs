@@ -1,6 +1,6 @@
 use crate::models::{
-    CandidateHotspot, CensorshipMethod, CensorshipRegion, CoordinateUnit, RegionShape,
-    RegionVerificationMetric, VerificationReport,
+    CandidateHotspot, CensorshipMethod, CensorshipRegion, CoordinateUnit,
+    RegionShape, RegionVerificationMetric, VerificationReport,
 };
 use crate::policy::recommended_mosaic_block_size;
 use anyhow::{Context, Result};
@@ -518,8 +518,85 @@ fn compute_masked_detail_metrics(
     (mean, p95, samples.len())
 }
 
+/// Evaluates a bounding box `(x0, y0, cw, ch)` for false-positive confuser characteristics,
+/// returning `(detail_energy_score, fp_hardness_score, confuser_category)`.
+/// Combines high-frequency edge/linework density with warm skin-tone / flesh-shading chrominance ratio.
+pub fn evaluate_region_confuser_hardness(
+    original: &RgbaImage,
+    x0: u32,
+    y0: u32,
+    cw: u32,
+    ch: u32,
+) -> (f32, f32, String) {
+    let (w, h) = original.dimensions();
+    let x1 = (x0 + cw).min(w);
+    let y1 = (y0 + ch).min(h);
+    let bw = x1.saturating_sub(x0).max(1);
+    let bh = y1.saturating_sub(y0).max(1);
+
+    let (mean_e, p95_e, _) = compute_masked_detail_metrics(
+        original,
+        x0,
+        y0,
+        bw,
+        bh,
+        x0,
+        y0,
+        bw,
+        bh,
+        RegionShape::Rect,
+        0.0,
+        0,
+        1,
+        1.0,
+    );
+    let combined = mean_e * 0.6 + p95_e * 0.4;
+
+    let mut warm_skin_pixels = 0u64;
+    let mut total_pixels = 0u64;
+    for py in y0..y1 {
+        for px in x0..x1 {
+            let p = original.get_pixel(px, py);
+            if p[3] < 32 {
+                continue;
+            }
+            total_pixels += 1;
+            let r = p[0] as i32;
+            let g = p[1] as i32;
+            let b = p[2] as i32;
+            let luma = (299 * r + 587 * g + 114 * b) / 1000;
+            // Warm flesh/skin-tone or warm silhouette band that frequently triggers NSFW classifiers
+            if luma >= 45 && luma <= 240 && r > b + 12 && (r >= g - 8) && (r - b) <= 130 {
+                warm_skin_pixels += 1;
+            }
+        }
+    }
+
+    let skin_ratio = if total_pixels > 0 {
+        warm_skin_pixels as f32 / total_pixels as f32
+    } else {
+        0.0
+    };
+
+    let raw_hardness = (combined * 1.15) + (skin_ratio * 62.0);
+    let fp_hardness = ((raw_hardness.clamp(5.0, 99.5) * 10.0).round()) / 10.0;
+
+    let category = if skin_ratio >= 0.25 && combined >= 12.0 {
+        "composite_skin_and_crease_confuser"
+    } else if skin_ratio >= 0.18 {
+        "skin_tone_anatomical_silhouette"
+    } else if combined >= 14.0 {
+        "high_frequency_linework_or_seam"
+    } else {
+        "stylized_contour_confuser"
+    }
+    .to_string();
+
+    (combined, fp_hardness, category)
+}
+
 /// Scans an original image for localized high-frequency detail clusters (candidate hotspots)
-/// to assist VLM agents during initial inspection.
+/// to assist VLM agents during initial inspection and hard-negative confuser mining.
 pub fn detect_candidate_hotspots(original: &RgbaImage, max_results: usize) -> Vec<CandidateHotspot> {
     let (w, h) = original.dimensions();
     if w < 32 || h < 32 {
@@ -541,25 +618,10 @@ pub fn detect_candidate_hotspots(original: &RgbaImage, max_results: usize) -> Ve
             let cw = if gx == grid_cols - 1 { w - x0 } else { cell_w };
             let ch = if gy == grid_rows - 1 { h - y0 } else { cell_h };
 
-            let (mean_e, p95_e, _) = compute_masked_detail_metrics(
-                original,
-                x0,
-                y0,
-                cw,
-                ch,
-                x0,
-                y0,
-                cw,
-                ch,
-                RegionShape::Rect,
-                0.0,
-                0,
-                1,
-                1.0,
-            );
-            let combined = mean_e * 0.6 + p95_e * 0.4;
+            let (combined, fp_hardness, category) =
+                evaluate_region_confuser_hardness(original, x0, y0, cw, ch);
             global_energy_sum += combined as f64;
-            cell_scores.push(((gx, gy), (x0, y0, cw, ch), combined));
+            cell_scores.push(((gx, gy), (x0, y0, cw, ch), combined, fp_hardness, category));
         }
     }
 
@@ -567,7 +629,7 @@ pub fn detect_candidate_hotspots(original: &RgbaImage, max_results: usize) -> Ve
     cell_scores.sort_by(|a, b| b.2.partial_cmp(&a.2).unwrap_or(std::cmp::Ordering::Equal));
 
     let mut hotspots = Vec::new();
-    for ((gx, gy), (x0, y0, cw, ch), score) in cell_scores {
+    for ((gx, gy), (x0, y0, cw, ch), score, fp_hardness, category) in cell_scores {
         if score <= (avg_global * 1.35).max(8.0) || hotspots.len() >= max_results {
             break;
         }
@@ -581,8 +643,12 @@ pub fn detect_candidate_hotspots(original: &RgbaImage, max_results: usize) -> Ve
             pixel_bounds: (x0, y0, cw, ch),
             normalized1000_bounds: (nx, ny, nw, nh),
             detail_energy_score: score,
+            fp_hardness_score: fp_hardness,
+            confuser_category: category.clone(),
             hint: format!(
-                "High-frequency detail cluster at grid ({},{}) — Normalized1000({},{},{}x{}) / Pixels({},{},{}x{})",
+                "High-frequency detail cluster [{}] (FP Hardness: {:.1}) at grid ({},{}) — Normalized1000({},{},{}x{}) / Pixels({},{},{}x{})",
+                category,
+                fp_hardness,
                 gx * 100,
                 gy * 100,
                 nx,
