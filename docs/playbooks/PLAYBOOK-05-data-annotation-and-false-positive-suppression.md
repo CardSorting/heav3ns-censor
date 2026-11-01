@@ -84,3 +84,4 @@ This deterministically writes four synchronized dataset artifacts in `ledger/`:
 ./target/release/heav3ns-censor doctor --fix
 ```
 Verifies `annotation_polarity_conflict:<asset_id>` (`passed == true`), confirming zero positive/hard-negative IoU collisions across the entire workspace.
+
