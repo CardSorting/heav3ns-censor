@@ -2,7 +2,7 @@
 **Commissioning Authority:** MAJO, Executive Chair  
 **Commissioned Agent:** Deputy Gemini  
 **Principal Artist:** EGG  
-**Engine Version:** `1.0.0`  
+**Engine Version:** `4.0.0`  
 **Updated:** 2026-11-01T22:28:20.607589+00:00
 
 ## Asset Correspondence & Treatment Summary

@@ -253,7 +253,9 @@ impl Workspace {
         let raw = fs::read_to_string(self.ledger_file()).with_context(|| {
             format!("Failed to read ledger at {}", self.ledger_file().display())
         })?;
-        let ledger: Ledger = serde_json::from_str(&raw).context("Failed to parse ledger JSON")?;
+        let mut ledger: Ledger =
+            serde_json::from_str(&raw).context("Failed to parse ledger JSON")?;
+        ledger.version = env!("CARGO_PKG_VERSION").to_string();
         Ok(ledger)
     }
 
@@ -1307,6 +1309,7 @@ impl Workspace {
     /// AND the Interactive Studio QC Dashboard (`ledger/dashboard.html`).
     pub fn sync_markdown_reports(&self) -> Result<()> {
         let ledger = self.load_ledger()?;
+        self.save_ledger(&ledger)?;
         let mut asset_list: Vec<&AssetRecord> = ledger.assets.values().collect();
         asset_list.sort_by(|a, b| a.asset_id.cmp(&b.asset_id));
 
