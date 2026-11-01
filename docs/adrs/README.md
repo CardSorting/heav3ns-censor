@@ -16,3 +16,4 @@ This directory records the core architectural and mathematical design decisions 
 ---
 
 **Related:** [📄 Technical Whitepaper (`TECHNICAL_WHITEPAPER.md`)](../whitepaper/TECHNICAL_WHITEPAPER.md) • [🔬 Engineering Postmortems (`docs/postmortems/`)](../postmortems/README.md)
+

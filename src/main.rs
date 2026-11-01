@@ -170,8 +170,15 @@ enum Commands {
         asset_id: String,
     },
 
-    /// Re-run verification and Markdown/HTML report generation across the ledger
+    /// Re-run verification and Markdown/HTML/JSONL report generation across the ledger
     SyncReports,
+
+    /// Export a HuggingFace / JSONL dataset manifest (`ledger/dataset_manifest.jsonl`) and Dataset Card (`ledger/DATASET_CARD.md`) with COCO, VLM Normalized1000, & YOLO bounding boxes
+    ExportDataset {
+        /// Export only compliance-verified training records (`Verified` and `ApprovedOriginal`), excluding `Escalated` or pending items
+        #[arg(long)]
+        safe_only: bool,
+    },
 
     /// Generate synthetic HEAV3NS test assets in assets/inbox/ to demonstrate and test the autonomous pipeline
     DemoAssets,
@@ -457,9 +464,15 @@ fn main() -> Result<()> {
                     "status": "reports_synced",
                     "publication_report": workspace.publication_manifest_md_file(),
                     "escalation_report": workspace.escalation_md_file(),
-                    "dashboard_html": workspace.dashboard_html_file()
+                    "dashboard_html": workspace.dashboard_html_file(),
+                    "dataset_manifest_jsonl": workspace.dataset_manifest_jsonl_file(),
+                    "dataset_card_md": workspace.dataset_card_md_file()
                 }))?
             );
+        }
+        Commands::ExportDataset { safe_only } => {
+            let report = workspace.export_dataset(safe_only)?;
+            println!("{}", serde_json::to_string_pretty(&report)?);
         }
         Commands::DemoAssets => {
             workspace.init()?;
@@ -810,6 +823,63 @@ mod tests {
         assert!(explain_pkt.cryptographic_integrity_verified);
         assert!(explain_pkt.bit_exact_preservation_verified);
         assert_eq!(explain_pkt.active_regions_count, 1);
+
+        let _ = std::fs::remove_dir_all(&tmp_ws);
+        Ok(())
+    }
+
+    #[test]
+    fn test_dataset_cleaning_jsonl_export_and_safety_filtering() -> Result<()> {
+        let tmp_ws = env::temp_dir().join(format!("heav3ns_ws_v4_ds_{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&tmp_ws);
+        let ws = Workspace::new(&tmp_ws);
+        ws.init()?;
+        demo::generate_demo_inbox_assets(&ws.inbox_dir())?;
+        let ingested = ws.ingest_inbox("jp_article_175_standard")?;
+        assert_eq!(ingested.len(), 3);
+
+        // 1. Surgical redaction on asset 0 (Verified)
+        let r1 = parse_shorthand_region("mosaic:440,500,120,100:pixels:rect:14:0:explicit_anatomy", 0)?;
+        ws.execute_censorship(
+            &ingested[0].asset_id,
+            CensorshipClassification::ExplicitRequiresIntervention,
+            vec![r1],
+            None,
+        )?;
+
+        // 2. Preserve false-positive artistic nudity on asset 1 (ApprovedOriginal)
+        ws.approve_untouched(
+            &ingested[1].asset_id,
+            CensorshipClassification::ArtisticNudityPass,
+            "Classical silhouette",
+        )?;
+
+        // 3. Quarantine ambiguous asset 2 (Escalated)
+        ws.escalate_asset(
+            &ingested[2].asset_id,
+            "stylized_anatomy_ambiguity",
+            "Requires review",
+            "Quarantined",
+        )?;
+
+        // Export full contrastive benchmark (safe_only = false) -> 3 records
+        let full_ds = ws.export_dataset(false)?;
+        assert_eq!(full_ds.total_records_exported, 3);
+        assert_eq!(full_ds.safe_training_records_count, 2);
+        assert_eq!(full_ds.surgical_redaction_count, 1);
+        assert_eq!(full_ds.preserved_untouched_count, 1);
+        assert_eq!(full_ds.quarantined_escalated_count, 1);
+        assert_eq!(full_ds.records[0].annotations[0].bbox_xywh_px, [440, 500, 120, 100]);
+        assert_eq!(full_ds.records[0].exterior_pixel_diff_count, 0);
+
+        // Export safe-only training split (safe_only = true) -> 2 records (excludes Escalated)
+        let safe_ds = ws.export_dataset(true)?;
+        assert_eq!(safe_ds.total_records_exported, 2);
+        assert!(safe_ds.records.iter().all(|r| r.is_safe_for_training_release));
+
+        // Verify researcher onboarding track
+        let res_onboard = ws.onboard("researcher")?;
+        assert_eq!(res_onboard.selected_role, "researcher");
 
         let _ = std::fs::remove_dir_all(&tmp_ws);
         Ok(())

@@ -12,9 +12,10 @@ Welcome to the complete engineering, operational, and academic documentation sui
 
 | Persona | Guide | Primary Focus | Live CLI Command |
 | :--- | :--- | :--- | :--- |
+| **🔬 AI Safety & Dataset Researchers** | **[`03-dataset-cleaning-and-ai-safety-research.md`](knowledgebase/03-dataset-cleaning-and-ai-safety-research.md)** | Eliminating sample-dropping bias & inpainting poisoning, paired counterfactual safety benchmarks, exporting `dataset_manifest.jsonl` (`COCO` + `Normalized1000` + `YOLO`) | `./target/release/heav3ns-censor onboard --role researcher` |
+| **🎨 Studio Stakeholders** (**MAJO** & **EGG**) | **[`STAKEHOLDER_HANDOFF.md`](stakeholder-handoff/STAKEHOLDER_HANDOFF.md)** | Executive charter verification, Interactive Studio QC Dashboard (`dashboard.html` with `[o]` A/B toggle), escalation review | `./target/release/heav3ns-censor onboard --role stakeholder` |
 | **🤖 Autonomous AI Agents** (`Deputy Gemini` / MCP) | **[`AGENT_ONBOARDING.md`](onboarding/AGENT_ONBOARDING.md)** | Decision flowchart, VLM coordinate grid grounding, $3\times$ zoom-crop, CLI/MCP tool mapping | `./target/release/heav3ns-censor onboard --role agent` |
-| **🏛️ Studio Stakeholders** (**MAJO** & **EGG**) | **[`STAKEHOLDER_HANDOFF.md`](stakeholder-handoff/STAKEHOLDER_HANDOFF.md)** | Executive charter verification, Interactive Studio QC Dashboard (`dashboard.html`), escalation review | `./target/release/heav3ns-censor onboard --role stakeholder` |
-| **🛠️ Rust Engineers & Contributors** | **[`DEVELOPER_ONBOARDING.md`](onboarding/DEVELOPER_ONBOARDING.md)** | 6-module Rust architecture map (`src/`), 15-minute extension recipes, unit test suite | `./target/release/heav3ns-censor onboard --role developer` |
+| **🛠️ Rust Engineers & Contributors** | **[`DEVELOPER_ONBOARDING.md`](onboarding/DEVELOPER_ONBOARDING.md)** | 6-module Rust architecture map (`src/`), 15-minute extension recipes, 9-test verification suite | `./target/release/heav3ns-censor onboard --role developer` |
 
 ---
 
@@ -34,6 +35,7 @@ Welcome to the complete engineering, operational, and academic documentation sui
 - **[`INDEX.md`: Knowledgebase Master Index & Domain Glossary](knowledgebase/INDEX.md)**
 - **[`KB-01`: Japanese Penal Code Article 175 & Cross-Platform Censorship Standards](knowledgebase/01-japanese-article-175-and-platform-standards.md)**
 - **[`KB-02`: Coordinate Systems & Multimodal VLM Grounding](knowledgebase/02-coordinate-systems-and-vlm-grounding.md)**
+- **[`KB-03`: Dataset Cleaning, Multimodal AI Safety, & Non-Destructive Artistic Post-Production](knowledgebase/03-dataset-cleaning-and-ai-safety-research.md)**
 
 ---
 
@@ -61,3 +63,4 @@ Welcome to the complete engineering, operational, and academic documentation sui
 - **[`PM-002`: Rotated AABB Clipping & Background Gradient Dilution](postmortems/PM-002-rotated-aabb-clipping-and-background-gradient-dilution.md)**
 - **[`PM-003`: Downscaled 540p Fractional Mosaic Grid Misalignment](postmortems/PM-003-downscaled-540p-fractional-mosaic-grid-misalignment.md)**
 - **[`PM-004`: In-Place Canvas Mutation & Zero-Sample Verification False Positives](postmortems/PM-004-in-place-canvas-mutation-and-zero-sample-false-positives.md)**
+

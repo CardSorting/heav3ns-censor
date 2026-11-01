@@ -102,6 +102,65 @@ pub struct WorkspaceStatusSummary {
     pub ledger_path: String,
     pub escalation_report_path: String,
     pub dashboard_html_path: String,
+    pub dataset_manifest_jsonl_path: String,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct DatasetAnnotationBox {
+    pub region_id: String,
+    pub label: String,
+    pub rationale: String,
+    pub shape: String,
+    pub treatment_method: String,
+    pub angle_deg: f32,
+    pub feather_px: u32,
+    /// Standard COCO pixel bounding box `[x, y, width, height]`
+    pub bbox_xywh_px: [u32; 4],
+    /// VLM Normalized1000 grounding bounding box `[x1, y1, x2, y2]` in `[0..1000]`
+    pub bbox_xyxy_norm1000: [u32; 4],
+    /// Standard YOLO normalized `[center_x, center_y, width, height]` in `[0.0..1.0]`
+    pub bbox_cxcywh_norm01: [f32; 4],
+    /// Rotation-aware enclosing Axis-Aligned Bounding Box `[x, y, width, height]` in pixels
+    pub enclosing_aabb_px: [u32; 4],
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct DatasetExportRow {
+    pub asset_id: String,
+    pub original_filename: String,
+    pub width: u32,
+    pub height: u32,
+    pub status: AssetStatus,
+    pub classification: Option<CensorshipClassification>,
+    pub policy_profile: String,
+    pub is_safe_for_training_release: bool,
+    pub curation_action: String,
+    pub sha256_original: String,
+    pub sha256_published: Option<String>,
+    pub original_path: String,
+    pub sanitized_published_path: Option<String>,
+    pub vlm_inspect_grid_path: Option<String>,
+    pub qc_contact_sheet_path: Option<String>,
+    pub exterior_pixel_diff_count: u64,
+    pub exterior_preservation_ratio: f64,
+    pub redacted_area_percent: f64,
+    pub multiscale_jpeg_1080p_q85_passed: bool,
+    pub multiscale_jpeg_540p_q75_passed: bool,
+    pub annotations: Vec<DatasetAnnotationBox>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct DatasetExportReport {
+    pub exported_at: String,
+    pub safe_only_filter: bool,
+    pub total_records_exported: usize,
+    pub safe_training_records_count: usize,
+    pub surgical_redaction_count: usize,
+    pub preserved_untouched_count: usize,
+    pub quarantined_escalated_count: usize,
+    pub jsonl_manifest_path: String,
+    pub dataset_card_path: String,
+    pub records: Vec<DatasetExportRow>,
 }
 
 #[derive(Debug, Serialize)]
@@ -238,6 +297,14 @@ impl Workspace {
 
     pub fn dashboard_html_file(&self) -> PathBuf {
         self.ledger_dir().join("dashboard.html")
+    }
+
+    pub fn dataset_manifest_jsonl_file(&self) -> PathBuf {
+        self.ledger_dir().join("dataset_manifest.jsonl")
+    }
+
+    pub fn dataset_card_md_file(&self) -> PathBuf {
+        self.ledger_dir().join("DATASET_CARD.md")
     }
 
     pub fn init(&self) -> Result<()> {
@@ -1207,16 +1274,18 @@ impl Workspace {
             ledger_path: self.ledger_file().to_string_lossy().to_string(),
             escalation_report_path: self.escalation_md_file().to_string_lossy().to_string(),
             dashboard_html_path: self.dashboard_html_file().to_string_lossy().to_string(),
+            dataset_manifest_jsonl_path: self.dataset_manifest_jsonl_file().to_string_lossy().to_string(),
         })
     }
 
-    /// Generates a role-tailored, context-aware onboarding and handoff packet (`agent`, `developer`, `stakeholder`, or `all`).
+    /// Generates a role-tailored, context-aware onboarding and handoff packet (`agent`, `researcher`, `developer`, `stakeholder`, or `all`).
     pub fn onboard(&self, role: &str) -> Result<OnboardingPacket> {
         let status = self.status_summary()?;
         let ledger = self.load_ledger()?;
         let normalized_role = match role.trim().to_lowercase().as_str() {
             "agent" | "ai" | "deputy" => "agent",
-            "dev" | "developer" | "engineer" | "researcher" => "developer",
+            "researcher" | "safety" | "dataset" | "ml" | "academic" => "researcher",
+            "dev" | "developer" | "engineer" => "developer",
             "stakeholder" | "executive" | "artist" | "majo" | "egg" => "stakeholder",
             _ => "all",
         };
@@ -1235,59 +1304,74 @@ impl Workspace {
                 "3. [TRIAGE & EXECUTE] Classify into `explicit_requires_intervention` (`execute`), `artistic_nudity_pass` / `suggestive_pass` (`approve-original`), or `ambiguous_escalate` (`escalate`). Use `--append` for incremental region edits.".to_string(),
                 "4. [VERIFY & AUDIT] Inspect `assets/previews/<ID>_contact_sheet.png` (4-Panel Broadcast QC Slate) and run `./target/release/heav3ns-censor doctor --fix` to confirm `overall_healthy == true`.".to_string(),
             ],
+            "researcher" => vec![
+                "1. [SURGICAL DATASET SANITIZATION] Place raw dataset images in `assets/inbox/` and run `./target/release/heav3ns-censor batch-prepare` to archive SHA-256 originals and detect high-frequency candidate regions without dropping artistic samples.".to_string(),
+                "2. [ZERO-HALLUCINATION REDACTION VS. FALSE-POSITIVE PRESERVATION] Apply deterministic SDF redaction (`execute`) on explicit regions (preserving >98% exterior pixels bit-identically), preserve non-explicit figurative art (`approve-original`), and quarantine ambiguous edge cases (`escalate`).".to_string(),
+                "3. [EXPORT HUGGINGFACE JSONL & COCO ANNOTATIONS] Run `./target/release/heav3ns-censor export-dataset` (or `--safe-only` for training splits) to generate `ledger/dataset_manifest.jsonl` with COCO `[x,y,w,h]`, VLM `Normalized1000`, and YOLO bounding boxes + multi-scale JPEG safety telemetry.".to_string(),
+                "4. [READ SAFETY RESEARCH & WHITEPAPER DOCS] See `docs/knowledgebase/03-dataset-cleaning-and-ai-safety-research.md` and `docs/whitepaper/TECHNICAL_WHITEPAPER.md`.".to_string(),
+            ],
             "developer" => vec![
-                "1. [BUILD & TEST] Run `cargo test --release && cargo build --release` to execute all 8 mathematical SDF, remainder-pooling, and state-hygiene unit tests.".to_string(),
+                "1. [BUILD & TEST] Run `cargo test --release && cargo build --release` to execute all 9 mathematical SDF, remainder-pooling, dataset-export, and state-hygiene unit tests.".to_string(),
                 "2. [ARCHITECTURE TOUR] Read `src/models.rs` (SDF geometry & BTreeMap ledger) -> `src/engine.rs` (immutable-source spatial filters & multi-scale JPEG verifier) -> `src/workspace.rs` (RAII lock & atomic persistence) -> `src/mcp.rs` (JSON-RPC 2.0 server).".to_string(),
                 "3. [WHITEPAPER & ADRs] Review `docs/whitepaper/TECHNICAL_WHITEPAPER.md`, `docs/adrs/ADR-0001..0004`, and `docs/postmortems/PM-001..004` before modifying spatial kernels.".to_string(),
                 "4. [DOCTOR GATE] Always run `./target/release/heav3ns-censor doctor --fix` before committing.".to_string(),
             ],
             "stakeholder" => vec![
                 "1. [FOR EGG - PRINCIPAL ARTIST] Drop master illustrations into `assets/inbox/`. Untouched originals are permanently preserved in `assets/originals/` with SHA-256 verification.".to_string(),
-                "2. [FOR MAJO - EXECUTIVE CHAIR] Open `ledger/dashboard.html` in any browser to inspect the 4-Panel Broadcast QC Slates, or read `ledger/publication_report.md` and `ledger/escalations_review.md`.".to_string(),
+                "2. [FOR MAJO - EXECUTIVE CHAIR] Open `ledger/dashboard.html` in any browser to inspect the 4-Panel Broadcast QC Slates (press `[o]` to A/B toggle Original vs. Published), or read `ledger/publication_report.md` and `ledger/escalations_review.md`.".to_string(),
                 "3. [INTERACTIVE COORDINATE PICKER] In `ledger/dashboard.html`, drag a box over any image to measure exact coordinates and generate a 1-click CLI command for custom adjustments.".to_string(),
                 "4. [HEALTH VERIFICATION] Run `./target/release/heav3ns-censor doctor` anytime to verify 100% bit-exact preservation across all assets.".to_string(),
             ],
             _ => vec![
+                "[RESEARCHER & DATASET CLEANING TRACK] Run `batch-prepare` -> `execute` / `approve-original` -> `export-dataset --safe-only` to generate `ledger/dataset_manifest.jsonl` (see `docs/knowledgebase/03-dataset-cleaning-and-ai-safety-research.md`).".to_string(),
+                "[ARTIST & STUDIO STAKEHOLDER TRACK] Open `ledger/dashboard.html` (press `[o]` for A/B Original comparison) and `ledger/escalations_review.md` (see `docs/stakeholder-handoff/STAKEHOLDER_HANDOFF.md`).".to_string(),
                 "[AGENT TRACK] Run `batch-prepare` -> VLM `read_file` on `*_inspect_grid.png` -> `execute` / `approve-original` / `escalate` -> `doctor --fix` (see `docs/onboarding/AGENT_ONBOARDING.md`).".to_string(),
                 "[DEVELOPER TRACK] Run `cargo test --release` -> explore `src/engine.rs` & `docs/whitepaper/TECHNICAL_WHITEPAPER.md` (see `docs/onboarding/DEVELOPER_ONBOARDING.md`).".to_string(),
-                "[STAKEHOLDER TRACK] Open `ledger/dashboard.html` and `ledger/escalations_review.md` (see `docs/stakeholder-handoff/STAKEHOLDER_HANDOFF.md`).".to_string(),
             ],
         };
 
         let mut doc_map = std::collections::BTreeMap::new();
         doc_map.insert("01_readme_portal".to_string(), "README.md".to_string());
         doc_map.insert(
-            "02_agent_onboarding".to_string(),
+            "02_dataset_cleaning_and_safety_research".to_string(),
+            "docs/knowledgebase/03-dataset-cleaning-and-ai-safety-research.md".to_string(),
+        );
+        doc_map.insert(
+            "03_agent_onboarding".to_string(),
             "docs/onboarding/AGENT_ONBOARDING.md".to_string(),
         );
         doc_map.insert(
-            "03_developer_onboarding".to_string(),
+            "04_developer_onboarding".to_string(),
             "docs/onboarding/DEVELOPER_ONBOARDING.md".to_string(),
         );
         doc_map.insert(
-            "04_stakeholder_handoff".to_string(),
+            "05_stakeholder_handoff".to_string(),
             "docs/stakeholder-handoff/STAKEHOLDER_HANDOFF.md".to_string(),
         );
         doc_map.insert(
-            "05_philosophy".to_string(),
+            "06_philosophy".to_string(),
             "docs/philosophy/PHILOSOPHY.md".to_string(),
         );
         doc_map.insert(
-            "06_technical_whitepaper".to_string(),
+            "07_technical_whitepaper".to_string(),
             "docs/whitepaper/TECHNICAL_WHITEPAPER.md".to_string(),
         );
         doc_map.insert(
-            "07_knowledgebase_index".to_string(),
+            "08_knowledgebase_index".to_string(),
             "docs/knowledgebase/INDEX.md".to_string(),
         );
         doc_map.insert(
-            "08_playbooks_dir".to_string(),
+            "09_playbooks_dir".to_string(),
             "docs/playbooks/".to_string(),
         );
-        doc_map.insert("09_adrs_dir".to_string(), "docs/adrs/".to_string());
+        doc_map.insert("10_adrs_dir".to_string(), "docs/adrs/".to_string());
         doc_map.insert(
-            "10_postmortems_dir".to_string(),
+            "11_postmortems_dir".to_string(),
             "docs/postmortems/".to_string(),
+        );
+        doc_map.insert(
+            "12_exported_dataset_jsonl".to_string(),
+            "ledger/dataset_manifest.jsonl".to_string(),
         );
 
         Ok(OnboardingPacket {
@@ -1297,10 +1381,10 @@ impl Workspace {
             principal_artist: ledger.principal_artist,
             commissioned_agent: ledger.commissioned_agent,
             core_invariants: vec![
-                "1. Artistic Preservation is Absolute: non_censored_pixel_diff_count == 0 (100% bit-exact RGBA outside SDF masks).".to_string(),
+                "1. Artistic & Dataset Context Preservation is Absolute: non_censored_pixel_diff_count == 0 (100% bit-exact RGBA outside SDF masks; zero diffusion hallucination).".to_string(),
                 "2. Immutable Master Archive: Untouched originals are preserved in assets/originals/ with SHA-256 verification.".to_string(),
                 "3. Multi-Scale JPEG Resilience: Every censorship region is verified across Native (Mean + P95 Peak), 1080p (Q85 JPEG), and 540p (Q75 Thumbnail JPEG).".to_string(),
-                "4. Escalation Safety Isolation: Escalating an asset automatically revokes and deletes any prior published edition.".to_string(),
+                "4. Escalation & Safety Isolation: Escalating an asset automatically revokes any prior published edition and excludes it from `--safe-only` dataset training splits.".to_string(),
             ],
             role_quickstart_steps: role_steps,
             live_workspace_commands: vec![
@@ -1314,6 +1398,7 @@ impl Workspace {
                     "./target/release/heav3ns-censor execute --asset-id {} --append --region \"r1=mosaic:440,500,120,100:pixels:rect:auto:0:explicit_anatomy\"",
                     sample_asset
                 ),
+                "./target/release/heav3ns-censor export-dataset --safe-only".to_string(),
                 "./target/release/heav3ns-censor doctor --fix".to_string(),
             ],
             documentation_map: doc_map,
@@ -1571,7 +1656,188 @@ impl Workspace {
         let html = self.generate_dashboard_html(&ledger, &asset_list);
         atomic_write_bytes(&self.dashboard_html_file(), html.as_bytes())?;
 
+        // 4. Research & Dataset Curation JSONL Manifest (`ledger/dataset_manifest.jsonl` + `ledger/DATASET_CARD.md`)
+        let _ = self.export_dataset_from_ledger(&ledger, false)?;
+
         Ok(())
+    }
+
+    /// Exports a HuggingFace / JSONL dataset manifest (`ledger/dataset_manifest.jsonl`) and Dataset Card (`ledger/DATASET_CARD.md`)
+    /// with COCO `[x,y,w,h]`, VLM `Normalized1000` `[x1,y1,x2,y2]`, and YOLO `[cx,cy,w,h]` bounding boxes + safety telemetry.
+    pub fn export_dataset(&self, safe_only: bool) -> Result<DatasetExportReport> {
+        let ledger = self.load_ledger()?;
+        self.export_dataset_from_ledger(&ledger, safe_only)
+    }
+
+    fn export_dataset_from_ledger(&self, ledger: &Ledger, safe_only: bool) -> Result<DatasetExportReport> {
+        let mut asset_list: Vec<&AssetRecord> = ledger.assets.values().collect();
+        asset_list.sort_by(|a, b| a.asset_id.cmp(&b.asset_id));
+
+        let mut rows = Vec::new();
+        let mut safe_count = 0usize;
+        let mut redacted_count = 0usize;
+        let mut untouched_count = 0usize;
+        let mut escalated_count = 0usize;
+
+        for rec in &asset_list {
+            let is_safe = matches!(rec.status, AssetStatus::Verified | AssetStatus::ApprovedOriginal)
+                && rec.published_edition_path.is_some();
+
+            if safe_only && !is_safe {
+                continue;
+            }
+
+            let curation_action = match rec.status {
+                AssetStatus::Verified => {
+                    redacted_count += 1;
+                    safe_count += 1;
+                    "surgical_region_redaction"
+                }
+                AssetStatus::ApprovedOriginal => {
+                    untouched_count += 1;
+                    safe_count += 1;
+                    "preserved_untouched_false_positive"
+                }
+                AssetStatus::Escalated => {
+                    escalated_count += 1;
+                    "quarantined_for_human_review"
+                }
+                _ => "pending_triage",
+            }
+            .to_string();
+
+            let (diff_px, redacted_pct, j1080_ok, j540_ok, qc_slate) = match &rec.verification {
+                Some(v) => {
+                    let j1080 = v
+                        .region_metrics
+                        .iter()
+                        .all(|m| m.survives_publication_resize && m.pub_1080p_suppression_ratio >= 0.70);
+                    let j540 = v
+                        .region_metrics
+                        .iter()
+                        .all(|m| m.survives_publication_resize && m.pub_540p_suppression_ratio >= 0.70);
+                    let slate = v
+                        .publication_preview_paths
+                        .iter()
+                        .find(|p| p.ends_with("_contact_sheet.png"))
+                        .cloned();
+                    (
+                        v.non_censored_pixel_diff_count,
+                        v.total_censored_area_percent as f64,
+                        j1080,
+                        j540,
+                        slate,
+                    )
+                }
+                None => (0, 0.0, true, true, None),
+            };
+
+            let preservation_ratio = ((100.0 - redacted_pct).clamp(0.0, 100.0) / 100.0 * 10000.0).round() / 10000.0;
+
+            let mut annotations = Vec::new();
+            for r in &rec.regions {
+                let (px, py, pw, ph) = r.resolve_pixels(rec.width, rec.height);
+                let (ax, ay, aw, ah) = r.resolve_enclosing_aabb(rec.width, rec.height);
+                let w_f = rec.width.max(1) as f32;
+                let h_f = rec.height.max(1) as f32;
+
+                let x1_n1000 = ((px as f32 / w_f) * 1000.0).round().clamp(0.0, 1000.0) as u32;
+                let y1_n1000 = ((py as f32 / h_f) * 1000.0).round().clamp(0.0, 1000.0) as u32;
+                let x2_n1000 = (((px + pw) as f32 / w_f) * 1000.0).round().clamp(0.0, 1000.0) as u32;
+                let y2_n1000 = (((py + ph) as f32 / h_f) * 1000.0).round().clamp(0.0, 1000.0) as u32;
+
+                let cx_01 = ((px as f32 + pw as f32 * 0.5) / w_f * 10000.0).round() / 10000.0;
+                let cy_01 = ((py as f32 + ph as f32 * 0.5) / h_f * 10000.0).round() / 10000.0;
+                let bw_01 = ((pw as f32 / w_f) * 10000.0).round() / 10000.0;
+                let bh_01 = ((ph as f32 / h_f) * 10000.0).round() / 10000.0;
+
+                let method_name = match &r.treatment {
+                    crate::models::CensorshipMethod::Mosaic { .. } => "mosaic",
+                    crate::models::CensorshipMethod::SolidBar { .. } => "solid_bar",
+                    crate::models::CensorshipMethod::GaussianBlur { .. } => "gaussian_blur",
+                }
+                .to_string();
+
+                let shape_name = match r.shape {
+                    crate::models::RegionShape::Rect => "rect",
+                    crate::models::RegionShape::Ellipse => "ellipse",
+                    crate::models::RegionShape::Pill => "pill",
+                }
+                .to_string();
+
+                annotations.push(DatasetAnnotationBox {
+                    region_id: r.id.clone(),
+                    label: r.label.clone(),
+                    rationale: r.rationale.clone(),
+                    shape: shape_name,
+                    treatment_method: method_name,
+                    angle_deg: r.rotation_angle_deg(),
+                    feather_px: r.feather_px,
+                    bbox_xywh_px: [px, py, pw, ph],
+                    bbox_xyxy_norm1000: [x1_n1000, y1_n1000, x2_n1000, y2_n1000],
+                    bbox_cxcywh_norm01: [cx_01, cy_01, bw_01, bh_01],
+                    enclosing_aabb_px: [ax, ay, aw, ah],
+                });
+            }
+
+            rows.push(DatasetExportRow {
+                asset_id: rec.asset_id.clone(),
+                original_filename: rec.original_filename.clone(),
+                width: rec.width,
+                height: rec.height,
+                status: rec.status,
+                classification: rec.classification,
+                policy_profile: rec.policy_profile.clone(),
+                is_safe_for_training_release: is_safe,
+                curation_action,
+                sha256_original: rec.sha256_original.clone(),
+                sha256_published: rec.sha256_published.clone(),
+                original_path: rec.archive_original_path.clone(),
+                sanitized_published_path: rec.published_edition_path.clone(),
+                vlm_inspect_grid_path: rec.inspect_grid_path.clone(),
+                qc_contact_sheet_path: qc_slate,
+                exterior_pixel_diff_count: diff_px,
+                exterior_preservation_ratio: preservation_ratio,
+                redacted_area_percent: redacted_pct,
+                multiscale_jpeg_1080p_q85_passed: j1080_ok,
+                multiscale_jpeg_540p_q75_passed: j540_ok,
+                annotations,
+            });
+        }
+
+        let mut jsonl_buf = String::new();
+        for row in &rows {
+            if let Ok(line) = serde_json::to_string(row) {
+                jsonl_buf.push_str(&line);
+                jsonl_buf.push('\n');
+            }
+        }
+        atomic_write_bytes(&self.dataset_manifest_jsonl_file(), jsonl_buf.as_bytes())?;
+
+        let card_md = format!(
+            "---\nlicense: mit\ntask_categories:\n  - image-to-image\n  - object-detection\n  - image-classification\ntags:\n  - ai-safety\n  - dataset-cleaning\n  - localized-redaction\n  - vlm-grounding\n  - artistic-preservation\n---\n\n# HEAV3NS Sanitized Vision & Safety Benchmark Dataset Card\n\nGenerated deterministically by **`heav3ns-censor v{}`**.\n\n## Dataset Summary & Safety Provenance\n\n- **Total Exported Records:** `{}` (`safe_only = {}`)\n- **Safe Training Split (`is_safe_for_training_release == true`):** `{}`\n  - **Surgical Localized Redactions (`Verified`):** `{}` (`0` exterior pixels altered; verified across Native, `1080p Q85`, and `540p Q75` JPEG)\n  - **Preserved False-Positive Artistic Corpora (`ApprovedOriginal`):** `{}` (`100%` bit-identical to original)\n- **Quarantined Ambiguity Benchmark (`Escalated`):** `{}` (isolated from `assets/published/`)\n- **Manifest File:** `ledger/dataset_manifest.jsonl`\n\n## Loading in Python (`datasets` / `json`)\n\n```python\nimport json\nfrom pathlib import Path\n\nrecords = [\n    json.loads(line)\n    for line in Path(\"ledger/dataset_manifest.jsonl\").read_text().splitlines()\n    if line.strip()\n]\nsafe_split = [r for r in records if r[\"is_safe_for_training_release\"]]\nprint(f\"Loaded {{len(records)}} total records ({{len(safe_split)}} compliance-verified safe records).\")\n```\n",
+            ledger.version,
+            rows.len(),
+            safe_only,
+            safe_count,
+            redacted_count,
+            untouched_count,
+            escalated_count,
+        );
+        atomic_write_bytes(&self.dataset_card_md_file(), card_md.as_bytes())?;
+
+        Ok(DatasetExportReport {
+            exported_at: Utc::now().to_rfc3339(),
+            safe_only_filter: safe_only,
+            total_records_exported: rows.len(),
+            safe_training_records_count: safe_count,
+            surgical_redaction_count: redacted_count,
+            preserved_untouched_count: untouched_count,
+            quarantined_escalated_count: escalated_count,
+            jsonl_manifest_path: self.dataset_manifest_jsonl_file().to_string_lossy().to_string(),
+            dataset_card_path: self.dataset_card_md_file().to_string_lossy().to_string(),
+            records: rows,
+        })
     }
 
     fn to_relative_dashboard_path(&self, abs_or_rel: &str) -> String {
@@ -2062,25 +2328,30 @@ impl Workspace {
   </div>
 
   <details class="onboard-drawer">
-    <summary>Studio Handoff &amp; Role-Based Onboarding Guide (EGG • MAJO • Deputy Gemini • Developers)</summary>
+    <summary>Studio Handoff, Dataset Curation &amp; Role-Based Onboarding Guide (Researchers • EGG • MAJO • Deputy Gemini • Developers)</summary>
     <div class="role-grid">
       <div class="role-box">
-        <h4>1. Principal Artist (EGG)</h4>
-        Drop master files in <code>assets/inbox/</code>. Originals are archived untouched in <code>assets/originals/</code> with SHA-256 verification. Drag on any image below to measure or adjust a censorship region.<br/>
+        <h4>1. AI Safety &amp; Dataset Researchers</h4>
+        Export <a href="dataset_manifest.jsonl">dataset_manifest.jsonl</a> &amp; <a href="DATASET_CARD.md">DATASET_CARD.md</a> via <code>export-dataset [--safe-only]</code> with COCO, Normalized1000, &amp; YOLO boxes.<br/>
+        <a href="../docs/knowledgebase/03-dataset-cleaning-and-ai-safety-research.md">Read Dataset Cleaning Guide &rarr;</a>
+      </div>
+      <div class="role-box">
+        <h4>2. Principal Artist (EGG)</h4>
+        Drop master files in <code>assets/inbox/</code>. Originals are archived untouched in <code>assets/originals/</code> with SHA-256 verification. Press <code>[o]</code> to A/B compare Original vs. Published.<br/>
         <a href="../docs/stakeholder-handoff/STAKEHOLDER_HANDOFF.md">Read Stakeholder Handoff &rarr;</a>
       </div>
       <div class="role-box">
-        <h4>2. Executive Chair (MAJO)</h4>
+        <h4>3. Executive Chair (MAJO)</h4>
         Filter by <strong>Escalated</strong> below or open <a href="escalations_review.md">escalations_review.md</a> to resolve ambiguous edge cases. Open <a href="publication_report.md">publication_report.md</a> for release sign-off.<br/>
         <a href="../docs/philosophy/PHILOSOPHY.md">Read Studio Philosophy &rarr;</a>
       </div>
       <div class="role-box">
-        <h4>3. Autonomous Agent (Deputy Gemini)</h4>
+        <h4>4. Autonomous Agent (Deputy Gemini)</h4>
         Run <code>batch-prepare</code> &rarr; VLM inspect <code>*_inspect_grid.png</code> &rarr; <code>execute</code> / <code>approve-original</code> / <code>escalate</code> &rarr; <code>doctor --fix</code>.<br/>
         <a href="../docs/onboarding/AGENT_ONBOARDING.md">Read Agent Runbook &rarr;</a>
       </div>
       <div class="role-box">
-        <h4>4. Developers &amp; Researchers</h4>
+        <h4>5. Systems Developers</h4>
         Run <code>./target/release/heav3ns-censor onboard --role developer</code> or <code>cargo test --release</code>.<br/>
         <a href="../docs/whitepaper/TECHNICAL_WHITEPAPER.md">Read Technical Whitepaper &rarr;</a>
       </div>

@@ -16,3 +16,4 @@ Root-cause mathematical analyses and regression-tested remediations for subtle g
 ---
 
 **Related:** [📄 Technical Whitepaper (`TECHNICAL_WHITEPAPER.md`)](../whitepaper/TECHNICAL_WHITEPAPER.md) • [📐 Architecture Decision Records (`docs/adrs/`)](../adrs/README.md)
+

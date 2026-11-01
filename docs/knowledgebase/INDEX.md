@@ -12,9 +12,10 @@ Welcome to the central engineering and domain knowledgebase for **`heav3ns-censo
 
 | Persona | Start Here | CLI Self-Onboarding Command |
 | :--- | :--- | :--- |
+| **🔬 AI Safety & Dataset Curation Researchers** | [`docs/knowledgebase/03-dataset-cleaning-and-ai-safety-research.md`](03-dataset-cleaning-and-ai-safety-research.md) | `./target/release/heav3ns-censor onboard --role researcher` |
+| **🎨 Studio Stakeholders (`MAJO` & `EGG`)** | [`docs/stakeholder-handoff/STAKEHOLDER_HANDOFF.md`](../stakeholder-handoff/STAKEHOLDER_HANDOFF.md) | `./target/release/heav3ns-censor onboard --role stakeholder` |
 | **🤖 Autonomous AI Agents (`Deputy Gemini`)** | [`docs/onboarding/AGENT_ONBOARDING.md`](../onboarding/AGENT_ONBOARDING.md) | `./target/release/heav3ns-censor onboard --role agent` |
-| **🛠️ Rust Developers & CV Researchers** | [`docs/onboarding/DEVELOPER_ONBOARDING.md`](../onboarding/DEVELOPER_ONBOARDING.md) | `./target/release/heav3ns-censor onboard --role developer` |
-| **🏛️ Studio Stakeholders (`MAJO` & `EGG`)** | [`docs/stakeholder-handoff/STAKEHOLDER_HANDOFF.md`](../stakeholder-handoff/STAKEHOLDER_HANDOFF.md) | `./target/release/heav3ns-censor onboard --role stakeholder` |
+| **🛠️ Rust Developers & CV Engineers** | [`docs/onboarding/DEVELOPER_ONBOARDING.md`](../onboarding/DEVELOPER_ONBOARDING.md) | `./target/release/heav3ns-censor onboard --role developer` |
 
 ---
 
@@ -34,6 +35,8 @@ Welcome to the central engineering and domain knowledgebase for **`heav3ns-censo
    Detailed breakdown of Japanese Penal Code Article 175 mosaic block sizing ($\max(W, H)/100$), *kuro-nuri* / *shiro-nuri* editorial conventions, and policy profiles (`jp_article_175_standard`, `kuro_nuri_graphic`, `social_media_safe`).
 - **[`KB-02`: Coordinate Systems & Multimodal VLM Grounding](02-coordinate-systems-and-vlm-grounding.md)**  
   How `heav3ns-censor` bridges the spatial grounding gap in Vision-Language Models using burned-in `Normalized1000` bitmap badges, automatic high-frequency hotspot detection, and 3x magnified zoom-crop grids.
+- **[`KB-03`: Dataset Cleaning, Multimodal AI Safety, & Non-Destructive Artistic Post-Production](03-dataset-cleaning-and-ai-safety-research.md)**  
+  Eliminating sample-dropping bias and generative inpainting poisoning in vision-language datasets, paired counterfactual safety benchmarks, and exporting `ledger/dataset_manifest.jsonl` (`COCO` + `Normalized1000` + `YOLO`).
 
 ---
 

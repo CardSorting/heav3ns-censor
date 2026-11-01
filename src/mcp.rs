@@ -117,14 +117,27 @@ fn mcp_tool_definitions() -> Value {
         },
         {
             "name": "heav3ns_onboard",
-            "description": "Generate a context-aware, role-specific onboarding and handoff packet ('agent', 'developer', 'stakeholder', or 'all') with live workspace commands, invariants, and documentation map.",
+            "description": "Generate a context-aware, role-specific onboarding and handoff packet ('agent', 'researcher', 'developer', 'stakeholder', or 'all') with live workspace commands, invariants, and documentation map.",
             "inputSchema": {
                 "type": "object",
                 "properties": {
                     "role": {
                         "type": "string",
-                        "enum": ["agent", "developer", "stakeholder", "all"],
+                        "enum": ["agent", "researcher", "developer", "stakeholder", "all"],
                         "description": "Target persona (default: 'agent')"
+                    }
+                }
+            }
+        },
+        {
+            "name": "heav3ns_export_dataset",
+            "description": "Export a HuggingFace / JSONL dataset manifest (ledger/dataset_manifest.jsonl) and Dataset Card (ledger/DATASET_CARD.md) with COCO, VLM Normalized1000, and YOLO bounding boxes plus multi-scale JPEG safety telemetry.",
+            "inputSchema": {
+                "type": "object",
+                "properties": {
+                    "safe_only": {
+                        "type": "boolean",
+                        "description": "If true, exports only compliance-verified training records (Verified and ApprovedOriginal), excluding Escalated items."
                     }
                 }
             }
@@ -301,6 +314,14 @@ fn dispatch_tool_call(workspace: &Workspace, tool_name: &str, args: &Value) -> R
             let role = args.get("role").and_then(|s| s.as_str()).unwrap_or("agent");
             let packet = workspace.onboard(role)?;
             Ok(serde_json::to_value(packet)?)
+        }
+        "heav3ns_export_dataset" => {
+            let safe_only = args
+                .get("safe_only")
+                .and_then(|b| b.as_bool())
+                .unwrap_or(false);
+            let report = workspace.export_dataset(safe_only)?;
+            Ok(serde_json::to_value(report)?)
         }
         "heav3ns_explain_asset" => {
             let asset_id = args

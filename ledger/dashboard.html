@@ -270,25 +270,30 @@
   </div>
 
   <details class="onboard-drawer">
-    <summary>Studio Handoff &amp; Role-Based Onboarding Guide (EGG • MAJO • Deputy Gemini • Developers)</summary>
+    <summary>Studio Handoff, Dataset Curation &amp; Role-Based Onboarding Guide (Researchers • EGG • MAJO • Deputy Gemini • Developers)</summary>
     <div class="role-grid">
       <div class="role-box">
-        <h4>1. Principal Artist (EGG)</h4>
-        Drop master files in <code>assets/inbox/</code>. Originals are archived untouched in <code>assets/originals/</code> with SHA-256 verification. Drag on any image below to measure or adjust a censorship region.<br/>
+        <h4>1. AI Safety &amp; Dataset Researchers</h4>
+        Export <a href="dataset_manifest.jsonl">dataset_manifest.jsonl</a> &amp; <a href="DATASET_CARD.md">DATASET_CARD.md</a> via <code>export-dataset [--safe-only]</code> with COCO, Normalized1000, &amp; YOLO boxes.<br/>
+        <a href="../docs/knowledgebase/03-dataset-cleaning-and-ai-safety-research.md">Read Dataset Cleaning Guide &rarr;</a>
+      </div>
+      <div class="role-box">
+        <h4>2. Principal Artist (EGG)</h4>
+        Drop master files in <code>assets/inbox/</code>. Originals are archived untouched in <code>assets/originals/</code> with SHA-256 verification. Press <code>[o]</code> to A/B compare Original vs. Published.<br/>
         <a href="../docs/stakeholder-handoff/STAKEHOLDER_HANDOFF.md">Read Stakeholder Handoff &rarr;</a>
       </div>
       <div class="role-box">
-        <h4>2. Executive Chair (MAJO)</h4>
+        <h4>3. Executive Chair (MAJO)</h4>
         Filter by <strong>Escalated</strong> below or open <a href="escalations_review.md">escalations_review.md</a> to resolve ambiguous edge cases. Open <a href="publication_report.md">publication_report.md</a> for release sign-off.<br/>
         <a href="../docs/philosophy/PHILOSOPHY.md">Read Studio Philosophy &rarr;</a>
       </div>
       <div class="role-box">
-        <h4>3. Autonomous Agent (Deputy Gemini)</h4>
+        <h4>4. Autonomous Agent (Deputy Gemini)</h4>
         Run <code>batch-prepare</code> &rarr; VLM inspect <code>*_inspect_grid.png</code> &rarr; <code>execute</code> / <code>approve-original</code> / <code>escalate</code> &rarr; <code>doctor --fix</code>.<br/>
         <a href="../docs/onboarding/AGENT_ONBOARDING.md">Read Agent Runbook &rarr;</a>
       </div>
       <div class="role-box">
-        <h4>4. Developers &amp; Researchers</h4>
+        <h4>5. Systems Developers</h4>
         Run <code>./target/release/heav3ns-censor onboard --role developer</code> or <code>cargo test --release</code>.<br/>
         <a href="../docs/whitepaper/TECHNICAL_WHITEPAPER.md">Read Technical Whitepaper &rarr;</a>
       </div>
