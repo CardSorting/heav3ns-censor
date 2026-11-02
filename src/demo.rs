@@ -45,7 +45,7 @@ pub fn generate_demo_inbox_assets(inbox_dir: &Path) -> Result<Vec<PathBuf>> {
     }
     for y in 320..360 {
         for x in 450..550 {
-            if (y - 340i32 as u32) < 4 || (x + y) % 3 == 0 {
+            if (y as i32 - 340).abs() < 4 || (x + y) % 3 == 0 {
                 img1.put_pixel(x, y, Rgba([160, 60, 75, 255]));
             }
         }

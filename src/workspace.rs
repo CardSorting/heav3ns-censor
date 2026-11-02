@@ -3413,7 +3413,7 @@ impl Workspace {
   <header>
     <div>
       <h1>HEAV3NS PRESERVATION-AWARE DATASET CURATION &amp; STUDIO QC (v4.0)</h1>
-      <div class="meta">Commissioning Authority: <strong>{auth}</strong> • Commissioned Agent: <strong>{agent}</strong> • Principal Artist: <strong>{artist}</strong> • <a href="../docs/yc/pitch_deck.html" style="color:#ff6600;font-weight:700;text-decoration:none;">[Launch Interactive YC Seed Pitch Deck &rarr;]</a></div>
+      <div class="meta">Commissioning Authority: <strong>{auth}</strong> • Commissioned Agent: <strong>{agent}</strong> • Principal Artist: <strong>{artist}</strong></div>
     </div>
     <div class="meta">Shortcuts: <code>/</code> Search • <code>1-6</code> Switch Tab • <code>b</code> Toggle Grounding Boxes • <code>o</code> A/B Compare • Updated: {updated}</div>
   </header>
@@ -3427,36 +3427,31 @@ impl Workspace {
   </div>
 
   <details class="onboard-drawer">
-    <summary>Preservation-Aware Dataset Curation, YC Seed Deck, &amp; Role-Based Handoff Guide (Researchers • YC Partners • EGG • MAJO • Deputy Gemini • Developers)</summary>
+    <summary>Preservation-Aware Dataset Curation &amp; Role-Based Handoff Guide (Researchers • EGG • MAJO • Deputy Gemini • Developers)</summary>
     <div class="role-grid">
       <div class="role-box">
         <h4>1. AI Safety &amp; Dataset Researchers</h4>
         Export <a href="dataset_manifest.jsonl">dataset_manifest.jsonl</a>, <a href="annotations_coco.json">annotations_coco.json</a>, <a href="vlm_safety_sft.jsonl">vlm_safety_sft.jsonl</a>, &amp; <a href="vlm_safety_dpo.jsonl">vlm_safety_dpo.jsonl</a> via <code>export-dataset [--safe-only]</code>.<br/>
         <a href="../docs/knowledgebase/03-dataset-cleaning-and-ai-safety-research.md">Read Dataset Curation Guide &rarr;</a>
       </div>
-      <div class="role-box" style="border-color:#ff6600;">
-        <h4 style="color:#ff6600;">2. Y Combinator &amp; Seed Investors</h4>
-        <em>"Preservation-aware visual dataset curation for AI."</em> Eliminates 15%–40% sample-dropping bias &amp; inpainting poisoning.<br/>
-        <a href="../docs/yc/pitch_deck.html" style="color:#ff6600;font-weight:700;">Open Interactive Pitch Deck &rarr;</a> • <a href="../docs/yc/README.md">YC Diligence Docs &rarr;</a>
-      </div>
       <div class="role-box">
-        <h4>3. Principal Artist (EGG)</h4>
+        <h4>2. Principal Artist (EGG)</h4>
         Drop master files in <code>assets/inbox/</code>. Originals are archived untouched in <code>assets/originals/</code> with SHA-256 verification. Press <code>[o]</code> to A/B compare Original vs. Published.<br/>
         <a href="../docs/stakeholder-handoff/STAKEHOLDER_HANDOFF.md">Read Stakeholder Handoff &rarr;</a>
       </div>
       <div class="role-box">
-        <h4>4. Executive Chair (MAJO)</h4>
+        <h4>3. Executive Chair (MAJO)</h4>
         Filter by <strong>Escalated</strong> below or open <a href="escalations_review.md">escalations_review.md</a> to resolve ambiguous edge cases. Open <a href="publication_report.md">publication_report.md</a> for release sign-off.<br/>
         <a href="../docs/philosophy/PHILOSOPHY.md">Read Studio Philosophy &rarr;</a>
       </div>
       <div class="role-box">
-        <h4>5. Autonomous Agent (Deputy Gemini)</h4>
+        <h4>4. Autonomous Agent (Deputy Gemini)</h4>
         Run <code>batch-prepare</code> &rarr; VLM inspect <code>*_inspect_grid.png</code> &rarr; <code>execute</code> / <code>approve-original</code> / <code>escalate</code> &rarr; <code>dataset-audit</code> &amp; <code>doctor --fix</code>.<br/>
         <a href="../docs/onboarding/AGENT_ONBOARDING.md">Read Agent Runbook &rarr;</a>
       </div>
       <div class="role-box">
-        <h4>6. Systems Developers</h4>
-        Run <code>./target/release/heav3ns-censor onboard --role developer</code> or <code>cargo test --release</code> (12/12 passing).<br/>
+        <h4>5. Systems Developers</h4>
+        Run <code>./target/release/heav3ns-censor onboard --role developer</code> or <code>cargo test --release</code>.<br/>
         <a href="../docs/whitepaper/TECHNICAL_WHITEPAPER.md">Read Technical Whitepaper &rarr;</a>
       </div>
     </div>

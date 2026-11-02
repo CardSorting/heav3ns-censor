@@ -6,3 +6,9 @@ ledger/.ledger.lock
 **/.tmp.*
 **/.*.tmp.*
 .DS_Store
+
+# YC application & pitch materials
+yc.md
+docs/yc/
+*pitch*
+*.mov
