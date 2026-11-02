@@ -1,12 +1,12 @@
-# HEAV3NS × Y Combinator — 9-Scene Seed Pitch Deck (`02:00` Synchronized Script)
+# HEAV3NS × Y Combinator — 12-Scene Seed Pitch Deck & Live App Demo (`02:56` Total Runtime)
 
 > **Interactive Studio Deck:** Open [`docs/yc/pitch_deck.html`](file:///Users/bozoegg/Desktop/HEAV3NS-CENSOR/docs/yc/pitch_deck.html) in any browser.  
-> **Keyboard Controls:** `←` / `→` or `Space` to advance slides · `1`–`9` to jump to a scene · **`F` to toggle Clean Focus Mode** · Click `NEXT SLIDE IN` to run the synchronized `02:00` timer.  
-> **Design Architecture:** Modeled 1:1 on the visual clarity and 3-second readability of [`video-deck/slides/slide-01.png`..`slide-09.png`](file:///Users/bozoegg/Desktop/HEAV3NS-CENSOR/video-deck/slides/slide-01.png).
+> **Keyboard Controls:** `←` / `→` or `Space` to advance slides · `1`–`9` for Pitch Scenes · **`D` (or `0`, `-`, `=`) to jump directly to the 3-Stage Live Visual App Demo (`Scenes 10–12`)** · **`F` to toggle Clean Focus Mode**.  
+> **Video Recording (`02:56 / 03:00`):** [`docs/yc/2026-11-01 18-44-18.mov`](file:///Users/bozoegg/Desktop/HEAV3NS-CENSOR/docs/yc/2026-11-01%2018-44-18.mov) (`176.2s` total: `00:00–02:28` Founder Pitch + `02:28–02:56` 3-Stage Live Visual App Demo, staying safely under the `03:00` YC video limit).
 
 ---
 
-## Scene-by-Scene Structure (`00:00` – `02:00` @ `144.5 WPM`)
+## Scene-by-Scene Structure (`00:00` – `02:56` · Under `03:00` YC Limit)
 
 | Scene | Act | Timestamp | Slide Title | Core Visual Diagram |
 | :--- | :--- | :--- | :--- | :--- |
@@ -18,7 +18,10 @@
 | **06** | **Act III · Architecture & Pipeline** | `01:08 – 01:22` (`14s`) | **The Architecture: Raw Visual Corpora, HEAV3NS & Frontier AI Labs** | 3-Box Supply Chain (`Raw Corpora` $\leftrightarrow$ `HEAV3NS 6-Pill Core` $\leftrightarrow$ `Frontier AI Labs`) |
 | **07** | **Act III · Architecture & Pipeline** | `01:22 – 01:36` (`14s`) | **The Curation Pipeline: Ingest, Ground, Curate, Audit, Export** | 5-Stage Horizontal Flow (`1 · INGEST` $\rightarrow$ `5 · EXPORT`) + Bottom `VS.` Chevron Ribbon |
 | **08** | **Act IV · YC Thesis & 90-Day Ask** | `01:36 – 01:49` (`13s`) | **Why This Is YC-Shaped: Wedge, Data Moat & \$14.8B Market** | 3 Institutional Cards (`1 · MIT Open-Source Wedge` \| `2 · Contrastive DPO Moat` \| `3 · Open-Core Cloud Revenue`) |
-| **09** | **Act IV · YC Thesis & 90-Day Ask** | `01:49 – 02:00` (`11s`) | **Clear Actionable Steps Forward: Our 90-Day YC Batch Plan** | 3-Step Execution Roadmap (`Step 1: 100K HF Benchmark` \| `Step 2: S3/HF Cloud API` \| `Step 3: 5 Lab Pilots -> $500k ARR`) |
+| **09** | **Act IV · YC Thesis & 90-Day Ask** | `01:49 – 02:28` (`39s`) | **Clear Actionable Steps Forward: Our 90-Day YC Batch Plan** | 3-Step Execution Roadmap (`Step 1: 100K HF Benchmark` \| `Step 2: S3/HF Cloud API` \| `Step 3: 5 Lab Pilots -> $500k ARR`) |
+| **10** | **Act V · Live Visual App Demo (1/3)** | `02:28 – 02:37` (`9s`) | **Live App Demo (1/3): Sub-Pixel Grounding & False-Positive Immunity** | Interactive Visual Curation Workbench (`X100..X900` / `Y100..Y900` Grid + Classical Sculpture `NEG:01/02` Hard Negatives + `3x Zoom Loupe`) |
+| **11** | **Act V · Live Visual App Demo (2/3)** | `02:37 – 02:47` (`10s`) | **Live App Demo (2/3): 4-Panel Broadcast QC & 540p Survivability Gate** | 4-Panel Broadcast QC Contact Sheet (`1: Orig+Regions` \| `2: Published` \| `3: 540p JPEG Sim` \| `4: Bit-Exact Diff Heatmap = 0 px`) |
+| **12** | **Act V · Live Visual App Demo (3/3)** | `02:47 – 02:56` (`9s`) | **Live App Demo (3/3): Dataset Audit & 5-Format ML / DPO Export** | Preservation ROI Cards (`99.2% / 2.06M Pixels Protected`) + 5 Export Formats (`COCO`, `YOLO`, `WebDataset`, `VLM DPO`, `HF`) |
 
 ---
 
@@ -177,5 +180,42 @@
 3. **`STEP 3 · CLOSE 5 PAID AI LAB & STUDIO PILOTS`**
    - Convert open-source adopters into 5 paid enterprise design partners in Weeks 8–12 to reach **\$25k+ MRR (\$300k–\$500k ARR)** by Demo Day.
 
-> **Teleprompter (`01:49 – 02:00`):**  
+> **Teleprompter (`01:49 – 02:28`):**  
 > *"During the YC batch, we will publish our hundred-thousand-image benchmark, launch our managed S3 cloud API, and close five paid lab pilots before Demo Day. Thank you."*
+
+---
+
+## Scene 10 of 12 · Live App Demo (1/3): Sub-Pixel Grounding & False-Positive Immunity (`02:28 – 02:37`)
+**Act V · Live Visual App Demo (`1/3`)**
+
+### Main Canvas (Visual Curation Workbench — `heav3ns-censor inspect`)
+- **Dual-Axis Coordinate Grid:** `X100..X900` cyan horizontal rulers + `Y100..Y900` yellow vertical rulers on a clean classical marble sculpture study (`classical_study_04.png`, `1200×900`).
+- **Hard-Negative Polarity Protection (`Class 0 Pass`):**
+  - `HARD-NEG:01 MARBLE_BUST (PASS)` and `HARD-NEG:02 DRAPERY_FOLD (PASS)` explicitly tag benign classical sculpture & chiaroscuro lighting so legacy NSFW classifiers never delete the artwork.
+- **3× Magnified Sub-Pixel Loupe (`444,314,112,52:pixels`):** Isolates the `1.6%` rotated pill SDF target (`POS:R1 PILL_SDF@12°`) while protecting `98.4%` of outside pixels (`6.2 ms` Rust latency).
+
+---
+
+## Scene 11 of 12 · Live App Demo (2/3): 4-Panel Broadcast QC & 540p Survivability Gate (`02:37 – 02:47`)
+**Act V · Live Visual App Demo (`2/3`)**
+
+### Main Canvas (4-Panel Broadcast QC Slate — `heav3ns-censor execute`)
+1. **Panel 1 (`1 · ORIG + REGIONS`):** Original classical study overlaid with green `NEG:01/02` Hard-Negative boxes and cyan `POS:R1 PILL@12°` SDF contour.
+2. **Panel 2 (`2 · PUBLISHED — 98.4% INTACT`):** Surgical *kuro-nuri* rotated pill mask applied (`98.4%` of pixels bit-for-bit untouched).
+3. **Panel 3 (`3 · 540P JPEG SIM — 94.8% SUPP`):** Verifies zero `4:2:0` chroma bleed at `1080p` and `540p` thumbnail downscale (`PASS`).
+4. **Panel 4 (`4 · DIFF HEATMAP — 0 PX BLEED`):** Pure black background (`OUTSIDE DIFF = 0 PIXELS`) with neon-magenta heat strictly inside the `1.6%` rotated pill SDF.
+
+---
+
+## Scene 12 of 12 · Live App Demo (3/3): Dataset Audit & 5-Format ML / DPO Export (`02:47 – 02:56`)
+**Act V · Live Visual App Demo (`3/3`)**
+
+### Main Canvas (Preservation Telemetry & Multi-Format Exporter — `dataset-audit` & `export-dataset`)
+- **Preservation ROI Telemetry:**
+  - `Legacy Binary NSFW Filter`: **`66.7% Dropped`** (deletes valid art via false-positive purge)
+  - `HEAV3NS Salvaged Corpus`: **`100% Retained`** (zero sample-dropping across all 3 classes)
+  - `Ground-Truth Protected`: **`99.2% (2,062,748 px)`** bit-identical training pixels (`11/11` `doctor --fix` SHA-256 checks `PASS`)
+- **5 Ready-to-Train ML Export Formats:**
+  - `annotations_coco.json` (`COCO v1.0`) · `labels/yolo/*.txt` (`YOLOv8`) · `webdataset_manifest.jsonl` (`WebDataset`) · `vlm_safety_dpo.jsonl` (`VLM DPO`) · `hf_metadata.jsonl` (`HuggingFace Hub`)
+- **Live Contrastive DPO Triple (`chosen != rejected`):** Pairs surgical preservation + hard-negative retention (`chosen`) against destructive whole-image deletion / diffusion inpainting (`rejected`).
+

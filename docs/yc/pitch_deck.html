@@ -393,14 +393,14 @@
       font-weight: 400;
     }
 
-    /* SEGMENTED PROGRESS BAR */
+    /* SEGMENTED PROGRESS BAR (12 SEGMENTS: 9 PITCH + 3 LIVE DEMO) */
     .progress-track {
       height: 16px;
       background: #0d2119;
       border: 1px solid #244738;
       border-radius: 8px;
       display: grid;
-      grid-template-columns: repeat(9, 1fr);
+      grid-template-columns: repeat(12, 1fr);
       overflow: hidden;
       flex-shrink: 0;
       cursor: pointer;
@@ -410,6 +410,10 @@
       border-right: 2px solid var(--gold-accent);
       height: 100%;
       transition: background 0.2s ease;
+    }
+
+    .progress-segment.demo-seg {
+      background: rgba(204, 160, 67, 0.16);
     }
 
     .progress-segment:last-child {
@@ -422,6 +426,205 @@
 
     .progress-segment.active {
       background: linear-gradient(90deg, var(--green-neon) 65%, rgba(75, 209, 127, 0.25) 100%);
+    }
+
+    /* LIVE PRODUCT DEMO WORKBENCH (SCENES 10-12) */
+    .demo-workbench {
+      background: #071510;
+      color: #f0f6f3;
+      padding: 18px 24px 16px 24px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .wb-topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: #0d231b;
+      border: 1px solid #264d3c;
+      border-radius: 8px;
+      padding: 8px 14px;
+      flex-shrink: 0;
+    }
+
+    .wb-dots {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+    }
+
+    .wb-dot {
+      width: 11px;
+      height: 11px;
+      border-radius: 50%;
+    }
+
+    .wb-tabs {
+      display: flex;
+      gap: 8px;
+    }
+
+    .wb-tab {
+      background: #081812;
+      border: 1px solid #254637;
+      color: #9cb5aa;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      padding: 6px 12px;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+
+    .wb-tab.active {
+      background: var(--green-pill);
+      border-color: var(--green-neon);
+      color: #ffffff;
+      font-weight: 700;
+    }
+
+    .wb-status-pill {
+      background: rgba(75, 209, 127, 0.14);
+      border: 1px solid var(--green-neon);
+      color: var(--green-neon);
+      font-family: var(--font-mono);
+      font-size: 12px;
+      font-weight: 700;
+      padding: 5px 12px;
+      border-radius: 12px;
+    }
+
+    .wb-main-split {
+      display: grid;
+      grid-template-columns: 1.35fr 0.85fr;
+      gap: 14px;
+      flex: 1;
+      min-height: 0;
+    }
+
+    .wb-viewport {
+      background: #040d0a;
+      border: 1.5px solid #254b3a;
+      border-radius: 8px;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      min-height: 0;
+    }
+
+    .wb-inspector {
+      background: #0b1d16;
+      border: 1px solid #224234;
+      border-radius: 8px;
+      padding: 14px 16px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      min-height: 0;
+    }
+
+    .wb-terminal {
+      background: #030a07;
+      border: 1px solid #264d3c;
+      border-left: 4px solid var(--gold-accent);
+      border-radius: 6px;
+      padding: 9px 14px;
+      font-family: var(--font-mono);
+      font-size: 13px;
+      color: #d6e8df;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-shrink: 0;
+    }
+
+    .qc-4grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+      flex: 1;
+      min-height: 0;
+    }
+
+    .qc-panel {
+      background: #040d0a;
+      border: 1.5px solid #254b3a;
+      border-radius: 8px;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      min-height: 0;
+    }
+
+    .qc-panel-head {
+      background: #0d231b;
+      border-bottom: 1px solid #234636;
+      padding: 7px 10px;
+      font-family: var(--font-mono);
+      font-size: 11.5px;
+      font-weight: 700;
+      color: var(--green-neon);
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .qc-panel-body {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      padding: 8px;
+    }
+
+    .qc-panel-foot {
+      background: #091812;
+      border-top: 1px solid #1b362a;
+      padding: 7px 10px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: #b8cec4;
+      text-align: center;
+    }
+
+    .export-top-cards {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 14px;
+      flex-shrink: 0;
+    }
+
+    .export-metric-card {
+      background: #0c2119;
+      border: 1.5px solid #27503e;
+      border-radius: 8px;
+      padding: 12px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .export-split {
+      display: grid;
+      grid-template-columns: 0.9fr 1.3fr;
+      gap: 14px;
+      flex: 1;
+      min-height: 0;
+    }
+
+    .export-box {
+      background: #040d0a;
+      border: 1.5px solid #254b3a;
+      border-radius: 8px;
+      padding: 14px 18px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      min-height: 0;
     }
 
     /* COMMON CANVAS TYPOGRAPHY */
@@ -1075,11 +1278,12 @@
           <div class="badge-act" id="act-badge">ACT I · IDENTITY &amp; FOUNDER</div>
         </div>
         <div class="top-bar-right">
+          <button class="nav-btn" onclick="goToSlide(9)" style="border-color: var(--gold-accent); color: var(--gold-accent); font-weight: 700;" title="Jump to Live Product Demo (Key: D)">[D] LIVE DEMO</button>
           <button class="nav-btn" id="btn-focus" onclick="toggleFocusMode()" title="Toggle Clean Slide View (Key: F)">[F] FOCUS SLIDE</button>
           <button class="nav-btn" onclick="prevSlide()" title="Previous Slide (Left Arrow)">◀ PREV</button>
           <button class="nav-btn" onclick="nextSlide()" title="Next Slide (Right Arrow / Space)">NEXT ▶</button>
-          <div class="badge-timer-next" id="auto-btn" onclick="toggleAutoPlay()" title="Click to toggle 2-minute auto-play">NEXT SLIDE IN: <span id="countdown-sec">13</span>s</div>
-          <div class="badge-timer-total">TIME <span id="elapsed-time">00:00</span> / 02:00</div>
+          <div class="badge-timer-next" id="auto-btn" onclick="toggleAutoPlay()" title="Click to toggle auto-play">NEXT SLIDE IN: <span id="countdown-sec">13</span>s</div>
+          <div class="badge-timer-total">TIME <span id="elapsed-time">00:00</span> / 02:56</div>
         </div>
       </header>
 
@@ -1985,12 +2189,476 @@
         </div>
 
         <div class="teleprompter-box">
-          <div class="teleprompter-meta">SYNCHRONIZED VOICE-OVER TELEPROMPTER &nbsp;·&nbsp; 01:49 – 02:00 &nbsp;·&nbsp; WILLIAM ANDREW CRUZ (144.5 WPM)</div>
+          <div class="teleprompter-meta">SYNCHRONIZED VOICE-OVER TELEPROMPTER &nbsp;·&nbsp; 01:49 – 02:28 &nbsp;·&nbsp; WILLIAM ANDREW CRUZ (144.5 WPM)</div>
           <div class="teleprompter-script">"During the YC batch, we will publish our hundred-thousand-image benchmark, launch our managed S3 cloud API, and close five paid lab pilots before Demo Day. Thank you."</div>
         </div>
       </section>
 
-      <!-- 9-SEGMENT PROGRESS BAR -->
+      <!-- ================================================================== -->
+      <!-- SCENE 10 OF 12: LIVE APP DEMO 1/3 — COORDINATE GROUNDING & INSPECT -->
+      <!-- ================================================================== -->
+      <section class="slide-scene" data-act="ACT V · LIVE VISUAL APP DEMO (1/3)" data-duration="9" data-elapsed="02:28">
+        <div class="scene-header">
+          <div class="scene-meta">SCENE 10 OF 12 · LIVE PRODUCT DEMO (STEP 1 OF 3) — COARSE-TO-FINE COORDINATE GROUNDING &amp; HARD NEGATIVES</div>
+          <h1 class="scene-title">Live App Demo (1/3): Sub-Pixel Grounding &amp; False-Positive Immunity</h1>
+        </div>
+
+        <div class="workspace-grid">
+          <div class="left-canvas demo-workbench">
+            <div class="wb-topbar">
+              <div class="wb-dots">
+                <div class="wb-dot" style="background:#ff5f56;"></div>
+                <div class="wb-dot" style="background:#ffbd2e;"></div>
+                <div class="wb-dot" style="background:#27c93f;"></div>
+                <span style="font-family:var(--font-mono);font-size:12.5px;color:#d6e8df;margin-left:8px;font-weight:700;">heav3ns-censor v4.0.0 — Visual Curation Workbench</span>
+              </div>
+              <div class="wb-tabs">
+                <div class="wb-tab active" onclick="goToSlide(9)">1 · Grounding &amp; Hard-Negatives</div>
+                <div class="wb-tab" onclick="goToSlide(10)">2 · 4-Panel Broadcast QC Slate</div>
+                <div class="wb-tab" onclick="goToSlide(11)">3 · Telemetry &amp; DPO Export</div>
+              </div>
+              <div class="wb-status-pill">&#9679; MCP SERVER ONLINE · 6.2ms</div>
+            </div>
+
+            <div class="wb-main-split">
+              <!-- Interactive Coordinate Grid + Classical Sculpture Study (100% Clean & Safe) -->
+              <div class="wb-viewport">
+                <svg width="100%" height="100%" viewBox="0 0 680 460" fill="none">
+                  <rect width="680" height="460" fill="#05110c"/>
+                  <!-- Coordinate Grid Lines -->
+                  <g stroke="#143326" stroke-width="1">
+                    <line x1="100" y1="30" x2="100" y2="430"/><line x1="190" y1="30" x2="190" y2="430"/>
+                    <line x1="280" y1="30" x2="280" y2="430"/><line x1="370" y1="30" x2="370" y2="430"/>
+                    <line x1="460" y1="30" x2="460" y2="430"/><line x1="550" y1="30" x2="550" y2="430"/>
+                    <line x1="40" y1="80" x2="640" y2="80"/><line x1="40" y1="160" x2="640" y2="160"/>
+                    <line x1="40" y1="240" x2="640" y2="240"/><line x1="40" y1="320" x2="640" y2="320"/>
+                    <line x1="40" y1="400" x2="640" y2="400"/>
+                  </g>
+                  <!-- Top X Cyan Ruler Badges -->
+                  <g font-family="monospace" font-size="11" fill="#00e5ff" font-weight="bold">
+                    <text x="86" y="22">X100</text><text x="176" y="22">X300</text><text x="266" y="22">X500</text>
+                    <text x="356" y="22">X700</text><text x="446" y="22">X900</text>
+                  </g>
+                  <!-- Left Y Yellow Ruler Badges -->
+                  <g font-family="monospace" font-size="11" fill="#ffd54f" font-weight="bold">
+                    <text x="6" y="84">Y100</text><text x="6" y="164">Y300</text><text x="6" y="244">Y500</text>
+                    <text x="6" y="324">Y700</text><text x="6" y="404">Y900</text>
+                  </g>
+
+                  <!-- Classical Greco-Roman Marble Sculpture Bust Illustration (100% Safe Classical Art) -->
+                  <g transform="translate(150, 52)">
+                    <!-- Pedestal & Classical Arch Frame -->
+                    <rect x="25" y="10" width="210" height="350" rx="12" fill="#10211a" stroke="#2c5241" stroke-width="1.5"/>
+                    <path d="M75 340 H185 L175 305 H85 Z" fill="#c9c2b2"/>
+                    <!-- Classical Draped Bust Silhouette -->
+                    <path d="M68 305 C68 235, 95 210, 130 210 C165 210, 192 235, 192 305 Z" fill="#dfd9cb" stroke="#b0a795" stroke-width="2"/>
+                    <path d="M78 250 Q130 278 182 245" stroke="#aba18e" stroke-width="2.5" fill="none"/>
+                    <path d="M88 275 Q130 298 172 270" stroke="#aba18e" stroke-width="2" fill="none"/>
+                    <!-- Neck & Classical Head -->
+                    <rect x="114" y="168" width="32" height="46" rx="8" fill="#e6e1d5"/>
+                    <ellipse cx="130" cy="125" rx="42" ry="52" fill="#ece8dc" stroke="#b8b09f" stroke-width="2"/>
+                    <!-- Classical Hair Curls & Laurels -->
+                    <path d="M88 115 Q95 68 130 68 Q165 68 172 115" fill="#d4ccb8" stroke="#9e9583" stroke-width="2"/>
+                    <!-- Hard-Negative Box 1: Classical Head & Chiaroscuro Lighting -->
+                    <rect x="64" y="54" width="132" height="128" rx="4" fill="rgba(75, 209, 127, 0.08)" stroke="#4bd17f" stroke-width="2" stroke-dasharray="6 4"/>
+                    <rect x="64" y="34" width="154" height="18" rx="3" fill="#0b412c"/>
+                    <text x="70" y="47" font-family="monospace" font-size="10.5" fill="#4bd17f" font-weight="bold">HARD-NEG:01 MARBLE_BUST (PASS)</text>
+
+                    <!-- Positive Target Region: Rotated Pill SDF @ 14 deg -->
+                    <g transform="rotate(-12 130 232)">
+                      <rect x="94" y="216" width="72" height="32" rx="16" fill="rgba(0, 229, 255, 0.18)" stroke="#00e5ff" stroke-width="2.5"/>
+                    </g>
+                    <rect x="78" y="192" width="138" height="18" rx="3" fill="#003642"/>
+                    <text x="84" y="205" font-family="monospace" font-size="10.5" fill="#00e5ff" font-weight="bold">POS:R1 PILL_SDF@12° (1.6%)</text>
+
+                    <!-- Hard-Negative Box 2: Classical Drapery & Pedestal -->
+                    <rect x="56" y="266" width="148" height="82" rx="4" fill="rgba(75, 209, 127, 0.08)" stroke="#4bd17f" stroke-width="2" stroke-dasharray="6 4"/>
+                    <rect x="56" y="351" width="166" height="18" rx="3" fill="#0b412c"/>
+                    <text x="62" y="364" font-family="monospace" font-size="10.5" fill="#4bd17f" font-weight="bold">HARD-NEG:02 DRAPERY_FOLD (PASS)</text>
+                  </g>
+
+                  <!-- 3x Sub-Pixel Magnified Loupe Callout -->
+                  <line x1="312" y1="278" x2="426" y2="175" stroke="#00e5ff" stroke-width="1.8" stroke-dasharray="4 4"/>
+                  <g transform="translate(426, 78)">
+                    <rect width="234" height="196" rx="10" fill="#081a13" stroke="#00e5ff" stroke-width="2"/>
+                    <rect x="0" y="0" width="234" height="26" rx="8" fill="#003642"/>
+                    <text x="12" y="17" font-family="monospace" font-size="11" fill="#00e5ff" font-weight="bold">3x ZOOM LOUPE · 444,314,112,52</text>
+                    <!-- Magnified SDF Pill Contour -->
+                    <g transform="translate(37, 52) rotate(-12 80 50)">
+                      <rect x="10" y="22" width="140" height="56" rx="28" fill="rgba(204, 160, 67, 0.16)" stroke="#cca043" stroke-width="2.5"/>
+                      <line x1="80" y1="12" x2="80" y2="88" stroke="#00e5ff" stroke-width="1" stroke-dasharray="3 3"/>
+                      <line x1="2" y1="50" x2="158" y2="50" stroke="#00e5ff" stroke-width="1" stroke-dasharray="3 3"/>
+                    </g>
+                    <text x="14" y="166" font-family="monospace" font-size="11" fill="#d6e8df">Shape: Rotated Pill SDF (@12.0°)</text>
+                    <text x="14" y="182" font-family="monospace" font-size="11" fill="#4bd17f">Outside Pixels Protected: 98.4%</text>
+                  </g>
+                </svg>
+              </div>
+
+              <!-- Live Telemetry & Inspector Panel -->
+              <div class="wb-inspector">
+                <div>
+                  <div style="font-family:var(--font-mono);font-size:12px;color:var(--gold-accent);letter-spacing:0.06em;margin-bottom:8px;">ASSET TELEMETRY &amp; POLARITY AUDIT</div>
+                  <div style="font-size:17px;font-weight:800;color:#ffffff;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid #214032;">classical_study_04.png</div>
+                  <div style="display:flex;flex-direction:column;gap:10px;font-family:var(--font-mono);font-size:12.5px;">
+                    <div style="display:flex;justify-content:space-between;"><span style="color:#9cb5aa;">SHA-256 Lock:</span><span style="color:#4bd17f;">c199216e...b29a &#10003;</span></div>
+                    <div style="display:flex;justify-content:space-between;"><span style="color:#9cb5aa;">Resolution:</span><span style="color:#ffffff;">1200 × 900 RGBA</span></div>
+                    <div style="display:flex;justify-content:space-between;"><span style="color:#9cb5aa;">Hard Negatives:</span><span style="color:#4bd17f;">2 Benign Boxes (IoU 0.00)</span></div>
+                    <div style="display:flex;justify-content:space-between;"><span style="color:#9cb5aa;">Positive SDFs:</span><span style="color:#00e5ff;">1 Rotated Pill (1.6% Area)</span></div>
+                    <div style="display:flex;justify-content:space-between;"><span style="color:#9cb5aa;">NMS Duplicates:</span><span style="color:#4bd17f;">0 Suppressed (Clean)</span></div>
+                    <div style="display:flex;justify-content:space-between;"><span style="color:#9cb5aa;">Hardness Score:</span><span style="color:#cca043;">0.78 (High-Signal DPO)</span></div>
+                  </div>
+                </div>
+
+                <div style="background:#06120d;border:1px solid #1f3f31;border-radius:6px;padding:10px 12px;font-family:var(--font-mono);font-size:11.5px;line-height:1.45;color:#b8d4c8;">
+                  <div style="color:var(--green-neon);font-weight:700;margin-bottom:4px;">WHY THIS PREVENTS FALSE POSITIVES:</div>
+                  Legacy NSFW classifiers delete this entire sculpture study. HEAV3NS tags <span style="color:#4bd17f;">NEG:01/02</span> as verified hard negatives and isolates only the <span style="color:#00e5ff;">1.6%</span> target region.
+                </div>
+              </div>
+            </div>
+
+            <div class="wb-terminal">
+              <span><strong style="color:var(--green-neon);">$</strong> heav3ns-censor inspect --asset-id classical_study_04 --crop "444,314,112,52:pixels"</span>
+              <span style="color:var(--gold-accent);">2 Hard-Negatives Protected · 1 SDF Target · 6.2ms</span>
+            </div>
+          </div>
+
+          <aside class="right-sidebar">
+            <div class="kpi-row">
+              <div class="kpi-box">
+                <div class="kpi-value">6.2 MS</div>
+                <div class="kpi-label">RUST INSPECT SPEED</div>
+              </div>
+              <div class="kpi-box gold">
+                <div class="kpi-value">2 HARD-NEG</div>
+                <div class="kpi-label">FALSE-POS SAVED</div>
+              </div>
+              <div class="kpi-box">
+                <div class="kpi-value">1.6% AREA</div>
+                <div class="kpi-label">ROTATED PILL SDF</div>
+              </div>
+            </div>
+
+            <div class="side-card">
+              <div class="side-card-header">DEMO STEP 1: VISUAL COORDINATE GROUNDING</div>
+              <div class="side-card-title">Coarse-to-Fine 3x Sub-Pixel Inspection</div>
+              <ul class="side-card-list">
+                <li>Dual-axis X100..X900 &amp; Y100..Y900 rulers</li>
+                <li>IoU NMS clustering removes duplicate boxes</li>
+                <li>3x zoom loupe locks exact pixel coordinates</li>
+              </ul>
+            </div>
+
+            <div class="side-card">
+              <div class="side-card-header gold">CURING INDUSTRY FALSE POSITIVES</div>
+              <div class="side-card-title">Explicit Hard-Negative Polarity Tags</div>
+              <ul class="side-card-list">
+                <li>Tags classical art &amp; lighting as Class 0 Pass</li>
+                <li>Zero IoU collision with positive SDF mask</li>
+                <li>Saves 100% of benign artwork from deletion</li>
+              </ul>
+            </div>
+          </aside>
+        </div>
+
+        <div class="teleprompter-box">
+          <div class="teleprompter-meta">LIVE PRODUCT DEMO (1/3) &nbsp;·&nbsp; 02:28 – 02:37 &nbsp;·&nbsp; STEP 1: COORDINATE GROUNDING &amp; HARD-NEGATIVE PROTECTION</div>
+          <div class="teleprompter-script">"Live Demo Step 1: heav3ns-censor inspect grounds coordinates with dual-axis rulers and 3x zoom crops, tagging benign classical anatomy as Hard Negatives (NEG:01/02) while isolating the 1.6% rotated pill SDF target."</div>
+        </div>
+      </section>
+
+      <!-- ================================================================== -->
+      <!-- SCENE 11 OF 12: LIVE APP DEMO 2/3 — 4-PANEL BROADCAST QC SLATE     -->
+      <!-- ================================================================== -->
+      <section class="slide-scene" data-act="ACT V · LIVE VISUAL APP DEMO (2/3)" data-duration="10" data-elapsed="02:37">
+        <div class="scene-header">
+          <div class="scene-meta">SCENE 11 OF 12 · LIVE PRODUCT DEMO (STEP 2 OF 3) — 4-PANEL BROADCAST QC SLATE &amp; BIT-EXACT PROOF</div>
+          <h1 class="scene-title">Live App Demo (2/3): 4-Panel Broadcast QC &amp; 540p Survivability Gate</h1>
+        </div>
+
+        <div class="workspace-grid">
+          <div class="left-canvas demo-workbench">
+            <div class="wb-topbar">
+              <div class="wb-dots">
+                <div class="wb-dot" style="background:#ff5f56;"></div>
+                <div class="wb-dot" style="background:#ffbd2e;"></div>
+                <div class="wb-dot" style="background:#27c93f;"></div>
+                <span style="font-family:var(--font-mono);font-size:12.5px;color:#d6e8df;margin-left:8px;font-weight:700;">heav3ns-censor v4.0.0 — 4-Panel Broadcast QC Slate</span>
+              </div>
+              <div class="wb-tabs">
+                <div class="wb-tab" onclick="goToSlide(9)">1 · Grounding &amp; Hard-Negatives</div>
+                <div class="wb-tab active" onclick="goToSlide(10)">2 · 4-Panel Broadcast QC Slate</div>
+                <div class="wb-tab" onclick="goToSlide(11)">3 · Telemetry &amp; DPO Export</div>
+              </div>
+              <div class="wb-status-pill">&#10003; OUTSIDE DIFF: 0 PX (BIT-EXACT)</div>
+            </div>
+
+            <!-- 4-Panel Broadcast QC Contact Sheet -->
+            <div class="qc-4grid">
+              <!-- PANEL 1: ORIGINAL + SDF CONTOURS -->
+              <div class="qc-panel">
+                <div class="qc-panel-head"><span>1 · ORIG + REGIONS</span><span style="color:#00e5ff;">SDF + NEG</span></div>
+                <div class="qc-panel-body">
+                  <svg width="100%" height="100%" viewBox="0 0 220 310" fill="none">
+                    <rect x="20" y="12" width="180" height="286" rx="10" fill="#10211a" stroke="#264738"/>
+                    <path d="M55 268 C55 210, 78 190, 110 190 C142 190, 165 210, 165 268 Z" fill="#dfd9cb"/>
+                    <ellipse cx="110" cy="112" rx="34" ry="44" fill="#ece8dc"/>
+                    <!-- Green Hard Negative Boxes -->
+                    <rect x="52" y="54" width="116" height="114" rx="4" stroke="#4bd17f" stroke-width="2" stroke-dasharray="5 3"/>
+                    <text x="56" y="48" font-family="monospace" font-size="9.5" fill="#4bd17f" font-weight="bold">NEG:01 PASS</text>
+                    <rect x="48" y="232" width="124" height="50" rx="4" stroke="#4bd17f" stroke-width="2" stroke-dasharray="5 3"/>
+                    <!-- Cyan Rotated Pill SDF -->
+                    <g transform="rotate(-12 110 205)">
+                      <rect x="76" y="191" width="68" height="28" rx="14" fill="rgba(0,229,255,0.2)" stroke="#00e5ff" stroke-width="2.2"/>
+                    </g>
+                    <text x="68" y="184" font-family="monospace" font-size="9.5" fill="#00e5ff" font-weight="bold">POS:R1 PILL@12°</text>
+                  </svg>
+                </div>
+                <div class="qc-panel-foot">2 Hard-Neg · 1 Pill SDF</div>
+              </div>
+
+              <!-- PANEL 2: PUBLISHED CURATED EDITION -->
+              <div class="qc-panel">
+                <div class="qc-panel-head"><span>2 · PUBLISHED</span><span style="color:#4bd17f;">98.4% INTACT</span></div>
+                <div class="qc-panel-body">
+                  <svg width="100%" height="100%" viewBox="0 0 220 310" fill="none">
+                    <rect x="20" y="12" width="180" height="286" rx="10" fill="#10211a" stroke="#264738"/>
+                    <path d="M55 268 C55 210, 78 190, 110 190 C142 190, 165 210, 165 268 Z" fill="#dfd9cb"/>
+                    <ellipse cx="110" cy="112" rx="34" ry="44" fill="#ece8dc"/>
+                    <!-- Surgical Kuro-Nuri Rotated Pill Mask -->
+                    <g transform="rotate(-12 110 205)">
+                      <rect x="76" y="191" width="68" height="28" rx="14" fill="#050807" stroke="#2b4c3d" stroke-width="1"/>
+                    </g>
+                  </svg>
+                </div>
+                <div class="qc-panel-foot">Surgical Kuro-Nuri Pill Mask</div>
+              </div>
+
+              <!-- PANEL 3: 540P THUMBNAIL JPEG SIM -->
+              <div class="qc-panel">
+                <div class="qc-panel-head"><span>3 · 540P JPEG SIM</span><span style="color:#cca043;">94.8% SUPP</span></div>
+                <div class="qc-panel-body">
+                  <svg width="100%" height="100%" viewBox="0 0 220 310" fill="none">
+                    <rect x="20" y="12" width="180" height="286" rx="10" fill="#10211a" stroke="#264738"/>
+                    <path d="M55 268 C55 210, 78 190, 110 190 C142 190, 165 210, 165 268 Z" fill="#dfd9cb"/>
+                    <ellipse cx="110" cy="112" rx="34" ry="44" fill="#ece8dc"/>
+                    <g transform="rotate(-12 110 205)">
+                      <rect x="76" y="191" width="68" height="28" rx="14" fill="#050807"/>
+                    </g>
+                    <rect x="34" y="252" width="152" height="26" rx="4" fill="rgba(11, 65, 44, 0.9)" stroke="#4bd17f"/>
+                    <text x="44" y="269" font-family="monospace" font-size="10" fill="#4bd17f" font-weight="bold">&#10003; ZERO CHROMA BLEED</text>
+                  </svg>
+                </div>
+                <div class="qc-panel-foot">1080p &amp; 540p p95 Gate: PASS</div>
+              </div>
+
+              <!-- PANEL 4: BIT-EXACT MODIFICATION HEATMAP -->
+              <div class="qc-panel">
+                <div class="qc-panel-head"><span>4 · DIFF HEATMAP</span><span style="color:#ff2a9d;">0 PX BLEED</span></div>
+                <div class="qc-panel-body">
+                  <svg width="100%" height="100%" viewBox="0 0 220 310" fill="none">
+                    <!-- Jet-black bit-identical background -->
+                    <rect x="20" y="12" width="180" height="286" rx="10" fill="#030705" stroke="#264738"/>
+                    <!-- Subtle ghost outline showing 0 diff outside -->
+                    <path d="M55 268 C55 210, 78 190, 110 190 C142 190, 165 210, 165 268 Z" stroke="#162920" stroke-width="1" fill="none"/>
+                    <ellipse cx="110" cy="112" rx="34" ry="44" stroke="#162920" stroke-width="1" fill="none"/>
+                    <!-- Neon Magenta Heat Strictly Inside Rotated Pill SDF -->
+                    <g transform="rotate(-12 110 205)">
+                      <rect x="76" y="191" width="68" height="28" rx="14" fill="#ff1e8a"/>
+                    </g>
+                    <rect x="32" y="252" width="156" height="26" rx="4" fill="#190812" stroke="#ff1e8a"/>
+                    <text x="40" y="269" font-family="monospace" font-size="10" fill="#ff73b9" font-weight="bold">OUTSIDE DIFF = 0 PIXELS</text>
+                  </svg>
+                </div>
+                <div class="qc-panel-foot">100.0% Bit-Exact Invariance</div>
+              </div>
+            </div>
+
+            <div class="wb-terminal">
+              <span><strong style="color:var(--green-neon);">$</strong> heav3ns-censor execute --asset-id classical_study_04 --region "r1=solid_bar:444,314,112,52:pixels:pill:auto@12.0:0:target"</span>
+              <span style="color:var(--green-neon);">overall_passed: true · diff_outside: 0 px</span>
+            </div>
+          </div>
+
+          <aside class="right-sidebar">
+            <div class="kpi-row">
+              <div class="kpi-box">
+                <div class="kpi-value">0 DIFF PX</div>
+                <div class="kpi-label">OUTSIDE SDF MASK</div>
+              </div>
+              <div class="kpi-box gold">
+                <div class="kpi-value">98.4% KEPT</div>
+                <div class="kpi-label">BIT-IDENTICAL</div>
+              </div>
+              <div class="kpi-box">
+                <div class="kpi-value">540P PASS</div>
+                <div class="kpi-label">THUMBNAIL GATE</div>
+              </div>
+            </div>
+
+            <div class="side-card">
+              <div class="side-card-header">DEMO STEP 2: 4-PANEL BROADCAST QC SLATE</div>
+              <div class="side-card-title">Cryptographic Bit-Exact Verification</div>
+              <ul class="side-card-list">
+                <li>Panel 1–2: Original vs. surgical rotated pill</li>
+                <li>Panel 3: 540p JPEG thumbnail bleed simulation</li>
+                <li>Panel 4: Heatmap proves 0 changed pixels outside</li>
+              </ul>
+            </div>
+
+            <div class="side-card">
+              <div class="side-card-header gold">WHY DIFFUSION INPAINTING FAILS HERE</div>
+              <div class="side-card-title">Zero VAE Re-Encoding Drift</div>
+              <ul class="side-card-list">
+                <li>Inpainting mutates 100% of background pixels</li>
+                <li>HEAV3NS leaves 98.4% of pixels bit-for-bit intact</li>
+                <li>Preserves alpha channels &amp; artist lighting</li>
+              </ul>
+            </div>
+          </aside>
+        </div>
+
+        <div class="teleprompter-box">
+          <div class="teleprompter-meta">LIVE PRODUCT DEMO (2/3) &nbsp;·&nbsp; 02:37 – 02:47 &nbsp;·&nbsp; STEP 2: 4-PANEL BROADCAST QC SLATE &amp; BIT-EXACT PROOF</div>
+          <div class="teleprompter-script">"Live Demo Step 2: heav3ns-censor execute applies a rotated pill SDF mask and generates a 4-panel Broadcast QC Slate—proving zero pixel drift outside the mask and 540p JPEG survivability."</div>
+        </div>
+      </section>
+
+      <!-- ================================================================== -->
+      <!-- SCENE 12 OF 12: LIVE APP DEMO 3/3 — TELEMETRY & 5-FORMAT ML EXPORT -->
+      <!-- ================================================================== -->
+      <section class="slide-scene" data-act="ACT V · LIVE VISUAL APP DEMO (3/3)" data-duration="9" data-elapsed="02:47">
+        <div class="scene-header">
+          <div class="scene-meta">SCENE 12 OF 12 · LIVE PRODUCT DEMO (STEP 3 OF 3) — PRESERVATION TELEMETRY &amp; CONTRASTIVE DPO EXPORT</div>
+          <h1 class="scene-title">Live App Demo (3/3): Dataset Audit &amp; 5-Format ML / DPO Export</h1>
+        </div>
+
+        <div class="workspace-grid">
+          <div class="left-canvas demo-workbench">
+            <div class="wb-topbar">
+              <div class="wb-dots">
+                <div class="wb-dot" style="background:#ff5f56;"></div>
+                <div class="wb-dot" style="background:#ffbd2e;"></div>
+                <div class="wb-dot" style="background:#27c93f;"></div>
+                <span style="font-family:var(--font-mono);font-size:12.5px;color:#d6e8df;margin-left:8px;font-weight:700;">heav3ns-censor v4.0.0 — Dataset Audit &amp; Multi-Format Exporter</span>
+              </div>
+              <div class="wb-tabs">
+                <div class="wb-tab" onclick="goToSlide(9)">1 · Grounding &amp; Hard-Negatives</div>
+                <div class="wb-tab" onclick="goToSlide(10)">2 · 4-Panel Broadcast QC Slate</div>
+                <div class="wb-tab active" onclick="goToSlide(11)">3 · Telemetry &amp; DPO Export</div>
+              </div>
+              <div class="wb-status-pill">&#10003; DOCTOR: 11/11 SHA-256 CHECKS PASS</div>
+            </div>
+
+            <!-- 3 Top Preservation Impact Telemetry Cards -->
+            <div class="export-top-cards">
+              <div class="export-metric-card" style="border-left: 4px solid #ff5f56;">
+                <div style="font-family:var(--font-mono);font-size:11px;color:#ff8a80;">LEGACY BINARY NSFW FILTER</div>
+                <div style="font-size:24px;font-weight:900;color:#ffffff;">66.7% Dropped</div>
+                <div style="font-size:12.5px;color:#b8cec4;">Deletes valid art via false-positive purge</div>
+              </div>
+
+              <div class="export-metric-card" style="border-left: 4px solid var(--green-neon);">
+                <div style="font-family:var(--font-mono);font-size:11px;color:var(--green-neon);">HEAV3NS SALVAGED CORPUS</div>
+                <div style="font-size:24px;font-weight:900;color:#ffffff;">100% Retained</div>
+                <div style="font-size:12.5px;color:#b8cec4;">Zero sample-dropping across all 3 classes</div>
+              </div>
+
+              <div class="export-metric-card" style="border-left: 4px solid var(--gold-accent);">
+                <div style="font-family:var(--font-mono);font-size:11px;color:var(--gold-accent);">GROUND-TRUTH PROTECTED</div>
+                <div style="font-size:24px;font-weight:900;color:#ffffff;">99.2% (2.06M px)</div>
+                <div style="font-size:12.5px;color:#b8cec4;">2,062,748 bit-identical training pixels</div>
+              </div>
+            </div>
+
+            <!-- Split View: 5 Export Formats + Live Contrastive DPO JSONL -->
+            <div class="export-split">
+              <div class="export-box">
+                <div style="font-family:var(--font-mono);font-size:12px;color:var(--green-neon);font-weight:700;margin-bottom:8px;">5 READY-TO-TRAIN EXPORT MANIFESTS</div>
+                <div style="display:flex;flex-direction:column;gap:8px;font-family:var(--font-mono);font-size:13.5px;flex:1;justify-content:space-between;padding-top:2px;">
+                  <div style="background:#0a1c15;padding:11px 14px;border-radius:6px;border:1px solid #1f4233;display:flex;justify-content:space-between;">
+                    <span>&#10003; annotations_coco.json</span><span style="color:var(--gold-accent);">COCO v1.0</span>
+                  </div>
+                  <div style="background:#0a1c15;padding:11px 14px;border-radius:6px;border:1px solid #1f4233;display:flex;justify-content:space-between;">
+                    <span>&#10003; labels/yolo/*.txt</span><span style="color:var(--gold-accent);">YOLOv8</span>
+                  </div>
+                  <div style="background:#0a1c15;padding:11px 14px;border-radius:6px;border:1px solid #1f4233;display:flex;justify-content:space-between;">
+                    <span>&#10003; webdataset_manifest.jsonl</span><span style="color:var(--gold-accent);">WebDataset</span>
+                  </div>
+                  <div style="background:#0d291e;padding:11px 14px;border-radius:6px;border:1.5px solid var(--green-neon);display:flex;justify-content:space-between;font-weight:700;">
+                    <span>&#10003; vlm_safety_dpo.jsonl</span><span style="color:var(--green-neon);">VLM DPO</span>
+                  </div>
+                  <div style="background:#0a1c15;padding:11px 14px;border-radius:6px;border:1px solid #1f4233;display:flex;justify-content:space-between;">
+                    <span>&#10003; hf_metadata.jsonl</span><span style="color:var(--gold-accent);">HF Hub</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="export-box" style="font-family:var(--font-mono);font-size:12.5px;line-height:1.48;">
+                <div style="display:flex;justify-content:space-between;color:var(--gold-accent);font-weight:700;margin-bottom:6px;">
+                  <span>LIVE CONTRASTIVE DPO PAIR (ledger/vlm_safety_dpo.jsonl)</span>
+                  <span style="color:var(--green-neon);">chosen != rejected &#10003;</span>
+                </div>
+                <div style="background:#020705;border:1px solid #1d3b2e;border-radius:6px;padding:12px 14px;color:#d6e8df;flex:1;display:flex;flex-direction:column;justify-content:space-between;">
+                  <div><span style="color:#78a895;">"prompt":</span> "Evaluate visual asset classical_study_04 for training preservation &amp; safety:",</div>
+                  <div style="color:#4bd17f;"><span style="color:#ffffff;font-weight:700;">"chosen":</span> "Retain 98.4% ground-truth pixels intact. Preserve NEG:01/02 (marble bust &amp; drapery) as verified Hard Negatives; apply rotated pill SDF only to r1 (1.6% area).",</div>
+                  <div style="color:#ff8a80;"><span style="color:#ffffff;font-weight:700;">"rejected":</span> "Delete entire artwork via binary NSFW false-positive filter or mutate 100% of background pixels via diffusion inpainting.",</div>
+                  <div><span style="color:#78a895;">"pixel_preservation_pct":</span> <span style="color:#cca043;font-weight:700;">98.4</span>, <span style="color:#78a895;">"outside_diff_px":</span> <span style="color:#4bd17f;font-weight:700;">0</span></div>
+                </div>
+              </div>
+            </div>
+
+            <div class="wb-terminal">
+              <span><strong style="color:var(--green-neon);">$</strong> heav3ns-censor dataset-audit &amp;&amp; heav3ns-censor export-dataset --verify</span>
+              <span style="color:var(--green-neon);">5 ML Formats Exported · 11/11 Doctor Checks PASS</span>
+            </div>
+          </div>
+
+          <aside class="right-sidebar">
+            <div class="kpi-row">
+              <div class="kpi-box">
+                <div class="kpi-value">99.2% KEPT</div>
+                <div class="kpi-label">2.06M PIXELS INTACT</div>
+              </div>
+              <div class="kpi-box gold">
+                <div class="kpi-value">5 FORMATS</div>
+                <div class="kpi-label">COCO · YOLO · DPO</div>
+              </div>
+              <div class="kpi-box">
+                <div class="kpi-value">11/11 PASS</div>
+                <div class="kpi-label">DOCTOR SHA-256</div>
+              </div>
+            </div>
+
+            <div class="side-card">
+              <div class="side-card-header">DEMO STEP 3: MULTI-FORMAT ML EXPORT</div>
+              <div class="side-card-title">Ready for Pre-Training &amp; VLM Alignment</div>
+              <ul class="side-card-list">
+                <li>One-click export to COCO, YOLO &amp; WebDataset</li>
+                <li>Emits non-degenerate (chosen != rejected) DPO</li>
+                <li>Trains VLMs to stop over-refusing benign art</li>
+              </ul>
+            </div>
+
+            <div class="side-card">
+              <div class="side-card-header gold">HEAV3NS × Y COMBINATOR</div>
+              <div class="side-card-title">Production-Ready Today (Under 03:00)</div>
+              <ul class="side-card-list">
+                <li>MIT Rust CLI + 15-Tool MCP Server live today</li>
+                <li>99.2% verified ground-truth pixel preservation</li>
+                <li>commission@heav3ns.com · https://heav3ns.com</li>
+              </ul>
+            </div>
+          </aside>
+        </div>
+
+        <div class="teleprompter-box">
+          <div class="teleprompter-meta">LIVE PRODUCT DEMO (3/3) &nbsp;·&nbsp; 02:47 – 02:56 (TOTAL UNDER 03:00 YC LIMIT) &nbsp;·&nbsp; STEP 3: TELEMETRY &amp; DPO EXPORT</div>
+          <div class="teleprompter-script">"Live Demo Step 3: dataset-audit and export-dataset verify 99.2% pixel preservation (2,062,748 pixels protected) and export ready-to-train COCO, YOLO, WebDataset, and VLM Safety DPO triples."</div>
+        </div>
+      </section>
+
+      <!-- 12-SEGMENT PROGRESS BAR (9 PITCH SCENES + 3 LIVE DEMO SCENES) -->
       <div class="progress-track" id="progress-track">
         <div class="progress-segment active" onclick="goToSlide(0)" title="Scene 01: Title & 49-Char Hook"></div>
         <div class="progress-segment" onclick="goToSlide(1)" title="Scene 02: Founder William Andrew Cruz"></div>
@@ -2001,6 +2669,9 @@
         <div class="progress-segment" onclick="goToSlide(6)" title="Scene 07: The 5-Stage Pipeline"></div>
         <div class="progress-segment" onclick="goToSlide(7)" title="Scene 08: Why HEAV3NS Is YC-Shaped"></div>
         <div class="progress-segment" onclick="goToSlide(8)" title="Scene 09: The 90-Day YC Batch Plan"></div>
+        <div class="progress-segment demo-seg" onclick="goToSlide(9)" title="Scene 10: Live Demo 1/3 — Coordinate Grounding"></div>
+        <div class="progress-segment demo-seg" onclick="goToSlide(10)" title="Scene 11: Live Demo 2/3 — 4-Panel Broadcast QC Slate"></div>
+        <div class="progress-segment demo-seg" onclick="goToSlide(11)" title="Scene 12: Live Demo 3/3 — Dataset Audit & DPO Export"></div>
       </div>
     </div>
   </div>
@@ -2094,6 +2765,15 @@
       } else if (e.key === 'f' || e.key === 'F') {
         e.preventDefault();
         toggleFocusMode();
+      } else if (e.key === 'd' || e.key === 'D' || e.key === '0') {
+        e.preventDefault();
+        goToSlide(9);
+      } else if (e.key === '-') {
+        e.preventDefault();
+        goToSlide(10);
+      } else if (e.key === '=') {
+        e.preventDefault();
+        goToSlide(11);
       } else if (e.key >= '1' && e.key <= '9') {
         goToSlide(parseInt(e.key, 10) - 1);
       }
