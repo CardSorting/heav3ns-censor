@@ -118,3 +118,4 @@ To make your application undeniable before hitting submit on [`ycombinator.com/a
    - Show `./target/release/heav3ns-censor dataset-audit` and `ledger/dashboard.html` with live `[b] Grounding Boxes` (`POS` Cyan + `NEG` Emerald Green) and `[o]` A/B bit-exact comparison.
 3. **Use the Exact Application Blueprint & Pitch Deck in This Directory:**
    - Proceed to **[`02-YC-SEED-PITCH-DECK.md`](02-YC-SEED-PITCH-DECK.md)** (or open **[`pitch_deck.html`](pitch_deck.html)**) and **[`03-YC-APPLICATION-BLUEPRINT.md`](03-YC-APPLICATION-BLUEPRINT.md)**.
+

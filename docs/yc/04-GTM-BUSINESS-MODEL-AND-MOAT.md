@@ -62,3 +62,4 @@ flowchart LR
 | **Phase 1: Benchmark Launch** | **Weeks 1–3** | Curate and open-source **`HEAV3NS-ArtSafety-10K`** on Hugging Face (10,000 classical & figurative artworks falsely flagged by `NudeNet`/`OpenNSFW`, restored with Contrastive Hard-Negative `COCO` & `DPO` annotations). | `#1` Trending Dataset on Hugging Face + `2,500+` GitHub Stars |
 | **Phase 2: Cloud API Beta** | **Weeks 4–7** | Launch hosted **HEAV3NS Cloud Curation API** (`POST /v1/curate-batch`) with S3 bucket ingestion and automated VLM grounding + Rust verification workers. | `10` paying AI startups / fine-tuning studios (`$15k` MRR) |
 | **Phase 3: Frontier Lab Pilots** | **Weeks 8–12 (Demo Day)** | Sign paid dataset licensing & compliance pipeline pilots with foundation model teams and major generative art platforms. | `$40k+` MRR (`$500k` annualized run-rate) by Demo Day |
+

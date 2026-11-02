@@ -117,13 +117,13 @@ fn mcp_tool_definitions() -> Value {
         },
         {
             "name": "heav3ns_onboard",
-            "description": "Generate a context-aware, role-specific onboarding and handoff packet ('agent', 'researcher', 'developer', 'stakeholder', or 'all') with live workspace commands, invariants, and documentation map.",
+            "description": "Generate a context-aware, role-specific onboarding and handoff packet ('researcher', 'yc', 'agent', 'developer', 'stakeholder', or 'all') with live workspace commands, invariants, and documentation map.",
             "inputSchema": {
                 "type": "object",
                 "properties": {
                     "role": {
                         "type": "string",
-                        "enum": ["agent", "researcher", "developer", "stakeholder", "all"],
+                        "enum": ["researcher", "yc", "agent", "developer", "stakeholder", "all"],
                         "description": "Target persona (default: 'agent')"
                     }
                 }
@@ -131,7 +131,7 @@ fn mcp_tool_definitions() -> Value {
         },
         {
             "name": "heav3ns_export_dataset",
-            "description": "Export a HuggingFace / JSONL dataset manifest (ledger/dataset_manifest.jsonl), MS-COCO JSON (ledger/annotations_coco.json), and Dataset Card (ledger/DATASET_CARD.md) with positive intervention and verified hard-negative bounding boxes.",
+            "description": "Export a HuggingFace / JSONL dataset manifest (ledger/dataset_manifest.jsonl), MS-COCO JSON (ledger/annotations_coco.json), VLM SFT (ledger/vlm_safety_sft.jsonl), Contrastive DPO (ledger/vlm_safety_dpo.jsonl), and Dataset Card (ledger/DATASET_CARD.md) with positive intervention and verified hard-negative bounding boxes.",
             "inputSchema": {
                 "type": "object",
                 "properties": {

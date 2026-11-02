@@ -21,8 +21,8 @@ use workspace::{ExecuteOptions, Workspace};
 #[command(
     name = "heav3ns-censor",
     version = "4.0.0",
-    about = "Autonomous Japanese-Style Censorship & Publication Post-Processing Agentic Studio Engine for HEAV3NS",
-    after_help = "ROLE-BASED QUICKSTART EXAMPLES:\n  # 1. Interactive Role Onboarding (agent | developer | stakeholder | all):\n  heav3ns-censor onboard --role agent\n\n  # 2. Batch-Ingest & Render VLM Coordinate Grids + Candidate Hotspots:\n  heav3ns-censor batch-prepare\n\n  # 3. 3x Magnified Zoom-Crop with Burned-In Global Pixel Coordinates:\n  heav3ns-censor inspect --asset-id heav3ns_01 --crop \"420,480,160,140:pixels\"\n\n  # 4. Execute Localized Censorship (Mosaic + Rotated Pill Bar with 'auto' contrast):\n  heav3ns-censor execute --asset-id heav3ns_01 \\\n    --region \"r1=mosaic:440,500,120,100:pixels:rect:14:0:explicit_lower_anatomy\" \\\n    --region \"r2=solid_bar:444,314,112,52:pixels:pill:auto@6.0:0:kuro_nuri_cleft_bar\"\n\n  # 5. Cryptographic SHA-256, Bit-Exact Preservation, & Hygiene Audit:\n  heav3ns-censor doctor --fix"
+    about = "Preservation-Aware Visual Dataset Curation, Contrastive False-Positive Suppression (COCO/SFT/DPO), & Zero-Collateral Artistic Post-Production Engine",
+    after_help = "ROLE-BASED QUICKSTART EXAMPLES:\n  # 1. Interactive Role Onboarding (researcher | yc | agent | developer | stakeholder | all):\n  heav3ns-censor onboard --role researcher\n\n  # 2. Batch-Ingest & Render VLM Coordinate Grids + Confuser Hardness Hotspots:\n  heav3ns-censor batch-prepare\n\n  # 3. Execute Surgical SDF Redaction + Hard-Negative Annotation (0 px exterior drift):\n  heav3ns-censor execute --asset-id heav3ns_01 \\\n    --region \"r1=mosaic:440,500,120,100:pixels:rect:14:0:explicit_lower_anatomy\" \\\n    --region \"r2=solid_bar:444,314,112,52:pixels:pill:auto@6.0:0:kuro_nuri_cleft_bar\"\n\n  # 4. Annotate Verified Benign Hard-Negatives & Run Dataset Health Audit:\n  heav3ns-censor annotate-negative --asset-id heav3ns_01 --auto-mine-hotspots\n  heav3ns-censor dataset-audit\n\n  # 5. Export Multi-Format Training Splits (COCO JSON + HuggingFace JSONL + VLM SFT & DPO) & Run Doctor:\n  heav3ns-censor export-dataset --safe-only\n  heav3ns-censor doctor --fix"
 )]
 struct Cli {
     /// Workspace root directory (defaults to current working directory)
@@ -1215,6 +1215,51 @@ mod tests {
             deduped[0].id, "neg_human",
             "Human-verified negative box must take precedence over overlapping auto_neg box in NMS"
         );
+        Ok(())
+    }
+
+    #[test]
+    fn test_preservation_impact_telemetry_and_ai_training_policy_profile() -> Result<()> {
+        let policies = policy::get_policy_guides();
+        assert!(
+            policies.iter().any(|p| p.id == "ai_training_preservation_v1"),
+            "Policy guides must include ai_training_preservation_v1 for generative AI dataset curation"
+        );
+
+        let tmp_ws = env::temp_dir().join(format!("heav3ns_yc_pres_test_{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&tmp_ws);
+        let ws = Workspace::new(tmp_ws.clone());
+        ws.init()?;
+        let _ = demo::generate_demo_inbox_assets(&ws.inbox_dir())?;
+        let _ = ws.batch_prepare("ai_training_preservation_v1")?;
+
+        let r1 = parse_shorthand_region("r1=mosaic:440,500,120,100:pixels:rect:14:0:explicit", 0)?;
+        let _ = ws.execute_censorship_with_options(
+            "heav3ns_01",
+            CensorshipClassification::ExplicitRequiresIntervention,
+            vec![r1],
+            ExecuteOptions::default(),
+        )?;
+        let _ = ws.approve_untouched(
+            "heav3ns_02",
+            CensorshipClassification::ArtisticNudityPass,
+            "Classical dorsal silhouette preserved untouched.",
+        )?;
+
+        let audit = ws.dataset_audit()?;
+        assert_eq!(audit.preservation_impact.samples_salvaged_by_heav3ns, 2);
+        assert_eq!(audit.preservation_impact.legacy_binary_filter_dropped_assets, 2);
+        assert!(audit.preservation_impact.mean_ground_truth_pixel_preservation_pct > 98.0);
+        assert!(audit.preservation_impact.ground_truth_pixels_protected_count > 1_000_000);
+        assert!(audit.preservation_impact.contrastive_dpo_pairs_ready >= 2);
+
+        let yc_onboard = ws.onboard("yc")?;
+        assert_eq!(yc_onboard.selected_role, "yc");
+        assert!(yc_onboard
+            .documentation_map
+            .contains_key("14_yc_partner_diligence_and_pitch_deck"));
+
+        let _ = std::fs::remove_dir_all(&tmp_ws);
         Ok(())
     }
 }

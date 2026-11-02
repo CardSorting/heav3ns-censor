@@ -2,13 +2,13 @@
 name = "heav3ns-censor"
 version = "4.0.0"
 edition = "2021"
-description = "Autonomous Japanese-Style Censorship & Publication Post-Processing Agentic Tool for HEAV3NS"
+description = "Preservation-aware visual dataset curation, contrastive false-positive suppression (COCO/SFT/DPO), and zero-collateral artistic post-processing engine in Rust"
 authors = ["Deputy Gemini <gemini@heav3ns.art>"]
 license = "MIT"
 repository = "https://github.com/CardSorting/heav3ns-censor"
 homepage = "https://github.com/CardSorting/heav3ns-censor"
 readme = "README.md"
-keywords = ["image-processing", "censorship", "sdf", "mcp", "computer-vision"]
+keywords = ["dataset-curation", "ai-safety", "computer-vision", "dpo", "mcp"]
 categories = ["multimedia::images", "command-line-utilities", "science"]
 
 [[bin]]

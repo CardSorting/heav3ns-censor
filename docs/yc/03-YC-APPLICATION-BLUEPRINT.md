@@ -135,3 +135,4 @@ YC interviews last **10 minutes** and are rapid-fire. Memorize these crisp, 20-s
 
 ### Q4: *"How do you go from an open-source Rust repo to $100M ARR?"*
 > **"The exact same way Roboflow and Scale AI did. Single-node open-source CLI wins developers and researchers bottom-up. When an enterprise AI team needs to run autonomous VLM triage and human escalation across 50 million images in S3 with compliance audit logs—or wants to license pre-curated contrastive DPO datasets to fix false positives in their safety guardrail—they pay us `$50k` to `$500k` a year."**
+

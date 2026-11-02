@@ -53,6 +53,21 @@ pub fn get_policy_guides() -> Vec<PolicyGuide> {
                 "Full-body nude compositions where censoring required regions would obscure over 30% of the figure".to_string(),
             ],
         },
+        PolicyGuide {
+            id: "ai_training_preservation_v1".to_string(),
+            name: "Preservation-Aware Generative AI Dataset Curation & VLM Safety Alignment (arXiv:2409.17156 Standard)".to_string(),
+            legal_or_platform_basis: "Foundation Model Pre-Training & Multimodal Safety Alignment Standard (mitigating Sample-Dropping Bias & Diffusion Inpainting Poisoning per Riccio et al., arXiv:2409.17156).".to_string(),
+            mosaic_rule: "Never discard an entire artistic or anatomical training sample due to a localized sensitive region, and never run generative diffusion inpainting (which corrupts exterior ground-truth pixels via VAE re-encoding). Apply deterministic zero-collateral SDF redaction (non_censored_pixel_diff_count == 0) to positive regions (class_id = 1) while explicitly annotating verified benign confusers (class_id = 0) with fp_hardness_score for COCO, SFT, and Contrastive DPO exports.".to_string(),
+            min_mosaic_block_divisor: 100,
+            absolute_min_mosaic_px: 4,
+            artistic_nudity_guidance: "Preserve 100% of classical sculpture, figurative painting, anatomical studies, and non-explicit artistic silhouettes bit-identically (`approve-original`) and auto-mine high-energy contour/skin-tone confuser regions as verified benign hard negatives (`class_id = 0`) to eliminate classifier false positives.".to_string(),
+            explicit_criteria: vec![
+                "Localized explicit anatomical detail requiring surgical SDF masking (`class_id = 1`) while preserving >95% of surrounding human brushwork bit-identically".to_string(),
+            ],
+            escalation_triggers: vec![
+                "Samples where explicit regions occupy >25% of the canvas or where label polarity between artistic anatomy and explicit depiction is genuinely ambiguous".to_string(),
+            ],
+        },
     ]
 }
 

@@ -14,6 +14,7 @@
 
 | Document | Purpose & Audience | Key Deliverable |
 | :--- | :--- | :--- |
+| **[`00-ORIGIN-INSIGHT-AND-THESIS.md`](00-ORIGIN-INSIGHT-AND-THESIS.md)** | **Foundational Upstream Thesis (`arXiv:2409.17156`)** | Why moving upstream from moderation SaaS to **Preservation-Aware Dataset Curation** solves Sample-Dropping Bias and Inpainting Poisoning for Generative AI. |
 | **[`01-YC-VIABILITY-AND-PARTNER-DILIGENCE-REPORT.md`](01-YC-VIABILITY-AND-PARTNER-DILIGENCE-REPORT.md)** | **Objective YC Partner Investment Memo & Rubric Assessment** | Candid analysis of why downstream moderation SaaS gets rejected by YC, why **Preservation-Aware Dataset Curation** is a venture-scale category, a 7-pillar YC Partner scorecard, red flags to avoid, and empirical grounding (`arXiv:2409.17156`). |
 | **[`02-YC-SEED-PITCH-DECK.md`](02-YC-SEED-PITCH-DECK.md)** | **12-Slide YC Demo Day & Seed Investor Pitch Deck (Markdown)** | Slide-by-slide narrative, visual architecture diagrams, unit economics, market sizing (`$14.8B` AI Data Curation & Compliance TAM), and speaker notes. |
 | **[`pitch_deck.html`](pitch_deck.html)** | **Interactive Browser Presentation Deck (Zero-Dependency HTML/JS)** | Keyboard-navigable (`←` / `→` / `Space`, `f` fullscreen, `g` grid overview) dark-mode studio presentation deck ready for live founder demos and partner meetings. |
@@ -44,3 +45,4 @@ flowchart LR
    - **Failure Mode 1 — Sample-Dropping Bias:** Coarse classifiers (`NudeNet`, `OpenNSFW`, `LAION-Safety`) misclassify `15%–40%` of legitimate figurative art, classical sculpture, and medical/anatomical studies (`arXiv:2409.17156`), causing foundation model teams to delete millions of high-value training images.
    - **Failure Mode 2 — Generative Inpainting Poisoning:** Attempting to "heal" sensitive regions with diffusion inpainting corrupts non-target pixels (`> 0` exterior drift) and injects synthetic latent hallucinations into pre-training corpora.
 3. **Make the Artist-Founder identity your unfair secret weapon:** Most AI safety engineers treat images as disposable tensors and cannot tell the difference between a Bernini sculpture contour, a garment seam, and explicit content. An artist-engineer founder who built a zero-collateral Rust pixel engine with mathematical proof (`non_censored_pixel_diff_count == 0`, multi-scale JPEG resilience, and contrastive `DPO` exports) has **authentic, earned founder-market fit**.
+

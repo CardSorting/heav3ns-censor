@@ -2,18 +2,19 @@
 
 # `heav3ns-censor` (v4.0)
 
-**Deterministic Localized Image Redaction, Dataset Sanitization & Artistic Post-Production Studio Engine**  
-*Built in Rust for **AI Safety & Security Researchers**, **Multimodal Dataset Curators**, **Digital Artists (`EGG`)**, **Studio Directors (`MAJO`)**, and **Autonomous Agents (`Deputy Gemini`)***
+**Preservation-Aware Visual Dataset Curation, Contrastive False-Positive Suppression (`COCO`/`SFT`/`DPO`), & Zero-Collateral Artistic Post-Production Engine**  
+*Stopping AI training pipelines from destroying `30%+` of human visual culture via sample-dropping bias ([`arXiv:2409.17156`](https://arxiv.org/abs/2409.17156)) or diffusion inpainting poisoning — built in Rust for **Foundation Model Teams**, **AI Safety Researchers**, **Digital Artists (`EGG`)**, **Studio Directors (`MAJO`)**, and **Autonomous Agents (`Deputy Gemini`)***
 
 [![Rust 2021](https://img.shields.io/badge/rust-2021_edition-orange.svg)](Cargo.toml)
 [![Version](https://img.shields.io/badge/version-4.0.0-00ffd5.svg)](CHANGELOG.md)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![YC Thesis](https://img.shields.io/badge/YC_Seed_Deck-Preservation_Aware_Curation-ff6600.svg)](docs/yc/README.md)
 [![MCP Protocol](https://img.shields.io/badge/MCP-15_tools_stdio-ff328c.svg)](src/mcp.rs)
 [![Dataset Export](https://img.shields.io/badge/dataset_export-JSONL_%7C_MS--COCO_%7C_SFT_%7C_DPO-9b59b6.svg)](docs/knowledgebase/03-dataset-cleaning-and-ai-safety-research.md)
 [![False Positive Defense](https://img.shields.io/badge/data_annotation-Hard--Negative_NMS_%2B_Audit-3fb950.svg)](docs/playbooks/PLAYBOOK-05-data-annotation-and-false-positive-suppression.md)
 [![Preservation Invariant](https://img.shields.io/badge/exterior_pixel_diff-0_px_(bit_exact)-3fb950.svg)](docs/whitepaper/TECHNICAL_WHITEPAPER.md)
 
-**[🔬 Dataset & Safety Research](docs/knowledgebase/03-dataset-cleaning-and-ai-safety-research.md)** • **[🎨 Artist & Studio Handoff](docs/stakeholder-handoff/STAKEHOLDER_HANDOFF.md)** • **[🤖 Agent Onboarding](docs/onboarding/AGENT_ONBOARDING.md)** • **[🛠️ Developer Guide](docs/onboarding/DEVELOPER_ONBOARDING.md)** • **[Philosophy](docs/philosophy/PHILOSOPHY.md)** • **[Whitepaper](docs/whitepaper/TECHNICAL_WHITEPAPER.md)** • **[Docs Portal](docs/README.md)** • **[ADRs](docs/adrs/README.md)** • **[Playbooks](docs/playbooks/README.md)** • **[Postmortems](docs/postmortems/README.md)**
+**[🚀 YC Pitch Deck & Diligence (`docs/yc/`)](docs/yc/README.md)** • **[🔬 Dataset & Safety Research](docs/knowledgebase/03-dataset-cleaning-and-ai-safety-research.md)** • **[🎨 Artist & Studio Handoff](docs/stakeholder-handoff/STAKEHOLDER_HANDOFF.md)** • **[🤖 Agent Onboarding](docs/onboarding/AGENT_ONBOARDING.md)** • **[🛠️ Developer Guide](docs/onboarding/DEVELOPER_ONBOARDING.md)** • **[Philosophy](docs/philosophy/PHILOSOPHY.md)** • **[Whitepaper](docs/whitepaper/TECHNICAL_WHITEPAPER.md)** • **[Docs Portal](docs/README.md)** • **[ADRs](docs/adrs/README.md)** • **[Playbooks](docs/playbooks/README.md)** • **[Postmortems](docs/postmortems/README.md)**
 
 </div>
 
@@ -25,10 +26,11 @@ Select your persona below or run `./target/release/heav3ns-censor onboard --role
 
 | Persona | Primary Use Case & Handoff Goal | Dedicated Guide | Live CLI Self-Onboarding |
 | :--- | :--- | :--- | :--- |
-| **🔬 AI Safety & Dataset Researcher** | Clean vision-language datasets without sample-dropping bias or diffusion hallucination; export paired counterfactual splits (`ledger/dataset_manifest.jsonl`) with `COCO`, `Normalized1000`, & `YOLO` boxes. | **[Dataset & Safety Research Guide &rarr;](docs/knowledgebase/03-dataset-cleaning-and-ai-safety-research.md)**<br/>*(+ [`Technical Whitepaper`](docs/whitepaper/TECHNICAL_WHITEPAPER.md) & [`DATASET_CARD.md`](ledger/DATASET_CARD.md))* | `./target/release/heav3ns-censor onboard --role researcher` |
+| **🚀 Y Combinator & Seed Investors** | Evaluate our 50-character thesis (*"Preservation-aware visual dataset curation for AI"*), `$14.8B` TAM, open-core data foundry moat, and 12-slide interactive pitch deck. | **[YC Diligence & Seed Deck (`docs/yc/`) &rarr;](docs/yc/README.md)**<br/>*(+ [`Interactive HTML Deck`](docs/yc/pitch_deck.html) & [`Application Blueprint`](docs/yc/03-YC-APPLICATION-BLUEPRINT.md))* | `./target/release/heav3ns-censor onboard --role yc` |
+| **🔬 AI Safety & Dataset Researcher** | Clean vision-language datasets without sample-dropping bias or diffusion hallucination; export paired counterfactual splits (`COCO`, `JSONL`, `VLM SFT`, & `Contrastive DPO`). | **[Dataset & Safety Research Guide &rarr;](docs/knowledgebase/03-dataset-cleaning-and-ai-safety-research.md)**<br/>*(+ [`PLAYBOOK-05: False Positives`](docs/playbooks/PLAYBOOK-05-data-annotation-and-false-positive-suppression.md) & [`DATASET_CARD.md`](ledger/DATASET_CARD.md))* | `./target/release/heav3ns-censor onboard --role researcher` |
 | **🎨 Artist & Studio Director** (**EGG**, Principal Artist & **MAJO**, Executive Chair) | Produce non-destructive Japanese-style publication editions (`assets/published/`), A/B compare Original vs. Published (`[o]` key) in [`ledger/dashboard.html`](ledger/dashboard.html), and review escalations in [`escalations_review.md`](ledger/escalations_review.md). | **[Stakeholder Handoff Guide &rarr;](docs/stakeholder-handoff/STAKEHOLDER_HANDOFF.md)**<br/>*(+ [`Artistic Philosophy`](docs/philosophy/PHILOSOPHY.md))* | `./target/release/heav3ns-censor onboard --role stakeholder` |
 | **🤖 Autonomous AI Agent** (`Deputy Gemini` / MCP Client) | Ingest `assets/inbox/`, inspect VLM `Normalized1000` coordinate grids & $3\times$ zoom-crops, execute localized SDF redaction or escalate ambiguity, and verify with `doctor --fix`. | **[Agent Onboarding Guide &rarr;](docs/onboarding/AGENT_ONBOARDING.md)**<br/>*(+ [`AGENTS.md`](AGENTS.md) & [`SKILL.md`](.agents/skills/heav3ns-censor-operator/SKILL.md))* | `./target/release/heav3ns-censor onboard --role agent` |
-| **🛠️ Rust Systems Developer** | Explore the 6-module Rust codebase (`src/`), run the 9 mathematical & safety invariant tests (`cargo test --release`), or extend SDF primitives and policy profiles. | **[Developer Onboarding Guide &rarr;](docs/onboarding/DEVELOPER_ONBOARDING.md)**<br/>*(+ [`CONTRIBUTING.md`](CONTRIBUTING.md) & [`ADRs`](docs/adrs/README.md))* | `./target/release/heav3ns-censor onboard --role developer` |
+| **🛠️ Rust Systems Developer** | Explore the 6-module Rust codebase (`src/`), run the 13 mathematical & safety invariant tests (`cargo test --release`), or extend SDF primitives and policy profiles. | **[Developer Onboarding Guide &rarr;](docs/onboarding/DEVELOPER_ONBOARDING.md)**<br/>*(+ [`CONTRIBUTING.md`](CONTRIBUTING.md) & [`ADRs`](docs/adrs/README.md))* | `./target/release/heav3ns-censor onboard --role developer` |
 
 ---
 
@@ -266,9 +268,9 @@ Then open **[`ledger/dashboard.html`](ledger/dashboard.html)** in any browser to
 
 ---
 
-## Empirical Verification & Benchmark Suite (12 Automated Tests)
+## Empirical Verification & Benchmark Suite (13 Automated Tests)
 
-Run `cargo test --release` to execute all 12 automated mathematical, hard-negative annotation, confuser-hardness, NMS deduplication, and state-hygiene unit tests:
+Run `cargo test --release` to execute all 13 automated mathematical, hard-negative annotation, confuser-hardness, NMS deduplication, preservation-impact, and state-hygiene unit tests:
 
 | Test Suite | Invariant Verified | Status |
 | :--- | :--- | :---: |
@@ -284,6 +286,7 @@ Run `cargo test --release` to execute all 12 automated mathematical, hard-negati
 | `test_hard_negative_annotation_and_coco_export_prevents_false_positives` | Verifies `annotate-negative`, auto-mined benign hotspot IoU filtering, and `annotations_coco.json` export | **PASS** |
 | `test_polarity_conflict_prevention_and_confuser_hardness_scoring` | Verifies automatic `IoU >= 0.20` positive/negative de-confliction, `fp_hardness_score` scoring, `dataset-audit`, and `vlm_safety_sft/dpo.jsonl` export | **PASS** |
 | `test_nms_deduplication_suppresses_redundant_overlapping_hard_negatives` | Verifies Hardness-Weighted NMS (`IoU >= 0.45`) prioritizes human-verified hard-negative boxes over redundant `auto_neg` overlaps | **PASS** |
+| `test_preservation_impact_telemetry_and_ai_training_policy_profile` | Verifies `ai_training_preservation_v1` policy profile, sample-dropping salvage telemetry (`preservation_impact`), and `onboard --role yc` | **PASS** |
 
 ---
 
