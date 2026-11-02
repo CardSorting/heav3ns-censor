@@ -55,3 +55,4 @@ flowchart LR
 Most AI safety and data engineers treat images as disposable tensors—which is why existing pipelines blindly delete classical art or smear diffusion noise over human brushwork.
 
 Because **HEAV3NS** was founded by artists and systems builders (**EGG**, Principal Artist & Systems Architect; **MAJO**, Executive Chair), our entire architecture was engineered from day one around **absolute pixel preservation (`non_censored_pixel_diff_count == 0`)** and **distinguishing fine-art anatomy from explicit content**. What started as an uncompromising studio post-production standard is the exact mathematical primitive generative AI labs need to stop destroying visual human culture in their training sets.
+

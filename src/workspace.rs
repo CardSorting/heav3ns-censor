@@ -2717,29 +2717,45 @@ impl Workspace {
                 sft_buf.push('\n');
             }
 
-            // Build Direct Preference Optimization (DPO) Contrastive Pair (`chosen` = accurate false-positive-free triage, `rejected` = naive over-censoring false positive)
-            let mut hallucinated_pos = pos_list.clone();
-            for a in row.annotations.iter().filter(|a| a.class_id == 0) {
-                hallucinated_pos.push(serde_json::json!({
-                    "region_id": a.region_id,
-                    "label": format!("FALSE_POSITIVE_HALLUCINATION:{}", a.label),
-                    "bbox_norm1000": a.bbox_xyxy_norm1000,
-                    "shape": a.shape,
-                    "treatment_method": "mosaic",
-                    "rationale": "Naive classifier false positive triggered by benign skin-tone gradient or artistic contour"
-                }));
-            }
-            let rejected_answer = serde_json::json!({
-                "status": "verified",
-                "classification": "explicit_requires_intervention",
-                "curation_action": "over_censored_false_positive_failure",
-                "is_safe_for_training_release": false,
-                "positive_interventions": hallucinated_pos,
-                "verified_benign_hard_negatives": []
-            });
+            // Build Direct Preference Optimization (DPO) Contrastive Pair:
+            // - For Verified / ApprovedOriginal assets: `chosen` = surgical preservation + benign hard negatives untouched;
+            //   `rejected` = naive false-positive over-censorship / sample-dropping bias (`FALSE_POSITIVE_HALLUCINATION`).
+            // - For Escalated assets: `chosen` = quarantine for human escalation;
+            //   `rejected` = unsafe premature auto-approval without human review.
+            let rejected_answer = if row.status == AssetStatus::Escalated {
+                serde_json::json!({
+                    "status": "approved_original",
+                    "classification": "artistic_nudity_pass",
+                    "curation_action": "unsafe_premature_auto_approval_without_escalation",
+                    "is_safe_for_training_release": true,
+                    "positive_interventions": [],
+                    "verified_benign_hard_negatives": []
+                })
+            } else {
+                let mut hallucinated_pos = pos_list.clone();
+                for a in row.annotations.iter().filter(|a| a.class_id == 0) {
+                    hallucinated_pos.push(serde_json::json!({
+                        "region_id": a.region_id,
+                        "label": format!("FALSE_POSITIVE_HALLUCINATION:{}", a.label),
+                        "bbox_norm1000": a.bbox_xyxy_norm1000,
+                        "shape": a.shape,
+                        "treatment_method": "mosaic",
+                        "rationale": "Naive classifier false positive triggered by benign skin-tone gradient or artistic contour (sample-dropping / over-censoring bias)"
+                    }));
+                }
+                serde_json::json!({
+                    "status": "verified",
+                    "classification": "explicit_requires_intervention",
+                    "curation_action": "over_censored_false_positive_or_sample_drop_failure",
+                    "is_safe_for_training_release": false,
+                    "positive_interventions": hallucinated_pos,
+                    "verified_benign_hard_negatives": []
+                })
+            };
             let dpo_record = serde_json::json!({
                 "id": row.asset_id,
                 "image": row.original_path,
+                "curation_action": row.curation_action,
                 "prompt": prompt_str,
                 "chosen": serde_json::to_string(&assistant_answer).unwrap_or_default(),
                 "rejected": serde_json::to_string(&rejected_answer).unwrap_or_default()
@@ -2756,7 +2772,7 @@ impl Workspace {
         // Write MS-COCO Object Detection & Hard-Negative JSON (`ledger/annotations_coco.json`)
         let coco_doc = serde_json::json!({
             "info": {
-                "description": "HEAV3NS Contrastive Positive & Hard-Negative Safety Dataset (MS-COCO Format)",
+                "description": "HEAV3NS Preservation-Aware Contrastive Positive & Hard-Negative Safety Dataset (MS-COCO Format)",
                 "version": ledger.version,
                 "year": 2026,
                 "contributor": "HEAV3NS Post-Production & AI Safety Research (MAJO, EGG, Deputy Gemini)",
@@ -2786,7 +2802,7 @@ impl Workspace {
         atomic_write_bytes(&self.coco_annotations_json_file(), &coco_bytes)?;
 
         let card_md = format!(
-            "---\nlicense: mit\ntask_categories:\n  - object-detection\n  - image-to-image\n  - image-classification\ntags:\n  - ai-safety\n  - false-positive-suppression\n  - hard-negative-mining\n  - dataset-cleaning\n  - vlm-grounding\n  - artistic-preservation\n---\n\n# HEAV3NS Contrastive Safety, Hard-Negative & Sanitized Vision Dataset Card\n\nGenerated deterministically by **`heav3ns-censor v{}`**.\n\n## Dataset Summary & False-Positive Suppression Provenance\n\n- **Total Exported Images:** `{}` (`safe_only = {}`)\n- **Safe Training Split (`is_safe_for_training_release == true`):** `{}`\n  - **Surgical Localized Redactions (`Verified`):** `{}` (`0` exterior pixels altered; verified across Native, `1080p Q85`, and `540p Q75` JPEG)\n  - **Preserved False-Positive Artistic Corpora (`ApprovedOriginal`):** `{}` (`100%` bit-identical to original)\n- **Quarantined Ambiguity Benchmark (`Escalated`):** `{}` (isolated from `assets/published/`)\n- **Region-Level Bounding Box Annotations (`COCO` + `Normalized1000` + `YOLO`) & Confuser Hardness:**\n  - **Positive Intervention Boxes (`class_id = 1`, `positive_intervention`):** `{}`\n  - **Verified Benign Hard-Negative Boxes (`class_id = 0`, `verified_benign_hard_negative`):** `{}` *(eliminates classifier false positives on classical silhouettes, skin-tone gradients, and artistic linework; scored with quantitative `fp_hardness_score` in `[5.0..99.5]` and automatically de-conflicted so positive/negative boxes never collide)*\n- **Exported Manifests:**\n  - `ledger/dataset_manifest.jsonl` (HuggingFace `datasets` / JSON Lines with `fp_hardness_score` & `confuser_category`)\n  - `ledger/annotations_coco.json` (MS-COCO Object Detection format for CVAT, Label Studio, Roboflow, & Voxel51 FiftyOne)\n  - `ledger/vlm_safety_sft.jsonl` (ShareGPT / VLM Grounded Safety & False-Positive Suppression Instruction-Tuning Pairs)\n\n## Loading in Python (`datasets` / `json` / `pycocotools`)\n\n```python\nimport json\nfrom pathlib import Path\n\nrecords = [\n    json.loads(line)\n    for line in Path(\"ledger/dataset_manifest.jsonl\").read_text().splitlines()\n    if line.strip()\n]\npos_boxes = [a for r in records for a in r[\"annotations\"] if a[\"class_id\"] == 1]\nhard_neg_boxes = [a for r in records for a in r[\"annotations\"] if a[\"class_id\"] == 0]\nprint(f\"Images: {{len(records)}} | Positive Redaction Boxes: {{len(pos_boxes)}} | Hard-Negative Benign Boxes: {{len(hard_neg_boxes)}}\")\n```\n",
+            "---\nlicense: mit\ntask_categories:\n  - object-detection\n  - image-to-image\n  - image-classification\ntags:\n  - ai-safety\n  - dataset-curation\n  - false-positive-suppression\n  - hard-negative-mining\n  - dpo\n  - vlm-grounding\n  - artistic-preservation\n---\n\n# HEAV3NS Preservation-Aware Contrastive Safety, Hard-Negative & Sanitized Vision Dataset Card\n\nGenerated deterministically by **`heav3ns-censor v{}`**.\n\n## 1. Preservation-Aware Curation & False-Positive Suppression Provenance\n\nEliminates the two primary failure modes of conventional generative AI dataset cleaning (**Sample-Dropping Bias** per `arXiv:2409.17156` and **Generative Inpainting Distortion**):\n\n- **Total Exported Images:** `{}` (`safe_only = {}`)\n- **Safe Training Split (`is_safe_for_training_release == true`):** `{}`\n  - **Surgical Localized Redactions (`Verified`):** `{}` (`0` exterior pixels altered; verified across Native, `1080p Q85`, and `540p Q75` JPEG)\n  - **Preserved False-Positive Artistic Corpora (`ApprovedOriginal`):** `{}` (`100%` bit-identical to original)\n- **Quarantined Ambiguity Benchmark (`Escalated`):** `{}` (isolated from `assets/published/`)\n- **Contrastive Dual-Polarity Grounding (`COCO` + `Normalized1000` + `YOLO`) & Confuser Hardness:**\n  - **Positive Intervention Boxes (`class_id = 1`, `positive_intervention`):** `{}`\n  - **Verified Benign Hard-Negative Boxes (`class_id = 0`, `verified_benign_hard_negative`):** `{}` *(eliminates classifier false positives on classical silhouettes, skin-tone gradients, and artistic linework; scored with quantitative `fp_hardness_score` in `[5.0..99.5]`, deduplicated via Hardness-Weighted NMS `IoU < 0.45`, and automatically de-conflicted via `IoU < 0.20`)*\n\n## 2. Synchronized Multi-Format Exports (`ledger/`)\n\n1. **`ledger/dataset_manifest.jsonl`**: HuggingFace `datasets` / JSON Lines with `bbox_xywh_px` (COCO), `bbox_xyxy_norm1000` (VLM), `bbox_cxcywh_norm01` (YOLO), `fp_hardness_score`, and `confuser_category`.\n2. **`ledger/annotations_coco.json`**: Standard MS-COCO Object Detection format for **CVAT**, **Label Studio**, **Roboflow**, and **Voxel51 FiftyOne**.\n3. **`ledger/vlm_safety_sft.jsonl`**: ShareGPT / VLM Grounded Safety & False-Positive Suppression Instruction-Tuning Pairs.\n4. **`ledger/vlm_safety_dpo.jsonl`**: Direct Preference Optimization (`DPO`) Contrastive `(prompt, chosen, rejected)` Preference Triples penalizing false-positive over-censorship and unsafe premature approvals.\n\n## 3. Loading in Python (`datasets` / `json` / `pycocotools`)\n\n```python\nimport json\nfrom pathlib import Path\n\nrecords = [\n    json.loads(line)\n    for line in Path(\"ledger/dataset_manifest.jsonl\").read_text().splitlines()\n    if line.strip()\n]\npos_boxes = [a for r in records for a in r[\"annotations\"] if a[\"class_id\"] == 1]\nhard_neg_boxes = [a for r in records for a in r[\"annotations\"] if a[\"class_id\"] == 0]\nprint(f\"Images: {{len(records)}} | Positive Redaction Boxes: {{len(pos_boxes)}} | Hard-Negative Benign Boxes: {{len(hard_neg_boxes)}}\")\n```\n",
             ledger.version,
             rows.len(),
             safe_only,

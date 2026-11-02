@@ -1245,6 +1245,26 @@ mod tests {
             CensorshipClassification::ArtisticNudityPass,
             "Classical dorsal silhouette preserved untouched.",
         )?;
+        let _ = ws.escalate_asset(
+            "heav3ns_03",
+            "stylized_anatomy_ambiguity",
+            "Quarantined for human determination",
+            "",
+        )?;
+
+        let ds_all = ws.export_dataset(false)?;
+        let dpo_lines: Vec<serde_json::Value> = std::fs::read_to_string(&ds_all.vlm_dpo_jsonl_path)?
+            .lines()
+            .filter(|l| !l.trim().is_empty())
+            .map(|l| serde_json::from_str(l).unwrap())
+            .collect();
+        assert_eq!(dpo_lines.len(), 3);
+        for dpo in &dpo_lines {
+            assert_ne!(
+                dpo["chosen"], dpo["rejected"],
+                "Every DPO record (including Escalated assets) must have strictly distinct chosen vs. rejected responses"
+            );
+        }
 
         let audit = ws.dataset_audit()?;
         assert_eq!(audit.preservation_impact.samples_salvaged_by_heav3ns, 2);

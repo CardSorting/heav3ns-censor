@@ -108,11 +108,12 @@ Every `execute` run automatically generates a 4-panel verification contact sheet
                  └────────────────────────────┼────────────────────────────┘
                                               ▼
 ┌─────────────────────────────────────────────────────────────────────────────────────────┐
-│         3. MULTI-SCALE VERIFICATION, STUDIO QC SLATE & ML DATASET JSONL EXPORT          │
+│    3. MULTI-SCALE VERIFICATION, DATASET HEALTH AUDIT & CONTRASTIVE SFT / DPO EXPORT     │
 │  • Verifies `non_censored_pixel_diff_count == 0` (100% bit-exact exterior preservation) │
 │  • Verifies Mean + P95 Peak gradient suppression across Native, 1080p Q85, & 540p Q75   │
-│  • Generates 4-Panel Broadcast QC Slate (`*_contact_sheet.png`) & `dashboard.html`      │
-│  • Exports `ledger/dataset_manifest.jsonl` (COCO + Normalized1000 + YOLO) & Dataset Card│
+│  • Runs `dataset-audit` (Hardness-Weighted NMS, Polarity De-Confliction, Salvage Rate)  │
+│  • Exports `dataset_manifest.jsonl`, `annotations_coco.json`, `vlm_safety_sft.jsonl`,   │
+│    `vlm_safety_dpo.jsonl` (Contrastive DPO), `DATASET_CARD.md`, & `dashboard.html`      │
 └─────────────────────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -199,7 +200,7 @@ Then open **[`ledger/dashboard.html`](ledger/dashboard.html)** in any browser to
 
 | Subcommand | Purpose |
 | :--- | :--- |
-| `onboard [--role <role>]` | Outputs a role-tailored (`researcher`, `stakeholder`, `agent`, `developer`, `all`) onboarding packet. |
+| `onboard [--role <role>]` | Outputs a role-tailored (`researcher`, `yc`, `stakeholder`, `agent`, `developer`, `all`) onboarding packet. |
 | `explain --asset-id <id>` | Outputs a complete per-asset diagnostic, cryptographic integrity, and handoff card with pre-filled CLI commands. |
 | `status` | Outputs workspace pipeline queues, ledger paths, and `next_recommended_action`. |
 | `batch-prepare` | Ingests all new `assets/inbox/` files, archives SHA-256 masters, and renders VLM coordinate grids + hotspots. |
@@ -237,7 +238,7 @@ Then open **[`ledger/dashboard.html`](ledger/dashboard.html)** in any browser to
 
 | MCP Tool Name | Description |
 | :--- | :--- |
-| `heav3ns_onboard` | Returns a role-tailored (`agent`, `researcher`, `developer`, `stakeholder`, `all`) onboarding packet. |
+| `heav3ns_onboard` | Returns a role-tailored (`researcher`, `yc`, `agent`, `developer`, `stakeholder`, `all`) onboarding packet. |
 | `heav3ns_explain_asset` | Returns a complete diagnostic, cryptographic integrity, and handoff explanation card for a single asset. |
 | `heav3ns_annotate_negative` | Annotates verified benign / hard-negative confuser regions (`auto_mine_hotspots: bool`) without altering pixels. |
 | `heav3ns_dataset_audit` | Runs a Dataset Health & False-Positive Risk Audit returning curation health score, confuser taxonomy, and hardness curriculum buckets. |

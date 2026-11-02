@@ -1,6 +1,6 @@
 cff-version: 1.2.0
-title: "heav3ns-censor: Deterministic Zero-Collateral Localized Image Obscuration with Multi-Scale Frequency-Domain & JPEG-Quantization Resilience Verification"
-message: "If you use heav3ns-censor or its mathematical SDF compositing and multi-scale verification algorithms in your research or software, please cite it using the metadata below."
+title: "heav3ns-censor: Preservation-Aware Visual Dataset Curation, Contrastive False-Positive Suppression, and Deterministic Zero-Collateral Image Obscuration"
+message: "If you use heav3ns-censor or its preservation-aware dataset curation, contrastive hard-negative grounding, SDF compositing, and multi-scale verification algorithms in your research or software, please cite it using the metadata below."
 type: software
 version: 4.0.0
 date-released: "2026-11-01"
@@ -8,26 +8,32 @@ license: "MIT"
 repository-code: "https://github.com/CardSorting/heav3ns-censor"
 url: "https://github.com/CardSorting/heav3ns-censor"
 keywords:
-  - image-processing
+  - dataset-curation
+  - ai-safety
+  - false-positive-suppression
+  - direct-preference-optimization
   - signed-distance-fields
   - digital-preservation
-  - censorship-verification
   - model-context-protocol
   - rust
   - computer-vision
   - multimodal-grounding
 authors:
-  - name: "Deputy Gemini (HEAV3NS Post-Production Systems Research)"
+  - name: "Deputy Gemini (HEAV3NS Post-Production & AI Safety Systems Research)"
   - alias: "EGG"
-    name: "Principal Artist, HEAV3NS"
+    name: "Principal Artist & Systems Architect, HEAV3NS"
   - alias: "MAJO"
     name: "Executive Chair, HEAV3NS"
 abstract: >-
-  heav3ns-censor is a deterministic, cryptographically verifiable Rust image post-processing
-  engine designed for localized Japanese-style obscuration (Article 175 mosaic, kuro-nuri /
-  shiro-nuri graphic bars, and halo-padded separable Gaussian blur) over inverse-rotated
-  Signed Distance Field (SDF) primitives (Rect, Ellipse, and Pill capsule). It guarantees
-  100% bit-exact preservation of all pixels outside the localized masks while verifying
-  both mean and 95th-percentile peak gradient suppression across native resolution, 1080p
-  (Q85 JPEG), and 540p (Q75 JPEG) downscaling.
+  heav3ns-censor is a deterministic, cryptographically verifiable Rust engine for
+  preservation-aware visual dataset curation, contrastive false-positive suppression
+  (MS-COCO, HuggingFace JSONL, ShareGPT VLM SFT, and Contrastive DPO exports), and
+  zero-collateral artistic post-production. Designed to eliminate both sample-dropping
+  bias (arXiv:2409.17156) and generative diffusion inpainting distortion in multimodal
+  training pipelines, it pairs inverse-rotated Signed Distance Field (SDF) primitives
+  (Rect, Ellipse, and Pill capsule) with automated confuser hardness scoring
+  (fp_hardness_score), Hardness-Weighted NMS (IoU < 0.45), and Polarity De-Confliction
+  (IoU < 0.20). It guarantees 100% bit-exact preservation of all exterior pixels while
+  verifying both mean and 95th-percentile peak gradient suppression across native
+  resolution, 1080p (Q85 JPEG), and 540p (Q75 JPEG) downscaling.
 
