@@ -54,57 +54,57 @@
     },
     {
       "angle_deg": 0.0,
-      "area": 10800,
+      "area": 33600,
       "bbox": [
-        360,
-        450,
-        120,
-        90
+        380,
+        630,
+        240,
+        140
       ],
       "category_id": 2,
       "category_name": "verified_benign_hard_negative",
-      "confuser_category": "auto_mined_unredacted_hotspot",
+      "confuser_category": "lower_silhouette_contour",
       "enclosing_aabb": [
-        360,
-        450,
-        120,
-        90
+        380,
+        630,
+        240,
+        140
       ],
-      "fp_hardness_score": 99.5,
+      "fp_hardness_score": 62.0,
       "id": 3,
       "image_id": 1,
       "iscrowd": 0,
-      "label": "auto_mined_hotspot_4",
+      "label": "lower_silhouette_contour",
       "polarity": "verified_benign_hard_negative",
-      "rationale": "Auto-mined high-frequency benign region non-overlapping with positive interventions",
+      "rationale": "Benign lower figure contour",
       "shape": "rect",
       "treatment_method": "none_preserved_untouched"
     },
     {
       "angle_deg": 0.0,
-      "area": 10800,
+      "area": 22800,
       "bbox": [
-        360,
-        540,
-        120,
-        90
+        380,
+        190,
+        240,
+        95
       ],
       "category_id": 2,
       "category_name": "verified_benign_hard_negative",
-      "confuser_category": "composite_skin_and_crease_confuser",
+      "confuser_category": "torso_skin_gradient",
       "enclosing_aabb": [
-        360,
-        540,
-        120,
-        90
+        380,
+        190,
+        240,
+        95
       ],
-      "fp_hardness_score": 99.5,
+      "fp_hardness_score": 56.70000076293945,
       "id": 4,
       "image_id": 1,
       "iscrowd": 0,
-      "label": "auto_mined_hotspot_3",
+      "label": "torso_skin_gradient",
       "polarity": "verified_benign_hard_negative",
-      "rationale": "Auto-mined high-frequency benign region non-overlapping with positive interventions",
+      "rationale": "Benign warm torso skin shading",
       "shape": "rect",
       "treatment_method": "none_preserved_untouched"
     },
@@ -189,7 +189,7 @@
   ],
   "info": {
     "contributor": "HEAV3NS Post-Production & AI Safety Research (MAJO, EGG, Deputy Gemini)",
-    "date_created": "2026-11-01T23:54:20.703302+00:00",
+    "date_created": "2026-11-02T00:09:52.192922+00:00",
     "description": "HEAV3NS Contrastive Positive & Hard-Negative Safety Dataset (MS-COCO Format)",
     "version": "4.0.0",
     "year": 2026

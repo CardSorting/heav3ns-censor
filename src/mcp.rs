@@ -331,6 +331,14 @@ fn mcp_tool_definitions() -> Value {
                 "type": "object",
                 "properties": {}
             }
+        },
+        {
+            "name": "heav3ns_dataset_audit",
+            "description": "Run a comprehensive Dataset Health & False-Positive Risk Audit across all positive & hard-negative annotations, returning curation health score, confuser taxonomy distribution, hardness curriculum buckets, and label hygiene checks.",
+            "inputSchema": {
+                "type": "object",
+                "properties": {}
+            }
         }
     ])
 }
@@ -340,6 +348,10 @@ fn dispatch_tool_call(workspace: &Workspace, tool_name: &str, args: &Value) -> R
         "heav3ns_status" => {
             let status = workspace.status_summary()?;
             Ok(serde_json::to_value(status)?)
+        }
+        "heav3ns_dataset_audit" => {
+            let audit = workspace.dataset_audit()?;
+            Ok(serde_json::to_value(audit)?)
         }
         "heav3ns_onboard" => {
             let role = args.get("role").and_then(|s| s.as_str()).unwrap_or("agent");

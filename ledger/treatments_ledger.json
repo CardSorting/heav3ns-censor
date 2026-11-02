@@ -3,7 +3,7 @@
   "commissioned_agent": "Deputy Gemini",
   "principal_artist": "EGG",
   "version": "4.0.0",
-  "updated_at": "2026-11-01T23:54:20.575921Z",
+  "updated_at": "2026-11-02T00:09:52.045491Z",
   "assets": {
     "heav3ns_01_explicit_study_63116478": {
       "asset_id": "heav3ns_01_explicit_study_63116478",
@@ -55,28 +55,28 @@
       ],
       "negative_regions": [
         {
-          "id": "auto_neg_1",
-          "label": "auto_mined_hotspot_4",
-          "rationale": "Auto-mined high-frequency benign region non-overlapping with positive interventions",
-          "confuser_category": "auto_mined_unredacted_hotspot",
-          "fp_hardness_score": 99.5,
-          "x": 360.0,
-          "y": 450.0,
-          "width": 120.0,
-          "height": 90.0,
+          "id": "neg2",
+          "label": "lower_silhouette_contour",
+          "rationale": "Benign lower figure contour",
+          "confuser_category": "lower_silhouette_contour",
+          "fp_hardness_score": 62.0,
+          "x": 380.0,
+          "y": 630.0,
+          "width": 240.0,
+          "height": 140.0,
           "unit": "pixels",
           "shape": "rect"
         },
         {
-          "id": "auto_neg_2",
-          "label": "auto_mined_hotspot_3",
-          "rationale": "Auto-mined high-frequency benign region non-overlapping with positive interventions",
-          "confuser_category": "composite_skin_and_crease_confuser",
-          "fp_hardness_score": 99.5,
-          "x": 360.0,
-          "y": 540.0,
-          "width": 120.0,
-          "height": 90.0,
+          "id": "neg1",
+          "label": "torso_skin_gradient",
+          "rationale": "Benign warm torso skin shading",
+          "confuser_category": "torso_skin_gradient",
+          "fp_hardness_score": 56.7,
+          "x": 380.0,
+          "y": 190.0,
+          "width": 240.0,
+          "height": 95.0,
           "unit": "pixels",
           "shape": "rect"
         }
@@ -219,10 +219,22 @@
           "action": "ANNOTATE_HARD_NEGATIVE_REGIONS",
           "actor": "Deputy Gemini",
           "details": "Updated verified benign hard-negative annotations (count=2, append=true, auto_mine=true, skipped_polarity_conflicts=0)"
+        },
+        {
+          "timestamp": "2026-11-02T00:07:06.876771Z",
+          "action": "ANNOTATE_HARD_NEGATIVE_REGIONS",
+          "actor": "Deputy Gemini",
+          "details": "Updated verified benign hard-negative annotations (count=2, append=true, auto_mine=true, skipped_polarity_conflicts=0, nms_suppressed=0)"
+        },
+        {
+          "timestamp": "2026-11-02T00:09:52.045464Z",
+          "action": "ANNOTATE_HARD_NEGATIVE_REGIONS",
+          "actor": "Deputy Gemini",
+          "details": "Updated verified benign hard-negative annotations (count=2, append=false, auto_mine=false, skipped_polarity_conflicts=0, nms_suppressed=0)"
         }
       ],
       "created_at": "2026-11-01T21:43:26.269015Z",
-      "updated_at": "2026-11-01T23:54:20.460014Z"
+      "updated_at": "2026-11-02T00:09:52.045464Z"
     },
     "heav3ns_02_artistic_silhouette_c199216e": {
       "asset_id": "heav3ns_02_artistic_silhouette_c199216e",

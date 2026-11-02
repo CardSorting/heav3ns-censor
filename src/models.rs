@@ -292,6 +292,51 @@ pub fn compute_box_iou(a: (u32, u32, u32, u32), b: (u32, u32, u32, u32)) -> f32 
     inter / union
 }
 
+/// Applies Hardness-Weighted Non-Maximum Suppression (NMS) to a list of `NegativeAnnotationRegion` boxes,
+/// prioritizing human-verified regions (`!id.starts_with("auto_neg")`) and higher `fp_hardness_score`
+/// while suppressing redundant overlapping boxes whose `IoU >= iou_threshold`.
+/// Returns `(deduplicated_regions, suppressed_count)`.
+pub fn deduplicate_negative_regions_nms(
+    mut regions: Vec<NegativeAnnotationRegion>,
+    img_w: u32,
+    img_h: u32,
+    iou_threshold: f32,
+) -> (Vec<NegativeAnnotationRegion>, usize) {
+    let initial_len = regions.len();
+    if initial_len <= 1 {
+        return (regions, 0);
+    }
+
+    // Sort by (is_human_verified DESC, fp_hardness_score DESC, id ASC)
+    regions.sort_by(|a, b| {
+        let a_human = !a.id.starts_with("auto_neg");
+        let b_human = !b.id.starts_with("auto_neg");
+        b_human
+            .cmp(&a_human)
+            .then_with(|| {
+                b.fp_hardness_score
+                    .partial_cmp(&a.fp_hardness_score)
+                    .unwrap_or(std::cmp::Ordering::Equal)
+            })
+            .then_with(|| a.id.cmp(&b.id))
+    });
+
+    let mut kept: Vec<NegativeAnnotationRegion> = Vec::with_capacity(initial_len);
+    for candidate in regions {
+        let cb = candidate.resolve_pixels(img_w, img_h);
+        let overlaps_kept = kept.iter().any(|k| {
+            let kb = k.resolve_pixels(img_w, img_h);
+            compute_box_iou(cb, kb) >= iou_threshold
+        });
+        if !overlaps_kept {
+            kept.push(candidate);
+        }
+    }
+
+    let suppressed = initial_len.saturating_sub(kept.len());
+    (kept, suppressed)
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RegionVerificationMetric {
     pub region_id: String,

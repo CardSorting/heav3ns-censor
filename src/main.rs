@@ -175,12 +175,15 @@ enum Commands {
     /// Re-run verification and Markdown/HTML/JSONL report generation across the ledger
     SyncReports,
 
-    /// Export a HuggingFace / JSONL dataset manifest (`ledger/dataset_manifest.jsonl`), MS-COCO JSON (`ledger/annotations_coco.json`), and Dataset Card (`ledger/DATASET_CARD.md`) with positive & hard-negative bounding boxes
+    /// Export a HuggingFace / JSONL dataset manifest (`ledger/dataset_manifest.jsonl`), MS-COCO JSON (`ledger/annotations_coco.json`), VLM SFT/DPO JSONL, and Dataset Card (`ledger/DATASET_CARD.md`) with positive & hard-negative bounding boxes
     ExportDataset {
         /// Export only compliance-verified training records (`Verified` and `ApprovedOriginal`), excluding `Escalated` or pending items
         #[arg(long)]
         safe_only: bool,
     },
+
+    /// Run a comprehensive Dataset Health & False-Positive Risk Audit across all positive & hard-negative annotations (`dataset-audit`)
+    DatasetAudit,
 
     /// Annotate verified benign / hard-negative regions on an asset (`annotate-negative`) without modifying any pixels, preventing false positives in downstream ML/VLM classifiers
     AnnotateNegative {
@@ -572,6 +575,7 @@ fn main() -> Result<()> {
                     "dataset_manifest_jsonl": workspace.dataset_manifest_jsonl_file(),
                     "coco_annotations_json": workspace.coco_annotations_json_file(),
                     "vlm_safety_sft_jsonl": workspace.vlm_sft_jsonl_file(),
+                    "vlm_safety_dpo_jsonl": workspace.vlm_dpo_jsonl_file(),
                     "dataset_card_md": workspace.dataset_card_md_file()
                 }))?
             );
@@ -579,6 +583,10 @@ fn main() -> Result<()> {
         Commands::ExportDataset { safe_only } => {
             let report = workspace.export_dataset(safe_only)?;
             println!("{}", serde_json::to_string_pretty(&report)?);
+        }
+        Commands::DatasetAudit => {
+            let audit = workspace.dataset_audit()?;
+            println!("{}", serde_json::to_string_pretty(&audit)?);
         }
         Commands::AnnotateNegative {
             asset_id,
@@ -1043,14 +1051,18 @@ mod tests {
             "ApprovedOriginal asset must auto-mine benign hard-negative hotspots"
         );
 
-        // 2. Explicitly annotate a verified benign confuser region via annotate_negative
-        let custom_neg = parse_negative_shorthand(
+        // 2. Explicitly annotate two verified benign confuser regions via annotate_negative
+        let custom_neg1 = parse_negative_shorthand(
             "neg_custom=280,140,440,720:pixels:rect:classical_dorsal_silhouette:Stylized dorsal anatomy with zero explicit detail",
             0,
         )?;
+        let custom_neg2 = parse_negative_shorthand(
+            "neg_rimlight=60,80,180,220:pixels:rect:warm_rimlight_gradient:Benign warm lighting gradient",
+            1,
+        )?;
         let updated_art = ws.annotate_negative(
             &ingested[1].asset_id,
-            vec![custom_neg],
+            vec![custom_neg1, custom_neg2],
             true,
             Vec::new(),
             false,
@@ -1143,14 +1155,66 @@ mod tests {
             .iter()
             .any(|c| c.check_name.starts_with("annotation_polarity_conflict:") && c.passed));
 
-        // 4. Verify VLM Safety SFT JSONL export
+        // 4. Verify VLM Safety SFT & DPO JSONL export + Dataset Health Audit
         let ds = ws.export_dataset(true)?;
         assert!(std::path::Path::new(&ds.vlm_sft_jsonl_path).exists());
+        assert!(std::path::Path::new(&ds.vlm_dpo_jsonl_path).exists());
         let sft_raw = std::fs::read_to_string(&ds.vlm_sft_jsonl_path)?;
         assert!(sft_raw.contains("verified_benign_hard_negatives"));
         assert!(sft_raw.contains("fp_hardness_score"));
+        let dpo_raw = std::fs::read_to_string(&ds.vlm_dpo_jsonl_path)?;
+        assert!(dpo_raw.contains("FALSE_POSITIVE_HALLUCINATION"));
+
+        let audit = ws.dataset_audit()?;
+        assert!(audit.label_hygiene_checks.zero_polarity_collisions);
+        assert!(audit.label_hygiene_checks.zero_nms_duplicates);
+        assert!(audit.label_hygiene_checks.zero_exterior_pixel_drift);
+        assert!(audit.overall_curation_health_score >= 85.0);
 
         let _ = std::fs::remove_dir_all(&tmp_ws);
+        Ok(())
+    }
+
+    #[test]
+    fn test_nms_deduplication_suppresses_redundant_overlapping_hard_negatives() -> Result<()> {
+        let n1 = NegativeAnnotationRegion {
+            id: "auto_neg_1".to_string(),
+            label: "auto_1".to_string(),
+            rationale: "Auto-mined".to_string(),
+            confuser_category: "skin_tone_anatomical_silhouette".to_string(),
+            fp_hardness_score: 65.0,
+            x: 200.0,
+            y: 200.0,
+            width: 120.0,
+            height: 120.0,
+            unit: CoordinateUnit::Pixels,
+            shape: RegionShape::Rect,
+        };
+        let n2 = NegativeAnnotationRegion {
+            id: "neg_human".to_string(),
+            label: "human_verified".to_string(),
+            rationale: "Human verified".to_string(),
+            confuser_category: "composite_skin_and_crease_confuser".to_string(),
+            fp_hardness_score: 55.0,
+            x: 205.0,
+            y: 205.0,
+            width: 120.0,
+            height: 120.0,
+            unit: CoordinateUnit::Pixels,
+            shape: RegionShape::Rect,
+        };
+        let (deduped, suppressed) = models::deduplicate_negative_regions_nms(
+            vec![n1, n2],
+            1000,
+            1000,
+            0.45,
+        );
+        assert_eq!(suppressed, 1);
+        assert_eq!(deduped.len(), 1);
+        assert_eq!(
+            deduped[0].id, "neg_human",
+            "Human-verified negative box must take precedence over overlapping auto_neg box in NMS"
+        );
         Ok(())
     }
 }

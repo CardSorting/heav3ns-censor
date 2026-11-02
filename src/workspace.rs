@@ -1,11 +1,13 @@
 use crate::engine::{
     apply_censorship_regions, detect_candidate_hotspots, evaluate_region_confuser_hardness,
-    generate_inspection_grid, generate_zoom_crop_grid, verify_censored_edition,
+    generate_contact_sheet_with_negatives, generate_inspection_grid, generate_zoom_crop_grid,
+    verify_censored_edition,
 };
 use crate::models::{
-    compute_box_iou, AssetRecord, AssetStatus, AuditEvent, CandidateHotspot,
-    CensorshipClassification, CensorshipRegion, CoordinateUnit, DoctorCheck, DoctorReport,
-    EscalationInfo, Ledger, NegativeAnnotationRegion, RegionShape, VerificationReport,
+    compute_box_iou, deduplicate_negative_regions_nms, AssetRecord, AssetStatus, AuditEvent,
+    CandidateHotspot, CensorshipClassification, CensorshipRegion, CoordinateUnit, DoctorCheck,
+    DoctorReport, EscalationInfo, Ledger, NegativeAnnotationRegion, RegionShape,
+    VerificationReport,
 };
 use crate::policy::recommended_mosaic_block_size;
 use anyhow::{anyhow, Context, Result};
@@ -105,6 +107,7 @@ pub struct WorkspaceStatusSummary {
     pub dataset_manifest_jsonl_path: String,
     pub coco_annotations_json_path: String,
     pub vlm_safety_sft_jsonl_path: String,
+    pub vlm_safety_dpo_jsonl_path: String,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -177,8 +180,43 @@ pub struct DatasetExportReport {
     pub jsonl_manifest_path: String,
     pub coco_annotations_path: String,
     pub vlm_sft_jsonl_path: String,
+    pub vlm_dpo_jsonl_path: String,
     pub dataset_card_path: String,
     pub records: Vec<DatasetExportRow>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct HardnessCurriculumBuckets {
+    pub easy_under_35: usize,
+    pub medium_35_to_70: usize,
+    pub hard_70_plus: usize,
+    pub mean_fp_hardness_score: f32,
+    pub max_fp_hardness_score: f32,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct DatasetHygieneTelemetry {
+    pub zero_polarity_collisions: bool,
+    pub zero_nms_duplicates: bool,
+    pub zero_exterior_pixel_drift: bool,
+    pub all_multiscale_jpeg_verified: bool,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct DatasetHealthAuditReport {
+    pub audited_at: String,
+    pub overall_curation_health_score: f32,
+    pub false_positive_defense_rating: String,
+    pub total_assets: usize,
+    pub safe_training_assets: usize,
+    pub quarantined_assets: usize,
+    pub total_positive_boxes: usize,
+    pub total_hard_negative_boxes: usize,
+    pub hard_negative_to_positive_ratio: f32,
+    pub confuser_taxonomy_distribution: std::collections::BTreeMap<String, usize>,
+    pub hardness_curriculum: HardnessCurriculumBuckets,
+    pub label_hygiene_checks: DatasetHygieneTelemetry,
+    pub recommendations: Vec<String>,
 }
 
 #[derive(Debug, Serialize)]
@@ -331,6 +369,10 @@ impl Workspace {
 
     pub fn vlm_sft_jsonl_file(&self) -> PathBuf {
         self.ledger_dir().join("vlm_safety_sft.jsonl")
+    }
+
+    pub fn vlm_dpo_jsonl_file(&self) -> PathBuf {
+        self.ledger_dir().join("vlm_safety_dpo.jsonl")
     }
 
     pub fn init(&self) -> Result<()> {
@@ -821,6 +863,13 @@ impl Workspace {
             &asset_id,
         )?;
 
+        let (deduped_negs, _) = deduplicate_negative_regions_nms(
+            std::mem::take(&mut record.negative_regions),
+            record.width,
+            record.height,
+            0.45,
+        );
+        record.negative_regions = deduped_negs;
         record.classification = Some(classification);
         record.regions = effective_regions.clone();
         let pos_boxes: Vec<(u32, u32, u32, u32)> = effective_regions
@@ -828,20 +877,22 @@ impl Workspace {
             .map(|r| r.resolve_enclosing_aabb(record.width, record.height))
             .collect();
 
-        // Polarity De-Confliction: automatically prune any hard-negative regions that overlap active positive regions (IoU >= 0.20)
+        // Polarity De-Confliction: automatically prune any hard-negative regions that overlap active positive regions
+        // (strictly > 0.0 for auto-mined hotspots, >= 0.20 for human-annotated negative boxes)
         record.negative_regions.retain(|nr| {
             let nb = nr.resolve_pixels(record.width, record.height);
-            !pos_boxes.iter().any(|&pb| compute_box_iou(nb, pb) >= 0.20)
+            let thresh = if nr.id.starts_with("auto_neg") { 0.001 } else { 0.20 };
+            !pos_boxes.iter().any(|&pb| compute_box_iou(nb, pb) >= thresh)
         });
 
         // Auto-mine unredacted high-frequency hotspots as verified benign hard-negatives if none remain
         if record.negative_regions.is_empty() {
-            let hotspots = detect_candidate_hotspots(&orig_rgba, 4);
+            let hotspots = detect_candidate_hotspots(&orig_rgba, 8);
             let mut auto_idx = 1usize;
             for hs in hotspots {
                 let overlaps_pos = pos_boxes
                     .iter()
-                    .any(|&pb| compute_box_iou(hs.pixel_bounds, pb) >= 0.10);
+                    .any(|&pb| compute_box_iou(hs.pixel_bounds, pb) > 0.0);
                 if !overlaps_pos {
                     record.negative_regions.push(NegativeAnnotationRegion {
                         id: format!("auto_neg_{}", auto_idx),
@@ -857,6 +908,9 @@ impl Workspace {
                         shape: RegionShape::Rect,
                     });
                     auto_idx += 1;
+                    if auto_idx > 3 {
+                        break;
+                    }
                 }
             }
         }
@@ -868,6 +922,35 @@ impl Workspace {
             if nr.confuser_category.is_empty() || nr.confuser_category == "benign_artistic_feature" {
                 nr.confuser_category = cat;
             }
+        }
+        let (deduped_negs, _) = deduplicate_negative_regions_nms(
+            std::mem::take(&mut record.negative_regions),
+            record.width,
+            record.height,
+            0.45,
+        );
+        record.negative_regions = deduped_negs;
+
+        // Re-render 4-Panel Broadcast QC Contact Slate so Panel 1 displays BOTH Positive (Cyan) & Hard-Negative (Green) contours
+        let p540_path = self
+            .previews_dir()
+            .join(format!("{}_pub_540p_thumb.jpg", asset_id));
+        if let Ok(p540_img) = image::open(&p540_path) {
+            let contact_sheet = generate_contact_sheet_with_negatives(
+                &orig_rgba,
+                &censored_rgba,
+                &p540_img.to_rgba8(),
+                &effective_regions,
+                &record.negative_regions,
+                &asset_id,
+                &record.policy_profile,
+                report.non_censored_pixel_diff_count,
+                report.overall_passed,
+            );
+            let contact_path = self
+                .previews_dir()
+                .join(format!("{}_contact_sheet.png", asset_id));
+            let _ = contact_sheet.save(&contact_path);
         }
         record.escalation = None;
         record.published_edition_path = Some(pub_path.to_string_lossy().to_string());
@@ -990,6 +1073,13 @@ impl Workspace {
             }
         }
 
+        let (deduped_negs, _) = deduplicate_negative_regions_nms(
+            std::mem::take(&mut record.negative_regions),
+            record.width,
+            record.height,
+            0.45,
+        );
+        record.negative_regions = deduped_negs;
         record.classification = Some(classification);
         record.regions.clear();
         record.verification = None;
@@ -1089,11 +1179,11 @@ impl Workspace {
         }
 
         if auto_mine_hotspots {
-            let hotspots = detect_candidate_hotspots(&orig_rgba, 4);
+            let hotspots = detect_candidate_hotspots(&orig_rgba, 8);
             for hs in hotspots {
                 let overlaps_pos = pos_boxes
                     .iter()
-                    .any(|&pb| compute_box_iou(hs.pixel_bounds, pb) >= 0.15);
+                    .any(|&pb| compute_box_iou(hs.pixel_bounds, pb) > 0.0);
                 let overlaps_existing_neg = effective_negs.iter().any(|nr| {
                     compute_box_iou(hs.pixel_bounds, nr.resolve_pixels(record.width, record.height))
                         >= 0.25
@@ -1138,19 +1228,50 @@ impl Workspace {
                 nr.confuser_category = auto_cat;
             }
         }
+        let (effective_negs, nms_suppressed) =
+            deduplicate_negative_regions_nms(effective_negs, record.width, record.height, 0.45);
 
         record.negative_regions = effective_negs;
+
+        // If asset is Verified and has a 4-Panel QC Contact Slate, refresh Panel 1 to show the updated green Hard-Negative contours
+        if let (Some(pub_path_str), Some(ver)) = (&record.published_edition_path, &record.verification) {
+            if let Ok(pub_img) = image::open(pub_path_str) {
+                let p540_path = self
+                    .previews_dir()
+                    .join(format!("{}_pub_540p_thumb.jpg", asset_id));
+                let p540_rgba = image::open(&p540_path)
+                    .map(|i| i.to_rgba8())
+                    .unwrap_or_else(|_| pub_img.to_rgba8());
+                let contact_sheet = generate_contact_sheet_with_negatives(
+                    &orig_rgba,
+                    &pub_img.to_rgba8(),
+                    &p540_rgba,
+                    &record.regions,
+                    &record.negative_regions,
+                    &asset_id,
+                    &record.policy_profile,
+                    ver.non_censored_pixel_diff_count,
+                    ver.overall_passed,
+                );
+                let contact_path = self
+                    .previews_dir()
+                    .join(format!("{}_contact_sheet.png", asset_id));
+                let _ = contact_sheet.save(&contact_path);
+            }
+        }
+
         record.updated_at = Utc::now();
         record.audit_trail.push(AuditEvent {
             timestamp: Utc::now(),
             action: "ANNOTATE_HARD_NEGATIVE_REGIONS".to_string(),
             actor: "Deputy Gemini".to_string(),
             details: format!(
-                "Updated verified benign hard-negative annotations (count={}, append={}, auto_mine={}, skipped_polarity_conflicts={})",
+                "Updated verified benign hard-negative annotations (count={}, append={}, auto_mine={}, skipped_polarity_conflicts={}, nms_suppressed={})",
                 record.negative_regions.len(),
                 append,
                 auto_mine_hotspots,
-                skipped_polarity_conflicts
+                skipped_polarity_conflicts,
+                nms_suppressed
             ),
         });
 
@@ -1414,8 +1535,8 @@ impl Workspace {
                 });
             }
 
-            // Data Annotation Polarity Hygiene: ensure zero positive/negative IoU >= 0.20 collisions
-            if !rec.regions.is_empty() && !rec.negative_regions.is_empty() {
+            // Data Annotation Polarity & NMS Deduplication Hygiene
+            if !rec.negative_regions.is_empty() {
                 let pos_boxes: Vec<(u32, u32, u32, u32)> = rec
                     .regions
                     .iter()
@@ -1429,23 +1550,30 @@ impl Workspace {
                         pos_boxes.iter().any(|&pb| compute_box_iou(nb, pb) >= 0.20)
                     })
                     .count();
+                let (_, nms_dup_count) = deduplicate_negative_regions_nms(
+                    rec.negative_regions.clone(),
+                    rec.width,
+                    rec.height,
+                    0.45,
+                );
+                let annotation_ok = conflict_count == 0 && nms_dup_count == 0;
                 checks.push(DoctorCheck {
                     check_name: format!("annotation_polarity_conflict:{}", id),
-                    passed: conflict_count == 0,
-                    details: if conflict_count == 0 {
+                    passed: annotation_ok,
+                    details: if annotation_ok {
                         format!(
-                            "Zero positive/hard-negative IoU collisions ({} pos, {} hard-neg boxes).",
+                            "Zero positive/hard-negative IoU collisions & zero NMS duplicates ({} pos, {} hard-neg boxes).",
                             rec.regions.len(),
                             rec.negative_regions.len()
                         )
                     } else {
                         hints.push(format!(
-                            "Run `heav3ns-censor annotate-negative --asset-id {} --append` or `doctor --fix` to prune conflicting polarity boxes.",
+                            "Run `heav3ns-censor annotate-negative --asset-id {} --append` or `doctor --fix` to prune conflicting/duplicate boxes.",
                             id
                         ));
                         format!(
-                            "Found {} hard-negative box(es) overlapping positive intervention regions (IoU >= 0.20)!",
-                            conflict_count
+                            "Found {} polarity collision(s) (IoU >= 0.20) and {} NMS duplicate(s) (IoU >= 0.45)!",
+                            conflict_count, nms_dup_count
                         )
                     },
                 });
@@ -1589,6 +1717,173 @@ impl Workspace {
             dataset_manifest_jsonl_path: self.dataset_manifest_jsonl_file().to_string_lossy().to_string(),
             coco_annotations_json_path: self.coco_annotations_json_file().to_string_lossy().to_string(),
             vlm_safety_sft_jsonl_path: self.vlm_sft_jsonl_file().to_string_lossy().to_string(),
+            vlm_safety_dpo_jsonl_path: self.vlm_dpo_jsonl_file().to_string_lossy().to_string(),
+        })
+    }
+
+    /// Runs a comprehensive Dataset Curation & False-Positive Risk Audit (`dataset-audit`),
+    /// mirroring Roboflow Dataset Health Check, Cleanlab Studio, and Voxel51 FiftyOne Brain.
+    pub fn dataset_audit(&self) -> Result<DatasetHealthAuditReport> {
+        let ledger = self.load_ledger()?;
+        let mut safe_training_assets = 0usize;
+        let mut quarantined_assets = 0usize;
+        let mut total_positive_boxes = 0usize;
+        let mut total_hard_negative_boxes = 0usize;
+        let mut taxonomy = std::collections::BTreeMap::new();
+
+        let mut easy_under_35 = 0usize;
+        let mut medium_35_to_70 = 0usize;
+        let mut hard_70_plus = 0usize;
+        let mut hardness_sum = 0.0f32;
+        let mut max_hardness = 0.0f32;
+
+        let mut zero_polarity_collisions = true;
+        let mut zero_nms_duplicates = true;
+        let mut zero_exterior_pixel_drift = true;
+        let mut all_multiscale_jpeg_verified = true;
+
+        for rec in ledger.assets.values() {
+            match rec.status {
+                AssetStatus::Verified | AssetStatus::ApprovedOriginal => {
+                    if rec.published_edition_path.is_some() {
+                        safe_training_assets += 1;
+                    }
+                }
+                AssetStatus::Escalated => {
+                    quarantined_assets += 1;
+                }
+                _ => {}
+            }
+
+            if let Some(v) = &rec.verification {
+                if !v.artistic_preservation_exact || v.non_censored_pixel_diff_count > 0 {
+                    zero_exterior_pixel_drift = false;
+                }
+                if !v.overall_passed
+                    || v.region_metrics
+                        .iter()
+                        .any(|m| !m.survives_publication_resize)
+                {
+                    all_multiscale_jpeg_verified = false;
+                }
+            }
+
+            let pos_boxes: Vec<(u32, u32, u32, u32)> = rec
+                .regions
+                .iter()
+                .map(|r| r.resolve_enclosing_aabb(rec.width, rec.height))
+                .collect();
+            total_positive_boxes += rec.regions.len();
+            total_hard_negative_boxes += rec.negative_regions.len();
+
+            let (_, nms_dups) = deduplicate_negative_regions_nms(
+                rec.negative_regions.clone(),
+                rec.width,
+                rec.height,
+                0.45,
+            );
+            if nms_dups > 0 {
+                zero_nms_duplicates = false;
+            }
+
+            for nr in &rec.negative_regions {
+                let nb = nr.resolve_pixels(rec.width, rec.height);
+                if pos_boxes.iter().any(|&pb| compute_box_iou(nb, pb) >= 0.20) {
+                    zero_polarity_collisions = false;
+                }
+                *taxonomy.entry(nr.confuser_category.clone()).or_insert(0) += 1;
+                let h = nr.fp_hardness_score;
+                hardness_sum += h;
+                if h > max_hardness {
+                    max_hardness = h;
+                }
+                if h < 35.0 {
+                    easy_under_35 += 1;
+                } else if h < 70.0 {
+                    medium_35_to_70 += 1;
+                } else {
+                    hard_70_plus += 1;
+                }
+            }
+        }
+
+        let mean_fp_hardness_score = if total_hard_negative_boxes > 0 {
+            ((hardness_sum / total_hard_negative_boxes as f32) * 10.0).round() / 10.0
+        } else {
+            0.0
+        };
+
+        let hard_negative_to_positive_ratio = if total_positive_boxes > 0 {
+            ((total_hard_negative_boxes as f32 / total_positive_boxes as f32) * 100.0).round()
+                / 100.0
+        } else if total_hard_negative_boxes > 0 {
+            1.0
+        } else {
+            0.0
+        };
+
+        let mut score = 100.0f32;
+        let mut recommendations = Vec::new();
+        if !zero_polarity_collisions {
+            score -= 25.0;
+            recommendations.push("Run `heav3ns-censor doctor --fix` to resolve positive/hard-negative IoU polarity collisions.".to_string());
+        }
+        if !zero_nms_duplicates {
+            score -= 10.0;
+            recommendations.push("Run `heav3ns-censor annotate-negative --asset-id <ID> --append` to deduplicate overlapping hard-negative boxes via NMS.".to_string());
+        }
+        if !zero_exterior_pixel_drift {
+            score -= 30.0;
+            recommendations.push("CRITICAL: Exterior pixel drift detected; re-run `execute` to restore 100% bit-exact preservation.".to_string());
+        }
+        if hard_negative_to_positive_ratio < 1.0 && total_positive_boxes > 0 {
+            score -= 12.0;
+            recommendations.push(format!(
+                "Increase verified benign hard-negative coverage (current ratio {:.2}:1; recommended >= 1.0:1) using `annotate-negative --auto-mine-hotspots`.",
+                hard_negative_to_positive_ratio
+            ));
+        } else {
+            recommendations.push(format!(
+                "Contrastive hard-negative coverage is strong ({:.2}:1 hard-negative to positive box ratio; mean confuser hardness {:.1}/100). Ready for false-positive-resistant detector & VLM training.",
+                hard_negative_to_positive_ratio, mean_fp_hardness_score
+            ));
+        }
+
+        let false_positive_defense_rating =
+            if score >= 95.0 && hard_negative_to_positive_ratio >= 1.0 {
+                "ZENITH_CONTRASTIVE_COVERAGE"
+            } else if score >= 80.0 {
+                "ADEQUATE_CONTRASTIVE_COVERAGE"
+            } else {
+                "NEEDS_MORE_HARD_NEGATIVES"
+            }
+            .to_string();
+
+        Ok(DatasetHealthAuditReport {
+            audited_at: Utc::now().to_rfc3339(),
+            overall_curation_health_score: score.clamp(0.0, 100.0),
+            false_positive_defense_rating,
+            total_assets: ledger.assets.len(),
+            safe_training_assets,
+            quarantined_assets,
+            total_positive_boxes,
+            total_hard_negative_boxes,
+            hard_negative_to_positive_ratio,
+            confuser_taxonomy_distribution: taxonomy,
+            hardness_curriculum: HardnessCurriculumBuckets {
+                easy_under_35,
+                medium_35_to_70,
+                hard_70_plus,
+                mean_fp_hardness_score,
+                max_fp_hardness_score: max_hardness,
+            },
+            label_hygiene_checks: DatasetHygieneTelemetry {
+                zero_polarity_collisions,
+                zero_nms_duplicates,
+                zero_exterior_pixel_drift,
+                all_multiscale_jpeg_verified,
+            },
+            recommendations,
         })
     }
 
@@ -2153,11 +2448,11 @@ impl Workspace {
                         .iter()
                         .map(|r| r.resolve_enclosing_aabb(rec.width, rec.height))
                         .collect();
-                    let hotspots = detect_candidate_hotspots(&orig_rgba, 3);
+                    let hotspots = detect_candidate_hotspots(&orig_rgba, 6);
                     for (idx, hs) in hotspots.into_iter().enumerate() {
                         let overlaps_pos = pos_boxes
                             .iter()
-                            .any(|&pb| compute_box_iou(hs.pixel_bounds, pb) >= 0.15);
+                            .any(|&pb| compute_box_iou(hs.pixel_bounds, pb) > 0.0);
                         if !overlaps_pos {
                             effective_negs.push(NegativeAnnotationRegion {
                                 id: format!("auto_neg_{}", idx + 1),
@@ -2274,6 +2569,8 @@ impl Workspace {
 
         let mut jsonl_buf = String::new();
         let mut sft_buf = String::new();
+        let mut dpo_buf = String::new();
+        let prompt_str = "<image>\nPerform localized safety grounding and false-positive confuser triage in Normalized1000 [x1, y1, x2, y2] coordinates. Distinguish explicit anatomical regions requiring surgical intervention (class_id=1) from verified benign artistic silhouettes, skin-tone gradients, and linework confusers that must be preserved untouched to prevent false positives (class_id=0).";
         for row in &rows {
             if let Ok(line) = serde_json::to_string(row) {
                 jsonl_buf.push_str(&line);
@@ -2329,7 +2626,7 @@ impl Workspace {
                 "conversations": [
                     {
                         "from": "human",
-                        "value": "<image>\nPerform localized safety grounding and false-positive confuser triage in Normalized1000 [x1, y1, x2, y2] coordinates. Distinguish explicit anatomical regions requiring surgical intervention (class_id=1) from verified benign artistic silhouettes, skin-tone gradients, and linework confusers that must be preserved untouched to prevent false positives (class_id=0)."
+                        "value": prompt_str
                     },
                     {
                         "from": "gpt",
@@ -2341,9 +2638,42 @@ impl Workspace {
                 sft_buf.push_str(&sft_line);
                 sft_buf.push('\n');
             }
+
+            // Build Direct Preference Optimization (DPO) Contrastive Pair (`chosen` = accurate false-positive-free triage, `rejected` = naive over-censoring false positive)
+            let mut hallucinated_pos = pos_list.clone();
+            for a in row.annotations.iter().filter(|a| a.class_id == 0) {
+                hallucinated_pos.push(serde_json::json!({
+                    "region_id": a.region_id,
+                    "label": format!("FALSE_POSITIVE_HALLUCINATION:{}", a.label),
+                    "bbox_norm1000": a.bbox_xyxy_norm1000,
+                    "shape": a.shape,
+                    "treatment_method": "mosaic",
+                    "rationale": "Naive classifier false positive triggered by benign skin-tone gradient or artistic contour"
+                }));
+            }
+            let rejected_answer = serde_json::json!({
+                "status": "verified",
+                "classification": "explicit_requires_intervention",
+                "curation_action": "over_censored_false_positive_failure",
+                "is_safe_for_training_release": false,
+                "positive_interventions": hallucinated_pos,
+                "verified_benign_hard_negatives": []
+            });
+            let dpo_record = serde_json::json!({
+                "id": row.asset_id,
+                "image": row.original_path,
+                "prompt": prompt_str,
+                "chosen": serde_json::to_string(&assistant_answer).unwrap_or_default(),
+                "rejected": serde_json::to_string(&rejected_answer).unwrap_or_default()
+            });
+            if let Ok(dpo_line) = serde_json::to_string(&dpo_record) {
+                dpo_buf.push_str(&dpo_line);
+                dpo_buf.push('\n');
+            }
         }
         atomic_write_bytes(&self.dataset_manifest_jsonl_file(), jsonl_buf.as_bytes())?;
         atomic_write_bytes(&self.vlm_sft_jsonl_file(), sft_buf.as_bytes())?;
+        atomic_write_bytes(&self.vlm_dpo_jsonl_file(), dpo_buf.as_bytes())?;
 
         // Write MS-COCO Object Detection & Hard-Negative JSON (`ledger/annotations_coco.json`)
         let coco_doc = serde_json::json!({
@@ -2404,6 +2734,7 @@ impl Workspace {
             jsonl_manifest_path: self.dataset_manifest_jsonl_file().to_string_lossy().to_string(),
             coco_annotations_path: self.coco_annotations_json_file().to_string_lossy().to_string(),
             vlm_sft_jsonl_path: self.vlm_sft_jsonl_file().to_string_lossy().to_string(),
+            vlm_dpo_jsonl_path: self.vlm_dpo_jsonl_file().to_string_lossy().to_string(),
             dataset_card_path: self.dataset_card_md_file().to_string_lossy().to_string(),
             records: rows,
         })
@@ -2604,8 +2935,34 @@ impl Workspace {
                 ));
             }
 
+            let mut overlay_boxes_html = String::new();
+            let w_f = rec.width.max(1) as f32;
+            let h_f = rec.height.max(1) as f32;
+            for r in &rec.regions {
+                let (bx, by, bw, bh) = r.resolve_enclosing_aabb(rec.width, rec.height);
+                let l_pct = (bx as f32 / w_f) * 100.0;
+                let t_pct = (by as f32 / h_f) * 100.0;
+                let w_pct = (bw as f32 / w_f) * 100.0;
+                let h_pct = (bh as f32 / h_f) * 100.0;
+                overlay_boxes_html.push_str(&format!(
+                    r#"<div class="ov-box ov-pos" style="left:{:.2}%;top:{:.2}%;width:{:.2}%;height:{:.2}%"><span class="ov-tag pos-tag">POS:{} ({})</span></div>"#,
+                    l_pct, t_pct, w_pct, h_pct, r.id, r.label
+                ));
+            }
+            for nr in &rec.negative_regions {
+                let (nx, ny, nw, nh) = nr.resolve_pixels(rec.width, rec.height);
+                let l_pct = (nx as f32 / w_f) * 100.0;
+                let t_pct = (ny as f32 / h_f) * 100.0;
+                let w_pct = (nw as f32 / w_f) * 100.0;
+                let h_pct = (nh as f32 / h_f) * 100.0;
+                overlay_boxes_html.push_str(&format!(
+                    r#"<div class="ov-box ov-neg" style="left:{:.2}%;top:{:.2}%;width:{:.2}%;height:{:.2}%"><span class="ov-tag neg-tag">NEG:{} • H:{:.1}</span></div>"#,
+                    l_pct, t_pct, w_pct, h_pct, nr.id, nr.fp_hardness_score
+                ));
+            }
+
             cards.push_str(&format!(
-                r#"<div class="card" data-status="{status_class}" data-id="{id}" data-w="{w}" data-h="{h}" data-mode="{initial_mode}" data-search="{id} {orig_name} {status_class}">
+                r#"<div class="card" data-status="{status_class}" data-id="{id}" data-w="{w}" data-h="{h}" data-mode="{initial_mode}" data-boxes-visible="true" data-search="{id} {orig_name} {status_class}">
                     <div class="card-header">
                         <div>
                             <h3><code>{id}</code></h3>
@@ -2622,6 +2979,7 @@ impl Workspace {
                         <button class="vtab" onclick="switchImg(this, '{grid_rel}', 'single')">[5] VLM Coordinate Grid</button>
                         <button class="vtab" onclick="switchImg(this, '{orig_rel}', 'single')">[6] Untouched Original</button>
                         <button class="vtab ab-btn" onclick="toggleAbCompare(this)" title="Press 'o' to A/B toggle between Published Edition [2] and Untouched Original [6]">[o] A/B Compare Original</button>
+                        <button class="vtab box-btn" onclick="toggleBoxOverlays(this)" title="Press 'b' to toggle Positive (Cyan) &amp; Hard-Negative (Green) vector grounding boxes on single-image tabs">[b] Grounding Boxes</button>
                     </div>
                     <div class="coord-hud" data-cmd-type="mosaic">
                         <div class="hud-left">
@@ -2642,6 +3000,7 @@ impl Workspace {
                     </div>
                     <div class="preview-wrap" onmousemove="onPreviewMove(event, this)" onmousedown="onPreviewDown(event, this)" onmouseup="onPreviewUp(event, this)">
                         <img src="{contact_rel}" alt="{id}" loading="lazy" draggable="false" />
+                        <div class="grounding-overlay" style="display:{initial_ov_display}">{overlay_boxes_html}</div>
                         <div class="sel-box"></div>
                     </div>
                     <details class="audit-log">
@@ -2655,6 +3014,8 @@ impl Workspace {
                 w = rec.width,
                 h = rec.height,
                 initial_mode = if rec.verification.is_some() { "slate" } else { "single" },
+                initial_ov_display = if rec.verification.is_some() { "none" } else { "block" },
+                overlay_boxes_html = overlay_boxes_html,
                 policy = rec.policy_profile,
                 sha = &rec.sha256_original[0..16],
                 status_label = status_label,
@@ -2920,6 +3281,35 @@ impl Workspace {
     pointer-events: none;
     display: none;
   }}
+  .grounding-overlay {{
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+  }}
+  .ov-box {{
+    position: absolute;
+    pointer-events: none;
+  }}
+  .ov-pos {{
+    border: 2px solid var(--cyan);
+    background: rgba(0, 255, 213, 0.08);
+  }}
+  .ov-neg {{
+    border: 2px dashed var(--green);
+    background: rgba(63, 185, 80, 0.10);
+  }}
+  .ov-tag {{
+    position: absolute;
+    top: -18px;
+    left: -1px;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 1px 5px;
+    border-radius: 3px;
+    white-space: nowrap;
+  }}
+  .pos-tag {{ background: #091318; color: var(--cyan); border: 1px solid var(--cyan); }}
+  .neg-tag {{ background: #09180e; color: var(--green); border: 1px solid var(--green); }}
   .audit-log {{ margin-top: 12px; font-size: 12px; color: var(--muted); }}
   .audit-log summary {{ cursor: pointer; user-select: none; }}
   .audit-log ul {{ margin: 8px 0 0 0; padding-left: 18px; line-height: 1.6; }}
@@ -3005,6 +3395,10 @@ impl Workspace {
         e.preventDefault();
         const abBtn = hoveredCard.querySelector('.ab-btn');
         if (abBtn) toggleAbCompare(abBtn);
+      }} else if (hoveredCard && (e.key === 'b' || e.key === 'B')) {{
+        e.preventDefault();
+        const boxBtn = hoveredCard.querySelector('.box-btn');
+        if (boxBtn) toggleBoxOverlays(boxBtn);
       }} else if (hoveredCard && e.key >= '1' && e.key <= '6') {{
         const idx = parseInt(e.key, 10) - 1;
         const tabs = hoveredCard.querySelectorAll('.vtab');
@@ -3022,6 +3416,15 @@ impl Workspace {
       }}
     }}
 
+    function toggleBoxOverlays(btn) {{
+      const card = btn.closest('.card');
+      const ov = card.querySelector('.grounding-overlay');
+      if (!ov) return;
+      const vis = card.dataset.boxesVisible !== 'false';
+      card.dataset.boxesVisible = vis ? 'false' : 'true';
+      ov.style.display = (!vis && card.dataset.mode === 'single') ? 'block' : 'none';
+    }}
+
     function switchImg(btn, src, mode) {{
       const card = btn.closest('.card');
       card.dataset.mode = mode;
@@ -3029,6 +3432,10 @@ impl Workspace {
       btn.classList.add('active');
       card.querySelector('.preview-wrap img').src = src;
       card.querySelector('.sel-box').style.display = 'none';
+      const ov = card.querySelector('.grounding-overlay');
+      if (ov) {{
+        ov.style.display = (mode === 'single' && card.dataset.boxesVisible !== 'false') ? 'block' : 'none';
+      }}
     }}
 
     function mapClientToAssetCoords(e, wrap) {{

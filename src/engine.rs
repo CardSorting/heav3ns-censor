@@ -1,6 +1,6 @@
 use crate::models::{
     CandidateHotspot, CensorshipMethod, CensorshipRegion, CoordinateUnit,
-    RegionShape, RegionVerificationMetric, VerificationReport,
+    NegativeAnnotationRegion, RegionShape, RegionVerificationMetric, VerificationReport,
 };
 use crate::policy::recommended_mosaic_block_size;
 use anyhow::{Context, Result};
@@ -973,11 +973,12 @@ pub fn verify_censored_edition(
         && all_regions_passed;
 
     // 4. Generate 4-Panel Broadcast QC Contact Slate
-    let contact_sheet = generate_contact_sheet(
+    let contact_sheet = generate_contact_sheet_with_negatives(
         original,
         censored,
         &redecoded_540,
         regions,
+        &[],
         asset_id,
         policy_id,
         non_censored_diff_count,
@@ -1372,7 +1373,7 @@ pub fn generate_zoom_crop_grid(
     (zoomed, (cx, cy, cw, ch))
 }
 
-/// Generates a 4-Panel Broadcast QC Contact Slate.
+/// Generates a 4-Panel Broadcast QC Contact Slate with both Positive (Cyan) and Hard-Negative (Emerald Green) contours.
 #[allow(clippy::too_many_arguments)]
 pub fn generate_contact_sheet(
     original: &RgbaImage,
@@ -1384,12 +1385,81 @@ pub fn generate_contact_sheet(
     non_censored_diff_count: u64,
     overall_passed: bool,
 ) -> RgbaImage {
+    generate_contact_sheet_with_negatives(
+        original,
+        censored,
+        redecoded_540,
+        regions,
+        &[],
+        asset_id,
+        policy_id,
+        non_censored_diff_count,
+        overall_passed,
+    )
+}
+
+/// Generates a 4-Panel Broadcast QC Contact Slate rendering both Positive Intervention Regions (Cyan `#00FFC8`)
+/// and Verified Benign Hard-Negative Confuser Regions (Emerald Green `#3FD75F`) on Panel 1.
+#[allow(clippy::too_many_arguments)]
+pub fn generate_contact_sheet_with_negatives(
+    original: &RgbaImage,
+    censored: &RgbaImage,
+    redecoded_540: &RgbaImage,
+    regions: &[CensorshipRegion],
+    negative_regions: &[NegativeAnnotationRegion],
+    asset_id: &str,
+    policy_id: &str,
+    non_censored_diff_count: u64,
+    overall_passed: bool,
+) -> RgbaImage {
     let (w, h) = original.dimensions();
     let target_h = h.min(480).max(1);
     let scale = target_h as f32 / h.max(1) as f32;
     let target_w = ((w as f32 * scale).round() as u32).max(1);
 
     let mut orig_boxed = original.clone();
+    // 1A. Draw Verified Benign Hard-Negative Confuser contours in Emerald Green (#3FD75F)
+    for nr in negative_regions {
+        let (rx, ry, rw, rh) = nr.resolve_pixels(w, h);
+        for py in ry..(ry + rh).min(h) {
+            for px in rx..(rx + rw).min(w) {
+                let a = region_mask_alpha(px, py, rx, ry, rw, rh, nr.shape, 0.0, 0);
+                if a > 0.0 {
+                    let n_left = if px > 0 {
+                        region_mask_alpha(px - 1, py, rx, ry, rw, rh, nr.shape, 0.0, 0)
+                    } else {
+                        0.0
+                    };
+                    let n_right = if px + 1 < w {
+                        region_mask_alpha(px + 1, py, rx, ry, rw, rh, nr.shape, 0.0, 0)
+                    } else {
+                        0.0
+                    };
+                    let n_up = if py > 0 {
+                        region_mask_alpha(px, py - 1, rx, ry, rw, rh, nr.shape, 0.0, 0)
+                    } else {
+                        0.0
+                    };
+                    let n_down = if py + 1 < h {
+                        region_mask_alpha(px, py + 1, rx, ry, rw, rh, nr.shape, 0.0, 0)
+                    } else {
+                        0.0
+                    };
+                    if n_left == 0.0 || n_right == 0.0 || n_up == 0.0 || n_down == 0.0 {
+                        // Dashed emerald contour for hard-negative boxes
+                        if ((px + py) / 4) % 2 == 0 {
+                            orig_boxed.put_pixel(px, py, Rgba([63, 215, 95, 255]));
+                            if px + 1 < w {
+                                orig_boxed.put_pixel(px + 1, py, Rgba([63, 215, 95, 255]));
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // 1B. Draw Positive Intervention contours in Cyan (#00FFC8)
     for r in regions {
         let (rx, ry, rw, rh) = r.resolve_pixels(w, h);
         let (bx, by, bw, bh) = r.resolve_enclosing_aabb(w, h);
@@ -1450,17 +1520,34 @@ pub fn generate_contact_sheet(
     let mut p1 = DynamicImage::ImageRgba8(orig_boxed)
         .resize_exact(target_w, target_h, image::imageops::FilterType::Triangle)
         .to_rgba8();
-    for r in regions {
-        let (bx, by, _, _) = r.resolve_enclosing_aabb(w, h);
-        let sx = ((bx as f32 * scale).round() as u32).min(target_w.saturating_sub(24));
+    for nr in negative_regions {
+        let (bx, by, _, _) = nr.resolve_pixels(w, h);
+        let sx = ((bx as f32 * scale).round() as u32).min(target_w.saturating_sub(48));
         let sy = ((by as f32 * scale).round() as u32)
             .saturating_sub(14)
             .max(22);
+        let badge_txt = format!("NEG:{}", nr.id.to_uppercase());
         draw_label_badge(
             &mut p1,
             sx,
             sy,
-            &r.id.to_uppercase(),
+            &badge_txt,
+            Rgba([63, 215, 95, 255]),
+            Rgba([10, 18, 14, 255]),
+        );
+    }
+    for r in regions {
+        let (bx, by, _, _) = r.resolve_enclosing_aabb(w, h);
+        let sx = ((bx as f32 * scale).round() as u32).min(target_w.saturating_sub(36));
+        let sy = ((by as f32 * scale).round() as u32)
+            .saturating_sub(14)
+            .max(22);
+        let badge_txt = format!("POS:{}", r.id.to_uppercase());
+        draw_label_badge(
+            &mut p1,
+            sx,
+            sy,
+            &badge_txt,
             Rgba([0, 255, 200, 255]),
             Rgba([10, 14, 24, 255]),
         );

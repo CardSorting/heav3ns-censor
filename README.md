@@ -8,9 +8,9 @@
 [![Rust 2021](https://img.shields.io/badge/rust-2021_edition-orange.svg)](Cargo.toml)
 [![Version](https://img.shields.io/badge/version-4.0.0-00ffd5.svg)](CHANGELOG.md)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-[![MCP Protocol](https://img.shields.io/badge/MCP-14_tools_stdio-ff328c.svg)](src/mcp.rs)
-[![Dataset Export](https://img.shields.io/badge/dataset_export-JSONL_%7C_MS--COCO_%7C_YOLO-9b59b6.svg)](docs/knowledgebase/03-dataset-cleaning-and-ai-safety-research.md)
-[![False Positive Defense](https://img.shields.io/badge/data_annotation-Hard--Negative_Mining-3fb950.svg)](docs/knowledgebase/03-dataset-cleaning-and-ai-safety-research.md)
+[![MCP Protocol](https://img.shields.io/badge/MCP-15_tools_stdio-ff328c.svg)](src/mcp.rs)
+[![Dataset Export](https://img.shields.io/badge/dataset_export-JSONL_%7C_MS--COCO_%7C_SFT_%7C_DPO-9b59b6.svg)](docs/knowledgebase/03-dataset-cleaning-and-ai-safety-research.md)
+[![False Positive Defense](https://img.shields.io/badge/data_annotation-Hard--Negative_NMS_%2B_Audit-3fb950.svg)](docs/playbooks/PLAYBOOK-05-data-annotation-and-false-positive-suppression.md)
 [![Preservation Invariant](https://img.shields.io/badge/exterior_pixel_diff-0_px_(bit_exact)-3fb950.svg)](docs/whitepaper/TECHNICAL_WHITEPAPER.md)
 
 **[🔬 Dataset & Safety Research](docs/knowledgebase/03-dataset-cleaning-and-ai-safety-research.md)** • **[🎨 Artist & Studio Handoff](docs/stakeholder-handoff/STAKEHOLDER_HANDOFF.md)** • **[🤖 Agent Onboarding](docs/onboarding/AGENT_ONBOARDING.md)** • **[🛠️ Developer Guide](docs/onboarding/DEVELOPER_ONBOARDING.md)** • **[Philosophy](docs/philosophy/PHILOSOPHY.md)** • **[Whitepaper](docs/whitepaper/TECHNICAL_WHITEPAPER.md)** • **[Docs Portal](docs/README.md)** • **[ADRs](docs/adrs/README.md)** • **[Playbooks](docs/playbooks/README.md)** • **[Postmortems](docs/postmortems/README.md)**
@@ -45,12 +45,12 @@ Both **multimodal AI dataset curation** and **digital illustration post-producti
 | :--- | :---: | :---: | :---: | :---: |
 | **Exterior Pixel Preservation** | N/A (Deletes image) | ❌ Corrupts entire canvas via VAE decode | ⚠️ Prone to layer/export drift | ✅ **100% Bit-Exact (`0` diff px outside SDF mask)** |
 | **False-Positive Suppression (Hard-Negatives)** | ❌ High false-positive rate on art/skin | ❌ No negative region labels | ❌ No structured annotations | ✅ **Explicit (`annotate-negative`) + Auto-Mined Hard-Negative Boxes (`class_id: 0`) with Confuser Hardness (`fp_hardness_score`)** |
-| **Label Polarity Conflict Prevention** | ❌ N/A | ❌ N/A | ❌ N/A | ✅ **Cleanlab / FiftyOne Style Automatic Polarity De-Confliction (`IoU < 0.20`) + `doctor` Audit** |
+| **Label Polarity & NMS Hygiene** | ❌ N/A | ❌ N/A | ❌ N/A | ✅ **Cleanlab / FiftyOne Polarity De-Confliction (`IoU < 0.20`) + Hardness-Weighted NMS (`IoU < 0.45`) + `dataset-audit`** |
 | **Preserves Figurative Art Corpora?** | ❌ Purges artistic nudity as false positives | ⚠️ Overwrites original brushwork | ✅ Manual human triage | ✅ **3-Way Triage (`Verified`, `ApprovedOriginal`, `Escalated`)** |
 | **Zero Synthetic Hallucinations** | ✅ | ❌ Injects latent diffusion artifacts | ✅ | ✅ **Deterministic Mathematical Operators Only** |
 | **Multi-Scale `540p` / `1080p` JPEG Proof** | ❌ | ❌ | ❌ Visual guesswork | ✅ **Automated Mean + $P_{95}$ Peak Gradient Verification** |
-| **CVAT / Label Studio / Roboflow / HF / VLM SFT Export** | ❌ | ❌ | ❌ | ✅ **`dataset_manifest.jsonl` + `annotations_coco.json` + `vlm_safety_sft.jsonl` (`COCO` + `Norm1000` + `YOLO`)** |
-| **Autonomous VLM Agent & Studio UX** | ❌ | ❌ | ❌ Manual labor | ✅ **14-Tool MCP Server + Interactive `dashboard.html`** |
+| **CVAT / Label Studio / Roboflow / HF / VLM SFT & DPO Export** | ❌ | ❌ | ❌ | ✅ **`dataset_manifest.jsonl` + `annotations_coco.json` + `vlm_safety_sft.jsonl` + `vlm_safety_dpo.jsonl`** |
+| **Autonomous VLM Agent & Studio UX** | ❌ | ❌ | ❌ Manual labor | ✅ **15-Tool MCP Server + Interactive `dashboard.html` (`[b]` Live Grounding Boxes)** |
 
 ---
 
@@ -204,10 +204,11 @@ Then open **[`ledger/dashboard.html`](ledger/dashboard.html)** in any browser to
 | `inspect --asset-id <id> [--crop <spec>]` | Generates coordinate inspection grid and optional $3\times$ nearest-neighbor zoom-crop with global pixel rulers. |
 | `execute --asset-id <id> --region <spec>` | Applies localized SDF censorship (`--append`, `--remove-region`, `--dry-run`) and verifies multi-scale JPEG survival. |
 | `approve-original --asset-id <id>` | Approves non-explicit artistic nudity untouched (`100%` bit-identical export) + auto-mines hard-negative hotspots. |
-| `annotate-negative --asset-id <id>` | Tags verified benign / hard-negative boxes (`--region`, `--append`, `--auto-mine-hotspots`) with **`0` pixel changes**, `fp_hardness_score`, & automatic `IoU < 0.20` polarity de-confliction. |
+| `annotate-negative --asset-id <id>` | Tags verified benign / hard-negative boxes (`--region`, `--append`, `--auto-mine-hotspots`) with **`0` pixel changes**, `fp_hardness_score`, automatic `IoU < 0.20` polarity de-confliction, & `IoU < 0.45` NMS deduplication. |
+| `dataset-audit` | Runs a **Roboflow / Cleanlab / FiftyOne**-style Dataset Health & False-Positive Risk Audit across all positive and hard-negative annotations. |
 | `escalate --asset-id <id>` | Quarantines ambiguous assets to `ledger/escalations_review.md` and revokes any prior `published/` file. |
-| `export-dataset [--safe-only]` | Exports `ledger/dataset_manifest.jsonl`, MS-COCO `ledger/annotations_coco.json`, VLM SFT `ledger/vlm_safety_sft.jsonl`, and `ledger/DATASET_CARD.md`. |
-| `doctor [--fix]` | Runs the 10-point cryptographic `SHA-256`, bit-exact preservation, escalation-isolation, polarity-hygiene, and orphan-hygiene audit. |
+| `export-dataset [--safe-only]` | Exports `ledger/dataset_manifest.jsonl`, MS-COCO `ledger/annotations_coco.json`, VLM SFT `ledger/vlm_safety_sft.jsonl`, VLM DPO `ledger/vlm_safety_dpo.jsonl`, and `ledger/DATASET_CARD.md`. |
+| `doctor [--fix]` | Runs the 10-point cryptographic `SHA-256`, bit-exact preservation, escalation-isolation, polarity/NMS-hygiene, and orphan-hygiene audit. |
 
 ### Region Shorthand Syntax (`--region`)
 
@@ -228,7 +229,7 @@ Then open **[`ledger/dashboard.html`](ledger/dashboard.html)** in any browser to
 
 ---
 
-## Model Context Protocol (MCP) Server Integration (14 Tools)
+## Model Context Protocol (MCP) Server Integration (15 Tools)
 
 `heav3ns-censor` includes a native JSON-RPC 2.0 `stdio` MCP server (`./target/release/heav3ns-censor mcp`), pre-configured in [`.agents/mcp_config.json`](.agents/mcp_config.json):
 
@@ -237,7 +238,8 @@ Then open **[`ledger/dashboard.html`](ledger/dashboard.html)** in any browser to
 | `heav3ns_onboard` | Returns a role-tailored (`agent`, `researcher`, `developer`, `stakeholder`, `all`) onboarding packet. |
 | `heav3ns_explain_asset` | Returns a complete diagnostic, cryptographic integrity, and handoff explanation card for a single asset. |
 | `heav3ns_annotate_negative` | Annotates verified benign / hard-negative confuser regions (`auto_mine_hotspots: bool`) without altering pixels. |
-| `heav3ns_export_dataset` | Exports `ledger/dataset_manifest.jsonl`, MS-COCO `ledger/annotations_coco.json`, and `ledger/DATASET_CARD.md`. |
+| `heav3ns_dataset_audit` | Runs a Dataset Health & False-Positive Risk Audit returning curation health score, confuser taxonomy, and hardness curriculum buckets. |
+| `heav3ns_export_dataset` | Exports `dataset_manifest.jsonl`, MS-COCO `annotations_coco.json`, `vlm_safety_sft.jsonl`, `vlm_safety_dpo.jsonl`, and `DATASET_CARD.md`. |
 | `heav3ns_status` | Returns pipeline queues, ledger paths, and `next_recommended_action`. |
 | `heav3ns_doctor` | Runs the 9-point cryptographic SHA-256, preservation, and orphan-hygiene audit (`fix: bool`). |
 | `heav3ns_batch_prepare` | Ingests all new `inbox/` files and renders VLM inspection grids + hotspot hints in one call. |
@@ -264,9 +266,9 @@ Then open **[`ledger/dashboard.html`](ledger/dashboard.html)** in any browser to
 
 ---
 
-## Empirical Verification & Benchmark Suite (11 Automated Tests)
+## Empirical Verification & Benchmark Suite (12 Automated Tests)
 
-Run `cargo test --release` to execute all 11 automated mathematical, hard-negative annotation, confuser-hardness, and state-hygiene unit tests:
+Run `cargo test --release` to execute all 12 automated mathematical, hard-negative annotation, confuser-hardness, NMS deduplication, and state-hygiene unit tests:
 
 | Test Suite | Invariant Verified | Status |
 | :--- | :--- | :---: |
@@ -280,7 +282,8 @@ Run `cargo test --release` to execute all 11 automated mathematical, hard-negati
 | `test_incremental_region_append_upsert_remove_and_dry_run` | Verifies `--append`, `id=` in-place upsert, `--remove-region`, `--dry-run`, `onboard`, and `explain` | **PASS** |
 | `test_dataset_cleaning_jsonl_export_and_safety_filtering` | Verifies `export-dataset` (`COCO` + `Normalized1000` + `YOLO` boxes) and `--safe-only` quarantine filtering | **PASS** |
 | `test_hard_negative_annotation_and_coco_export_prevents_false_positives` | Verifies `annotate-negative`, auto-mined benign hotspot IoU filtering, and `annotations_coco.json` export | **PASS** |
-| `test_polarity_conflict_prevention_and_confuser_hardness_scoring` | Verifies automatic `IoU >= 0.20` positive/negative de-confliction, `fp_hardness_score` scoring, and `vlm_safety_sft.jsonl` export | **PASS** |
+| `test_polarity_conflict_prevention_and_confuser_hardness_scoring` | Verifies automatic `IoU >= 0.20` positive/negative de-confliction, `fp_hardness_score` scoring, `dataset-audit`, and `vlm_safety_sft/dpo.jsonl` export | **PASS** |
+| `test_nms_deduplication_suppresses_redundant_overlapping_hard_negatives` | Verifies Hardness-Weighted NMS (`IoU >= 0.45`) prioritizes human-verified hard-negative boxes over redundant `auto_neg` overlaps | **PASS** |
 
 ---
 

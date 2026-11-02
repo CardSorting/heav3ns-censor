@@ -59,13 +59,13 @@ When an entire illustration is a classical silhouette or non-explicit figurative
 - Copies the untouched original bit-identically (`SHA-256` match) to `assets/published/`.
 - Automatically mines and scores the highest-energy contour/silhouette boxes as `verified_benign_hard_negative` (`class_id = 0`) with `fp_hardness_score`.
 
-### Step 3: Interactive Visual Annotation in `ledger/dashboard.html`
+### Step 3: Interactive Visual Annotation & Grounding Overlay in `ledger/dashboard.html`
 1. Open `ledger/dashboard.html` in any browser.
-2. Select **`+ Hard-Negative (Benign)`** in the Coordinate HUD.
-3. Drag a green selection box over any false-positive confuser region on the canvas to generate a ready-to-run `annotate-negative` CLI command.
+2. Click **`[b] Grounding Boxes`** (or press `b` on your keyboard) to toggle live vector overlays showing both **Cyan Positive Redactions (`POS:<id>`)** and **Emerald Green Dashed Benign Hard-Negatives (`NEG:<id> • H:<score>`)** directly over the canvas.
+3. Select **`+ Hard-Negative (Benign)`** in the Coordinate HUD and drag a green selection box over any false-positive confuser region on the canvas to generate a ready-to-run `annotate-negative` CLI command.
 4. Review the **Hard-Negative Confuser Table** on each asset card to inspect `Confuser Taxonomy` and `Confuser Hardness (XX.X / 100)`.
 
-### Step 4: Export Multi-Format Training & Active-Learning Manifests (`export-dataset`)
+### Step 4: Export Multi-Format Training, Active-Learning, & DPO Manifests (`export-dataset`)
 ```bash
 # Export verified safe training split (excludes Escalated assets)
 ./target/release/heav3ns-censor export-dataset --safe-only
@@ -73,15 +73,20 @@ When an entire illustration is a classical silhouette or non-explicit figurative
 # Or export full contrastive benchmark (includes Escalated assets)
 ./target/release/heav3ns-censor export-dataset
 ```
-This deterministically writes four synchronized dataset artifacts in `ledger/`:
+This deterministically writes five synchronized dataset artifacts in `ledger/`:
 1. **`ledger/dataset_manifest.jsonl`**: HuggingFace `datasets` JSON Lines with `bbox_xywh_px` (COCO), `bbox_xyxy_norm1000` (VLM), `bbox_cxcywh_norm01` (YOLO), `confuser_category`, and `fp_hardness_score`.
 2. **`ledger/annotations_coco.json`**: Standard MS-COCO Object Detection JSON (`category_id = 1` for `explicit_intervention_required`, `category_id = 2` for `verified_benign_hard_negative`) ready for **CVAT**, **Label Studio**, **Roboflow**, and **Voxel51 FiftyOne**.
 3. **`ledger/vlm_safety_sft.jsonl`**: ShareGPT / VLM Grounded Safety Instruction-Tuning pairs teaching multimodal models both where to redact (`positive_interventions`) and which high-hardness confusers to leave untouched (`verified_benign_hard_negatives`).
-4. **`ledger/DATASET_CARD.md`**: Auto-generated HuggingFace Dataset Card.
+4. **`ledger/vlm_safety_dpo.jsonl`**: Direct Preference Optimization (`DPO`) contrastive `(prompt, chosen, rejected)` preference triples penalizing false-positive over-censorship (`FALSE_POSITIVE_HALLUCINATION`).
+5. **`ledger/DATASET_CARD.md`**: Auto-generated HuggingFace Dataset Card.
 
-### Step 5: Audit Annotation Hygiene (`doctor --fix`)
+### Step 5: Audit Dataset Health & Annotation Hygiene (`dataset-audit` & `doctor --fix`)
 ```bash
+# Run comprehensive Roboflow / FiftyOne / Cleanlab-style dataset health & false-positive audit
+./target/release/heav3ns-censor dataset-audit
+
+# Verify workspace cryptographic integrity, polarity de-confliction, and Hardness-Weighted NMS (IoU < 0.45)
 ./target/release/heav3ns-censor doctor --fix
 ```
-Verifies `annotation_polarity_conflict:<asset_id>` (`passed == true`), confirming zero positive/hard-negative IoU collisions across the entire workspace.
+Verifies `overall_curation_health_score == 100.0`, `annotation_polarity_conflict:<asset_id>` (`passed == true`), and `negative_nms_deduplication:<asset_id>` (`passed == true`), confirming zero positive/hard-negative IoU collisions and zero redundant overlapping negative boxes across the entire workspace.
 
