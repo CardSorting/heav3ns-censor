@@ -38,26 +38,38 @@
     }
 
     html, body {
-      width: 100%;
-      height: 100%;
+      width: 100vw;
+      height: 100vh;
       background-color: var(--bg-outer);
       color: var(--text-light);
       font-family: var(--font-sans);
       overflow: hidden;
       -webkit-font-smoothing: antialiased;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* PROPORTIONAL 1920x1080 BROADCAST STAGE (ZERO CUTOFF / ZERO OVERLAP AT ANY VIEWPORT) */
+    .stage-scaler {
+      width: 1920px;
+      height: 1080px;
+      transform-origin: center center;
+      flex-shrink: 0;
+      position: relative;
     }
 
     .deck-viewport {
-      width: 100vw;
-      height: 100vh;
+      width: 1920px;
+      height: 1080px;
       display: flex;
       flex-direction: column;
       justify-content: space-between;
-      padding: 12px 24px 14px 24px;
-      max-width: 1920px;
-      margin: 0 auto;
-      border-top: 3px solid var(--green-accent);
+      padding: 18px 32px 20px 32px;
+      background-color: var(--bg-outer);
+      border-top: 4px solid var(--green-accent);
       position: relative;
+      overflow: hidden;
     }
 
     /* TOP BROADCAST BAR */
@@ -65,7 +77,8 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding-bottom: 10px;
+      height: 54px;
+      padding-bottom: 12px;
       border-bottom: 1px solid #1c3d2f;
       flex-shrink: 0;
     }
@@ -73,65 +86,65 @@
     .top-bar-left, .top-bar-right {
       display: flex;
       align-items: center;
-      gap: 12px;
+      gap: 14px;
     }
 
     .badge-brand {
       background: var(--green-pill);
-      border: 1px solid var(--green-accent);
+      border: 1.5px solid var(--green-accent);
       color: #ffffff;
       font-family: var(--font-mono);
-      font-size: 13px;
+      font-size: 15px;
       font-weight: 600;
       letter-spacing: 0.06em;
-      padding: 7px 16px;
-      border-radius: 6px;
+      padding: 9px 20px;
+      border-radius: 7px;
     }
 
     .badge-act {
       background: #0c1d16;
-      border: 1px solid #264236;
+      border: 1.5px solid #264236;
       color: var(--gold-accent);
       font-family: var(--font-mono);
-      font-size: 13px;
+      font-size: 15px;
       letter-spacing: 0.06em;
-      padding: 7px 16px;
-      border-radius: 6px;
+      padding: 9px 20px;
+      border-radius: 7px;
     }
 
     .badge-timer-next {
       background: #0c1d16;
-      border: 1px solid #264236;
+      border: 1.5px solid #264236;
       color: var(--gold-accent);
       font-family: var(--font-mono);
-      font-size: 14px;
+      font-size: 16px;
       letter-spacing: 0.05em;
-      padding: 7px 16px;
-      border-radius: 6px;
+      padding: 9px 20px;
+      border-radius: 7px;
       cursor: pointer;
       user-select: none;
     }
 
     .badge-timer-total {
       background: var(--green-pill);
-      border: 1px solid var(--green-accent);
+      border: 1.5px solid var(--green-accent);
       color: #ffffff;
       font-family: var(--font-mono);
-      font-size: 14px;
+      font-size: 16px;
       font-weight: 600;
       letter-spacing: 0.06em;
-      padding: 7px 16px;
-      border-radius: 6px;
+      padding: 9px 20px;
+      border-radius: 7px;
     }
 
     .nav-btn {
       background: #0c1d16;
-      border: 1px solid #2b5040;
+      border: 1.5px solid #2b5040;
       color: var(--text-light);
       font-family: var(--font-mono);
-      font-size: 12px;
-      padding: 7px 12px;
-      border-radius: 6px;
+      font-size: 14px;
+      padding: 9px 16px;
+      border-radius: 7px;
       cursor: pointer;
       transition: all 0.15s ease;
     }
@@ -141,43 +154,58 @@
       border-color: var(--green-accent);
     }
 
+    /* SLIDE SCENE CONTAINER */
+    .slide-scene {
+      display: none;
+      flex-direction: column;
+      justify-content: space-between;
+      flex: 1;
+      min-height: 0;
+      min-width: 0;
+      padding: 12px 0;
+      gap: 12px;
+    }
+
+    .slide-scene.active {
+      display: flex;
+    }
+
     /* SCENE HEADER */
     .scene-header {
-      padding: 8px 0 6px 0;
       flex-shrink: 0;
     }
 
     .scene-meta {
       font-family: var(--font-mono);
-      font-size: 12.5px;
+      font-size: 14px;
       color: var(--green-accent);
       letter-spacing: 0.08em;
       text-transform: uppercase;
-      margin-bottom: 3px;
+      margin-bottom: 4px;
     }
 
     .scene-title {
       font-family: var(--font-serif);
-      font-size: 27px;
+      font-size: 33px;
       font-weight: 700;
       color: #ffffff;
       letter-spacing: -0.01em;
+      line-height: 1.15;
     }
 
-    /* MAIN WORKSPACE GRID */
+    /* MAIN WORKSPACE GRID (748px TALL x 1856px WIDE) */
     .workspace-grid {
       display: grid;
-      grid-template-columns: 65.5% 33.3%;
-      gap: 1.2%;
+      grid-template-columns: 1216px 618px;
+       justify-content: space-between;
       flex: 1;
       min-height: 0;
-      margin-bottom: 10px;
-      transition: all 0.2s ease;
+      min-width: 0;
     }
 
     /* FOCUS MODE: Full Canvas View */
     body.focus-mode .workspace-grid {
-      grid-template-columns: 100%;
+      grid-template-columns: 1856px;
     }
     body.focus-mode .right-sidebar,
     body.focus-mode .teleprompter-box {
@@ -187,19 +215,21 @@
     /* LEFT CANVAS */
     .left-canvas {
       border-radius: 10px;
-      border: 1.5px solid var(--border-gold);
+      border: 2px solid var(--border-gold);
       overflow: hidden;
       display: flex;
       flex-direction: column;
       justify-content: space-between;
       position: relative;
       height: 100%;
+      min-height: 0;
+      min-width: 0;
     }
 
     .canvas-ivory {
       background-color: var(--bg-ivory);
       color: var(--text-dark);
-      padding: 28px 34px 22px 34px;
+      padding: 28px 36px 24px 36px;
     }
 
     .canvas-dark-grid {
@@ -209,31 +239,35 @@
         linear-gradient(to bottom, rgba(66, 184, 116, 0.07) 1px, transparent 1px);
       background-size: 28px 28px;
       color: var(--text-light);
-      padding: 32px 40px;
+      padding: 36px 44px;
     }
 
     /* RIGHT SIDEBAR */
     .right-sidebar {
       display: flex;
       flex-direction: column;
-      gap: 10px;
+      justify-content: space-between;
+      gap: 14px;
       height: 100%;
       min-height: 0;
+      min-width: 0;
     }
 
     .kpi-row {
       display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 10px;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
       flex-shrink: 0;
     }
 
     .kpi-box {
       background: var(--bg-panel);
       border: 1px solid #254236;
-      border-left: 4px solid var(--green-neon);
-      border-radius: 6px;
-      padding: 10px 12px;
+      border-left: 5px solid var(--green-neon);
+      border-radius: 8px;
+      padding: 12px 14px;
+      min-width: 0;
+      overflow: hidden;
     }
 
     .kpi-box.gold {
@@ -242,45 +276,52 @@
 
     .kpi-value {
       font-family: var(--font-sans);
-      font-size: 16px;
+      font-size: 19px;
       font-weight: 800;
       color: #ffffff;
-      letter-spacing: 0.02em;
-      margin-bottom: 3px;
+      letter-spacing: 0.01em;
+      margin-bottom: 4px;
       white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
 
     .kpi-label {
       font-family: var(--font-mono);
-      font-size: 10.5px;
+      font-size: 11.5px;
       color: var(--text-muted);
-      letter-spacing: 0.05em;
+      letter-spacing: 0.04em;
       text-transform: uppercase;
       white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
 
     .side-card {
       background: var(--bg-panel);
       border: 1px solid #254236;
-      border-radius: 8px;
-      padding: 14px 18px;
+      border-radius: 10px;
+      padding: 18px 22px;
       flex: 1;
+      min-height: 0;
+      min-width: 0;
       display: flex;
       flex-direction: column;
-      justify-content: center;
+      justify-content: flex-start;
     }
 
     .side-card-header {
       background: var(--bg-panel-header);
       border: 1px solid #1d362b;
-      border-radius: 4px;
-      padding: 6px 12px;
+      border-radius: 5px;
+      padding: 9px 14px;
       font-family: var(--font-mono);
-      font-size: 11px;
+      font-size: 13px;
       letter-spacing: 0.07em;
       text-transform: uppercase;
       color: var(--green-accent);
-      margin-bottom: 12px;
+      margin-bottom: 16px;
+      flex-shrink: 0;
     }
 
     .side-card-header.gold {
@@ -288,26 +329,27 @@
     }
 
     .side-card-title {
-      font-size: 17px;
+      font-size: 21.5px;
       font-weight: 700;
       color: #ffffff;
-      margin-bottom: 10px;
-      padding-bottom: 8px;
+      margin-bottom: 16px;
+      padding-bottom: 12px;
       border-bottom: 1px solid #203a2f;
+      flex-shrink: 0;
     }
 
     .side-card-list {
       list-style: none;
       display: flex;
       flex-direction: column;
-      gap: 8px;
+      gap: 15px;
     }
 
     .side-card-list li {
-      font-size: 14px;
+      font-size: 17px;
       color: #d3e2dc;
-      line-height: 1.35;
-      padding-left: 14px;
+      line-height: 1.38;
+      padding-left: 18px;
       position: relative;
       white-space: nowrap;
       overflow: hidden;
@@ -325,24 +367,27 @@
     /* BOTTOM TELEPROMPTER */
     .teleprompter-box {
       background: var(--bg-teleprompter);
-      border: 1px solid var(--green-accent);
-      border-radius: 8px;
-      padding: 11px 20px;
+      border: 1.5px solid var(--green-accent);
+      border-radius: 10px;
+      padding: 14px 24px;
+      height: 108px;
       flex-shrink: 0;
-      margin-bottom: 8px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
     }
 
     .teleprompter-meta {
       font-family: var(--font-mono);
-      font-size: 11.5px;
+      font-size: 13px;
       color: var(--gold-accent);
       letter-spacing: 0.08em;
       text-transform: uppercase;
-      margin-bottom: 5px;
+      margin-bottom: 6px;
     }
 
     .teleprompter-script {
-      font-size: 15.5px;
+      font-size: 19px;
       color: #ffffff;
       line-height: 1.4;
       font-weight: 400;
@@ -350,10 +395,10 @@
 
     /* SEGMENTED PROGRESS BAR */
     .progress-track {
-      height: 12px;
+      height: 16px;
       background: #0d2119;
       border: 1px solid #244738;
-      border-radius: 6px;
+      border-radius: 8px;
       display: grid;
       grid-template-columns: repeat(9, 1fr);
       overflow: hidden;
@@ -362,7 +407,7 @@
     }
 
     .progress-segment {
-      border-right: 1.5px solid var(--gold-accent);
+      border-right: 2px solid var(--gold-accent);
       height: 100%;
       transition: background 0.2s ease;
     }
@@ -379,51 +424,40 @@
       background: linear-gradient(90deg, var(--green-neon) 65%, rgba(75, 209, 127, 0.25) 100%);
     }
 
-    /* SLIDE VISIBILITY */
-    .slide-scene {
-      display: none;
-      width: 100%;
-      height: 100%;
-    }
-
-    .slide-scene.active {
-      display: contents;
-    }
-
     /* COMMON CANVAS TYPOGRAPHY */
     .canvas-eyebrow {
       font-family: var(--font-sans);
-      font-size: 14px;
+      font-size: 16px;
       font-weight: 800;
-      letter-spacing: 0.05em;
+      letter-spacing: 0.04em;
       text-transform: uppercase;
       color: var(--gold-deep);
-      margin-bottom: 4px;
+      margin-bottom: 6px;
     }
 
     .canvas-h1 {
       font-family: var(--font-sans);
-      font-size: 36px;
+      font-size: 40px;
       font-weight: 900;
       line-height: 1.08;
       color: var(--green-deep);
       letter-spacing: -0.02em;
-      margin-bottom: 6px;
+      margin-bottom: 8px;
       text-transform: uppercase;
     }
 
     .canvas-h1-serif {
       font-family: var(--font-serif);
-      font-size: 34px;
+      font-size: 38px;
       font-weight: 700;
       line-height: 1.12;
       color: var(--green-deep);
-      margin-bottom: 6px;
+      margin-bottom: 8px;
       text-transform: uppercase;
     }
 
     .canvas-subtitle {
-      font-size: 17px;
+      font-size: 19.5px;
       color: #263830;
       font-weight: 500;
       margin-bottom: 18px;
@@ -440,85 +474,88 @@
     }
 
     .s1-pill {
-      border: 1px solid var(--border-gold);
+      border: 1.5px solid var(--border-gold);
       background: rgba(12, 33, 24, 0.85);
-      padding: 8px 24px;
+      padding: 10px 28px;
       font-family: var(--font-mono);
-      font-size: 13px;
+      font-size: 14.5px;
       letter-spacing: 0.1em;
       color: #e6ece9;
       text-transform: uppercase;
-      margin-bottom: 28px;
+      margin-bottom: 34px;
     }
 
     .s1-logo {
       font-family: var(--font-serif);
-      font-size: 104px;
+      font-size: 118px;
       font-weight: 400;
       letter-spacing: 0.04em;
       color: #ffffff;
       line-height: 1;
-      padding-bottom: 18px;
-      border-bottom: 1.5px solid var(--gold-accent);
-      margin-bottom: 22px;
+      padding-bottom: 22px;
+      border-bottom: 2px solid var(--gold-accent);
+      margin-bottom: 26px;
       width: 68%;
     }
 
     .s1-tagline {
       font-family: var(--font-serif);
-      font-size: 27px;
+      font-size: 31px;
       color: #eef5f1;
     }
 
     .s1-pillars {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
-      gap: 18px;
+      gap: 22px;
       width: 100%;
+      flex-shrink: 0;
     }
 
     .s1-pillar-box {
       background: rgba(9, 32, 23, 0.88);
-      border: 1px solid #2b5743;
-      padding: 22px 18px;
+      border: 1.5px solid #2b5743;
+      padding: 26px 20px;
       text-align: center;
       font-family: var(--font-serif);
-      font-size: 21px;
+      font-size: 24px;
       color: #ffffff;
-      line-height: 1.3;
+      line-height: 1.32;
     }
 
     /* SCENE 2: 3-COLUMN FOUNDER CARDS */
     .cols-3 {
       display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 18px;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 22px;
       flex: 1;
       min-height: 0;
     }
 
     .ivory-card {
       background: var(--bg-card);
-      border-radius: 10px;
-      padding: 16px 18px;
+      border-radius: 12px;
+      padding: 20px 22px;
       box-shadow: 0 4px 14px rgba(0, 0, 0, 0.06);
-       border: 1px solid #e2ddd0;
+      border: 1px solid #e2ddd0;
       display: flex;
       flex-direction: column;
+      min-height: 0;
     }
 
     .card-banner {
       background: var(--green-deep);
       color: #ffffff;
       font-family: var(--font-sans);
-      font-size: 13.5px;
+      font-size: 16px;
       font-weight: 800;
       text-align: center;
-      padding: 12px 10px;
-      border-radius: 6px;
+      padding: 15px 12px;
+      border-radius: 7px;
       letter-spacing: 0.04em;
       text-transform: uppercase;
-      margin-bottom: 18px;
+      margin-bottom: 24px;
+      flex-shrink: 0;
     }
 
     .card-banner.gold {
@@ -532,55 +569,57 @@
     .icon-bullet-list {
       display: flex;
       flex-direction: column;
-      gap: 18px;
+      gap: 28px;
       flex: 1;
-      justify-content: center;
+      justify-content: flex-start;
+      padding-top: 6px;
     }
 
     .icon-bullet {
       display: grid;
-      grid-template-columns: 24px 1fr;
-      gap: 10px;
+      grid-template-columns: 28px 1fr;
+      gap: 12px;
       align-items: start;
-      font-size: 14.5px;
-      line-height: 1.38;
+      font-size: 18px;
+      line-height: 1.42;
       color: #182a22;
     }
 
-    /* SCENE 3: CENTER RING + CURLY BRACES DIAGRAM (MATCHING SLIDE-03.PNG) */
+    /* SCENE 3: CENTER RING + CURLY BRACES DIAGRAM */
     .s3-brace-stage {
       flex: 1;
       display: grid;
-      grid-template-columns: 1fr 70px 260px 70px 1fr;
+      grid-template-columns: 1fr 80px 300px 80px 1fr;
       align-items: center;
-      padding: 10px 16px 24px 16px;
+      padding: 10px 20px 30px 20px;
+      min-height: 0;
     }
 
     .s3-wing {
       text-align: center;
-      padding: 0 12px;
+      padding: 0 16px;
     }
 
     .s3-wing-title {
       font-family: var(--font-sans);
-      font-size: 23px;
+      font-size: 27px;
       font-weight: 800;
       color: #10231b;
-      line-height: 1.22;
-      margin-bottom: 12px;
+      line-height: 1.24;
+      margin-bottom: 14px;
     }
 
     .s3-wing-desc {
-      font-size: 15.5px;
+      font-size: 18px;
       color: #2c3e36;
-      line-height: 1.42;
+      line-height: 1.45;
     }
 
     .s3-center-ring {
-      width: 256px;
-      height: 256px;
+      width: 290px;
+      height: 290px;
       border-radius: 50%;
-      border: 12px solid var(--green-deep);
+      border: 14px solid var(--green-deep);
       background: #ffffff;
       box-shadow: 0 8px 24px rgba(11, 65, 44, 0.12);
       display: flex;
@@ -588,45 +627,46 @@
       align-items: center;
       justify-content: center;
       text-align: center;
-      padding: 22px;
+      padding: 26px;
       margin: 0 auto;
     }
 
     .s3-ring-title {
-      font-size: 21px;
+      font-size: 24px;
       font-weight: 900;
       color: #10231b;
       letter-spacing: 0.01em;
       line-height: 1.18;
-      margin-bottom: 10px;
+      margin-bottom: 12px;
       text-transform: uppercase;
     }
 
     .s3-ring-sub {
-      font-size: 14.5px;
+      font-size: 16.5px;
       color: #2c3e36;
-      line-height: 1.35;
+      line-height: 1.38;
     }
 
-    /* SCENE 4: 3-STEP CHEVRON FLOW + QUOTE BAR (MATCHING SLIDE-04.PNG) */
+    /* SCENE 4: 3-STEP CHEVRON FLOW + QUOTE BAR */
     .s4-flow {
       display: grid;
-      grid-template-columns: 1fr 26px 1fr 26px 1fr;
+      grid-template-columns: 1fr 34px 1fr 34px 1fr;
       align-items: stretch;
       flex: 1;
       min-height: 0;
-      margin-bottom: 14px;
+      margin-bottom: 16px;
     }
 
     .s4-card {
       background: #ffffff;
-      border-radius: 10px;
+      border-radius: 12px;
       border: 1px solid #e0dbce;
-      border-top: 10px solid var(--green-deep);
-      padding: 16px 18px;
+      border-top: 12px solid var(--green-deep);
+      padding: 20px 22px;
       display: flex;
       flex-direction: column;
       box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+      min-height: 0;
     }
 
     .s4-card.gold-top {
@@ -634,41 +674,44 @@
     }
 
     .s4-card-title {
-      font-size: 15.5px;
+      font-size: 18px;
       font-weight: 800;
       text-align: center;
       color: #10231b;
-      margin-bottom: 8px;
+      margin-bottom: 10px;
       text-transform: uppercase;
+      line-height: 1.25;
     }
 
     .s4-pill {
       background: #ece8dc;
       color: #2a3d34;
-      font-size: 11px;
+      font-size: 12px;
       font-weight: 800;
       text-align: center;
-      padding: 5px 10px;
-      border-radius: 12px;
+      padding: 6px 12px;
+      border-radius: 14px;
       letter-spacing: 0.04em;
       text-transform: uppercase;
-      margin-bottom: 14px;
+      margin-bottom: 18px;
+      flex-shrink: 0;
     }
 
     .s4-list {
       list-style: none;
       display: flex;
       flex-direction: column;
-      gap: 12px;
-      font-size: 14px;
-      line-height: 1.36;
+      gap: 20px;
+      font-size: 17.5px;
+      line-height: 1.42;
       color: #1d2f27;
       flex: 1;
-      justify-content: center;
+      justify-content: flex-start;
+      padding-top: 6px;
     }
 
     .s4-list li {
-      padding-left: 14px;
+      padding-left: 16px;
       position: relative;
     }
 
@@ -684,25 +727,25 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 28px;
+      font-size: 32px;
       color: #243b31;
       font-weight: 300;
     }
 
-    /* SCENE 5: 5 PILLARS (MATCHING SLIDE-05.PNG) */
+    /* SCENE 5: 5 PILLARS */
     .cols-5 {
       display: grid;
-      grid-template-columns: repeat(5, 1fr);
-      gap: 14px;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 16px;
       flex: 1;
       min-height: 0;
-      margin-bottom: 14px;
+      margin-bottom: 16px;
     }
 
     .pillar-card {
       background: var(--bg-card);
-      border-radius: 10px;
-      padding: 18px 14px;
+      border-radius: 12px;
+      padding: 24px 16px;
       text-align: center;
       border: 1px solid #e2ddd0;
       box-shadow: 0 3px 10px rgba(0, 0, 0, 0.05);
@@ -710,30 +753,27 @@
       flex-direction: column;
       align-items: center;
       justify-content: space-between;
+      min-height: 0;
     }
 
     .pillar-num {
-      font-size: 34px;
+      font-size: 44px;
       font-weight: 900;
       color: #b58d2a;
       line-height: 1;
     }
 
     .pillar-title {
-      font-size: 13.5px;
+      font-size: 16px;
       font-weight: 800;
       color: #10231b;
       text-transform: uppercase;
       line-height: 1.25;
-      min-height: 34px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
     }
 
     .pillar-icon {
-      width: 46px;
-      height: 46px;
+      width: 58px;
+      height: 58px;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -741,31 +781,33 @@
     }
 
     .pillar-desc {
-      font-size: 13.5px;
+      font-size: 16.5px;
       color: #253830;
-      line-height: 1.38;
+      line-height: 1.42;
     }
 
-    /* SCENE 6: 3-BOX ARCHITECTURE DIAGRAM (MATCHING SLIDE-06.PNG) */
+    /* SCENE 6: 3-BOX ARCHITECTURE DIAGRAM */
     .arch-diagram {
       display: grid;
-      grid-template-columns: 1fr 44px 1.28fr 44px 1fr;
+      grid-template-columns: 1fr 52px 1.28fr 52px 1fr;
       align-items: stretch;
       flex: 1;
       min-height: 0;
-      margin-bottom: 14px;
+      padding-top: 16px;
+      margin-bottom: 16px;
     }
 
     .arch-node {
       background: #0b3323;
-      border: 2px solid var(--gold-accent);
-      border-radius: 12px;
-      padding: 20px 18px 16px 18px;
+      border: 2.5px solid var(--gold-accent);
+      border-radius: 14px;
+      padding: 26px 22px 20px 22px;
       color: #ffffff;
       position: relative;
       display: flex;
       flex-direction: column;
-      justify-content: space-between;
+      justify-content: flex-start;
+      min-height: 0;
     }
 
     .arch-node.center-node {
@@ -778,16 +820,16 @@
 
     .arch-badge-top {
       position: absolute;
-      top: -13px;
+      top: -15px;
       left: 50%;
       transform: translateX(-50%);
       background: #143f2d;
       border: 1.5px solid var(--gold-accent);
       color: #ffffff;
-      font-size: 10.5px;
+      font-size: 11.5px;
       font-weight: 800;
-      padding: 4px 14px;
-      border-radius: 14px;
+      padding: 5px 16px;
+      border-radius: 16px;
       white-space: nowrap;
       letter-spacing: 0.05em;
       text-transform: uppercase;
@@ -798,7 +840,7 @@
     }
 
     .arch-node-title {
-      font-size: 22px;
+      font-size: 26px;
       font-weight: 900;
       text-align: center;
       letter-spacing: 0.02em;
@@ -806,16 +848,16 @@
     }
 
     .arch-node-sub {
-      font-size: 13px;
+      font-size: 15px;
       text-align: center;
       color: #d6e6de;
-      margin-bottom: 12px;
+      margin-bottom: 22px;
     }
 
     .arch-inner-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 10px;
+      gap: 14px;
       flex: 1;
       align-content: center;
     }
@@ -824,9 +866,9 @@
       background: #ffffff;
       color: #10231b;
       border-radius: 8px;
-      padding: 12px 8px;
+      padding: 18px 10px;
       text-align: center;
-      font-size: 13px;
+      font-size: 15.5px;
       font-weight: 700;
       line-height: 1.25;
       display: flex;
@@ -839,16 +881,16 @@
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      font-size: 26px;
+      font-size: 30px;
       font-weight: 700;
       color: #132a21;
-      gap: 6px;
+      gap: 8px;
     }
 
-    /* SCENE 7: 5-STAGE PIPELINE (MATCHING SLIDE-07.PNG) */
+    /* SCENE 7: 5-STAGE PIPELINE */
     .stage-card {
       background: var(--bg-card);
-      border-radius: 10px;
+      border-radius: 12px;
       border: 1px solid #dfd9cb;
       overflow: hidden;
       display: flex;
@@ -856,21 +898,23 @@
       align-items: center;
       text-align: center;
       box-shadow: 0 3px 10px rgba(0, 0, 0, 0.05);
+      min-height: 0;
     }
 
     .stage-header {
       background: var(--green-deep);
       color: #ffffff;
       width: 100%;
-      padding: 11px 6px;
-      font-size: 15px;
+      padding: 15px 8px;
+      font-size: 18px;
       font-weight: 800;
       letter-spacing: 0.03em;
-      border-bottom: 3px solid var(--gold-accent);
+      border-bottom: 3.5px solid var(--gold-accent);
+      flex-shrink: 0;
     }
 
     .stage-body {
-      padding: 18px 14px;
+      padding: 24px 16px;
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -880,57 +924,58 @@
 
     .vs-ribbon {
       display: grid;
-      grid-template-columns: 1fr 54px 1fr;
+      grid-template-columns: 1fr 64px 1fr;
       align-items: center;
-      gap: 8px;
+      gap: 10px;
+      flex-shrink: 0;
     }
 
     .vs-left {
       background: #929694;
       color: #ffffff;
-      padding: 11px 18px;
-      border-radius: 6px;
+      padding: 14px 20px;
+      border-radius: 8px;
       text-align: center;
-      font-size: 14.5px;
+      font-size: 16.5px;
       font-weight: 700;
-      line-height: 1.28;
+      line-height: 1.3;
     }
 
     .vs-center {
       text-align: center;
-      font-size: 19px;
+      font-size: 22px;
       font-weight: 900;
       color: #5b6d64;
     }
 
     .vs-right {
       background: var(--green-deep);
-      border: 1.5px solid var(--gold-accent);
+      border: 2px solid var(--gold-accent);
       color: #ffffff;
-      padding: 11px 18px;
-      border-radius: 6px;
+      padding: 14px 20px;
+      border-radius: 8px;
       text-align: center;
-      font-size: 14.5px;
+      font-size: 16.5px;
       font-weight: 700;
-      line-height: 1.28;
+      line-height: 1.3;
     }
 
-    /* SCENE 8: 3 INSTITUTIONAL ADVANTAGES (MATCHING SLIDE-08.PNG) */
+    /* SCENE 8: 3 INSTITUTIONAL ADVANTAGES */
     .s8-bullet-list {
       list-style: none;
       display: flex;
       flex-direction: column;
-      gap: 16px;
-      font-size: 15px;
-      line-height: 1.42;
+      gap: 28px;
+      font-size: 19px;
+      line-height: 1.48;
       color: #182a22;
       flex: 1;
-      justify-content: center;
-      padding: 0 4px;
+      justify-content: flex-start;
+      padding: 10px 6px 0 6px;
     }
 
     .s8-bullet-list li {
-      padding-left: 16px;
+      padding-left: 18px;
       position: relative;
     }
 
@@ -942,31 +987,33 @@
       font-weight: bold;
     }
 
-    /* SCENE 9: 3-STEP ASK CARDS (MATCHING SLIDE-09.PNG) */
+    /* SCENE 9: 3-STEP ASK CARDS */
     .s9-card {
       background: #ffffff;
-      border-radius: 10px;
+      border-radius: 12px;
       border: 1px solid #e0dbce;
       overflow: hidden;
       display: flex;
       flex-direction: column;
       justify-content: space-between;
       box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+      min-height: 0;
     }
 
     .s9-card-header {
       background: #efebe0;
-      padding: 16px 18px;
-      font-size: 16px;
+      padding: 22px 24px;
+      font-size: 20px;
       font-weight: 900;
       color: #10231b;
       line-height: 1.25;
       text-transform: uppercase;
       border-bottom: 1px solid #e2ddd0;
+      flex-shrink: 0;
     }
 
     .s9-card-body {
-      padding: 20px 18px 16px 18px;
+      padding: 26px 24px 22px 24px;
       display: flex;
       flex-direction: column;
       justify-content: space-between;
@@ -974,40 +1021,42 @@
     }
 
     .s9-card-text {
-      font-size: 15.5px;
-      line-height: 1.45;
+      font-size: 20px;
+      line-height: 1.48;
       color: #182a22;
     }
 
     .s9-card-icon {
       align-self: flex-end;
       color: #20382e;
-      margin-top: 12px;
+      margin-top: 14px;
     }
 
     /* BOTTOM BANNERS */
     .canvas-footer-banner {
       background: var(--green-deep);
-      border: 1.5px solid var(--gold-accent);
+      border: 2px solid var(--gold-accent);
       color: #ffffff;
-      border-radius: 8px;
-      padding: 12px 20px;
+      border-radius: 10px;
+      padding: 15px 24px;
       text-align: center;
-      font-size: 16.5px;
+      font-size: 18.5px;
       font-weight: 600;
       line-height: 1.32;
+      flex-shrink: 0;
     }
 
     .canvas-quote-pill {
       background: #f2efe4;
-      border: 2px solid var(--green-deep);
+      border: 2.5px solid var(--green-deep);
       color: #10231b;
       border-radius: 10px;
-      padding: 11px 20px;
+      padding: 14px 24px;
       text-align: center;
-      font-size: 16px;
+      font-size: 18px;
       font-style: italic;
       font-weight: 700;
+      flex-shrink: 0;
     }
 
     .gold-text {
@@ -1017,944 +1066,947 @@
   </style>
 </head>
 <body>
-  <div class="deck-viewport">
-    <!-- TOP BROADCAST BAR -->
-    <header class="top-bar">
-      <div class="top-bar-left">
-        <div class="badge-brand">HEAV3NS × Y COMBINATOR</div>
-        <div class="badge-act" id="act-badge">ACT I · IDENTITY &amp; FOUNDER</div>
-      </div>
-      <div class="top-bar-right">
-        <button class="nav-btn" id="btn-focus" onclick="toggleFocusMode()" title="Toggle Clean Slide View (Key: F)">[F] FOCUS SLIDE</button>
-        <button class="nav-btn" onclick="prevSlide()" title="Previous Slide (Left Arrow)">◀ PREV</button>
-        <button class="nav-btn" onclick="nextSlide()" title="Next Slide (Right Arrow / Space)">NEXT ▶</button>
-        <div class="badge-timer-next" id="auto-btn" onclick="toggleAutoPlay()" title="Click to toggle 2-minute auto-play">NEXT SLIDE IN: <span id="countdown-sec">13</span>s</div>
-        <div class="badge-timer-total">TIME <span id="elapsed-time">00:00</span> / 02:00</div>
-      </div>
-    </header>
+  <div class="stage-scaler" id="stage-scaler">
+    <div class="deck-viewport">
+      <!-- TOP BROADCAST BAR -->
+      <header class="top-bar">
+        <div class="top-bar-left">
+          <div class="badge-brand">HEAV3NS × Y COMBINATOR</div>
+          <div class="badge-act" id="act-badge">ACT I · IDENTITY &amp; FOUNDER</div>
+        </div>
+        <div class="top-bar-right">
+          <button class="nav-btn" id="btn-focus" onclick="toggleFocusMode()" title="Toggle Clean Slide View (Key: F)">[F] FOCUS SLIDE</button>
+          <button class="nav-btn" onclick="prevSlide()" title="Previous Slide (Left Arrow)">◀ PREV</button>
+          <button class="nav-btn" onclick="nextSlide()" title="Next Slide (Right Arrow / Space)">NEXT ▶</button>
+          <div class="badge-timer-next" id="auto-btn" onclick="toggleAutoPlay()" title="Click to toggle 2-minute auto-play">NEXT SLIDE IN: <span id="countdown-sec">13</span>s</div>
+          <div class="badge-timer-total">TIME <span id="elapsed-time">00:00</span> / 02:00</div>
+        </div>
+      </header>
 
-    <!-- ================================================================== -->
-    <!-- SCENE 01 OF 09: OPENING TITLE SCREEN (SLIDE-01.PNG STYLE)          -->
-    <!-- ================================================================== -->
-    <section class="slide-scene active" data-act="ACT I · IDENTITY & FOUNDER" data-duration="13" data-elapsed="00:00">
-      <div class="scene-header">
-        <div class="scene-meta">SCENE 01 OF 09 · ELEMENT 1: OPENING TITLE SCREEN — THE 49-CHARACTER YC HOOK</div>
-        <h1 class="scene-title">HEAV3NS: Preservation-Aware Visual Dataset Curation for AI</h1>
-      </div>
-
-      <div class="workspace-grid">
-        <div class="left-canvas canvas-dark-grid">
-          <div class="s1-center">
-            <div class="s1-pill">FOUNDATION AI DATA INFRASTRUCTURE · SALT LAKE CITY, UTAH</div>
-            <div class="s1-logo">HEAV3NS</div>
-            <div class="s1-tagline">Preservation-Aware Visual Dataset Curation for AI</div>
-          </div>
-          <div class="s1-pillars">
-            <div class="s1-pillar-box">1. End Sample-Dropping<br/>Bias</div>
-            <div class="s1-pillar-box">2. Sub-Pixel Rust<br/>Curation</div>
-            <div class="s1-pillar-box">3. Contrastive DPO<br/>Exports</div>
-          </div>
+      <!-- ================================================================== -->
+      <!-- SCENE 01 OF 09: OPENING TITLE SCREEN (SLIDE-01.PNG STYLE)          -->
+      <!-- ================================================================== -->
+      <section class="slide-scene active" data-act="ACT I · IDENTITY & FOUNDER" data-duration="13" data-elapsed="00:00">
+        <div class="scene-header">
+          <div class="scene-meta">SCENE 01 OF 09 · ELEMENT 1: OPENING TITLE SCREEN — THE 49-CHARACTER YC HOOK</div>
+          <h1 class="scene-title">HEAV3NS: Preservation-Aware Visual Dataset Curation for AI</h1>
         </div>
 
-        <aside class="right-sidebar">
-          <div class="kpi-row">
-            <div class="kpi-box">
-              <div class="kpi-value">99.2% KEPT</div>
-              <div class="kpi-label">PIXEL PRESERVATION</div>
+        <div class="workspace-grid">
+          <div class="left-canvas canvas-dark-grid">
+            <div class="s1-center">
+              <div class="s1-pill">FOUNDATION AI DATA INFRASTRUCTURE · SALT LAKE CITY, UTAH</div>
+              <div class="s1-logo">HEAV3NS</div>
+              <div class="s1-tagline">Preservation-Aware Visual Dataset Curation for AI</div>
             </div>
-            <div class="kpi-box gold">
-              <div class="kpi-value">15–40% SAVED</div>
-              <div class="kpi-label">ZERO SAMPLE DROP</div>
-            </div>
-            <div class="kpi-box">
-              <div class="kpi-value">MIT + CLOUD</div>
-              <div class="kpi-label">RUST v4.0 ENGINE</div>
+            <div class="s1-pillars">
+              <div class="s1-pillar-box">1. End Sample-Dropping<br/>Bias</div>
+              <div class="s1-pillar-box">2. Sub-Pixel Rust<br/>Curation</div>
+              <div class="s1-pillar-box">3. Contrastive DPO<br/>Exports</div>
             </div>
           </div>
 
-          <div class="side-card">
-            <div class="side-card-header">WHAT WE DO · 49 CHARACTERS</div>
-            <div class="side-card-title">The Roboflow for AI Safety &amp; Visual Curation</div>
-            <ul class="side-card-list">
-              <li>Replaces binary NSFW sample-dropping</li>
-              <li>Preserves 99.2% of ground-truth pixels</li>
-              <li>Exports ready-to-train VLM &amp; DPO datasets</li>
-            </ul>
-          </div>
-
-          <div class="side-card">
-            <div class="side-card-header gold">WHY IT MATTERS FOR AI LABS</div>
-            <div class="side-card-title">Fixing the Visual AI Data Bottleneck</div>
-            <ul class="side-card-list">
-              <li>15–40% of human art is falsely deleted today</li>
-              <li>Diffusion inpainting poisons non-masked pixels</li>
-              <li>MIT Rust engine + 15-tool native MCP server</li>
-            </ul>
-          </div>
-        </aside>
-      </div>
-
-      <div class="teleprompter-box">
-        <div class="teleprompter-meta">SYNCHRONIZED VOICE-OVER TELEPROMPTER &nbsp;·&nbsp; 00:00 – 00:13 &nbsp;·&nbsp; WILLIAM ANDREW CRUZ (144.5 WPM)</div>
-        <div class="teleprompter-script">"Y Combinator partners: HEAV3NS builds preservation-aware visual dataset curation for AI—eliminating the false-positive purge that deletes up to forty percent of human art."</div>
-      </div>
-    </section>
-
-    <!-- ================================================================== -->
-    <!-- SCENE 02 OF 09: FOUNDER PROFILE (SLIDE-02.PNG STYLE)               -->
-    <!-- ================================================================== -->
-    <section class="slide-scene" data-act="ACT I · IDENTITY & FOUNDER" data-duration="14" data-elapsed="00:13">
-      <div class="scene-header">
-        <div class="scene-meta">SCENE 02 OF 09 · ELEMENT 2: FOUNDING INDEPENDENT INDUSTRY OPERATOR — HEAV3NS</div>
-        <h1 class="scene-title">The Person Behind the Work: William Andrew Cruz (EGG)</h1>
-      </div>
-
-      <div class="workspace-grid">
-        <div class="left-canvas canvas-ivory">
-          <div>
-            <h2 class="canvas-h1">THE PERSON BEHIND THE WORK: WILLIAM ANDREW CRUZ</h2>
-            <div class="canvas-subtitle">Founding Independent Industry Operator — HEAV3NS · AI Safety Researcher &amp; Principal Artist</div>
-          </div>
-
-          <div class="cols-3">
-            <div class="ivory-card">
-              <div class="card-banner">ACTIVE ROLE · FOUNDER &amp; OPERATOR</div>
-              <div class="icon-bullet-list">
-                <div class="icon-bullet">
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0b412c" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 4-6 8-6s8 2 8 6"/></svg>
-                  <div><strong>Founding Operator — HEAV3NS</strong> (Oct 2026–Present, Salt Lake City, UT)</div>
-                </div>
-                <div class="icon-bullet">
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0b412c" stroke-width="2"><rect x="3" y="4" width="18" height="14" rx="2"/><path d="M8 20h8M12 18v2"/></svg>
-                  <div>Directs agent systems &amp; developer tooling across <strong>230+ open-source repositories</strong></div>
-                </div>
-                <div class="icon-bullet">
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0b412c" stroke-width="2"><path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="9"/></svg>
-                  <div><strong>Verified Credentials:</strong> PSM I · PSPO I · CompTIA Security+ · A+ · Six Sigma Black Belt</div>
-                </div>
+          <aside class="right-sidebar">
+            <div class="kpi-row">
+              <div class="kpi-box">
+                <div class="kpi-value">99.2% KEPT</div>
+                <div class="kpi-label">PIXEL PRESERVATION</div>
+              </div>
+              <div class="kpi-box gold">
+                <div class="kpi-value">15–40% SAVED</div>
+                <div class="kpi-label">ZERO SAMPLE DROP</div>
+              </div>
+              <div class="kpi-box">
+                <div class="kpi-value">MIT + CLOUD</div>
+                <div class="kpi-label">RUST v4.0 ENGINE</div>
               </div>
             </div>
 
-            <div class="ivory-card">
-              <div class="card-banner gold">PAST LABS &amp; SILICON SLOPES MENTOR</div>
-              <div class="icon-bullet-list">
-                <div class="icon-bullet">
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#9c7a23" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg>
-                  <div><strong>OpenAI</strong> (AI Safety Researcher Intern, 2023–2024) &amp; <strong>Meta</strong> (AI Intern, 2022–2023)</div>
-                </div>
-                <div class="icon-bullet">
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#9c7a23" stroke-width="2"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/></svg>
-                  <div><strong>Nous Research</strong> (May–Aug 2026): Completed Past DevRel / Community Lead SLC</div>
-                </div>
-                <div class="icon-bullet">
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#9c7a23" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
-                  <div><strong>Silicon Slopes Mentor:</strong> Guided hundreds of startup founders across Utah</div>
-                </div>
-              </div>
-            </div>
-
-            <div class="ivory-card">
-              <div class="card-banner slate">WHY THIS FOUNDER WINS</div>
-              <div class="icon-bullet-list">
-                <div class="icon-bullet">
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0b412c" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
-                  <div><strong>Principal Artist (EGG):</strong> Experienced false-positive dataset purges firsthand</div>
-                </div>
-                <div class="icon-bullet">
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0b412c" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
-                  <div>Architected <strong>heav3ns-censor v4.0</strong> in Rust (3,600+ LOC, 13/13 tests passing)</div>
-                </div>
-                <div class="icon-bullet">
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0b412c" stroke-width="2"><path d="M3 21h18M5 21V7l7-4 7 4v14"/></svg>
-                  <div>Partnered with Executive Chair <strong>MAJO</strong> to unite studio art and AI safety</div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <aside class="right-sidebar">
-          <div class="kpi-row">
-            <div class="kpi-box">
-              <div class="kpi-value">OPENAI · META</div>
-              <div class="kpi-label">PAST LAB INTERNS</div>
-            </div>
-            <div class="kpi-box gold">
-              <div class="kpi-value">100s GUIDED</div>
-              <div class="kpi-label">FOUNDER MENTOR</div>
-            </div>
-            <div class="kpi-box">
-              <div class="kpi-value">230+ REPOS</div>
-              <div class="kpi-label">AGENTIC SYSTEMS</div>
-            </div>
-          </div>
-
-          <div class="side-card">
-            <div class="side-card-header">ACTIVE ROLE: FOUNDER &amp; OPERATOR</div>
-            <div class="side-card-title">Founding Independent Industry Operator</div>
-            <ul class="side-card-list">
-              <li>Full-time Founder of HEAV3NS (Oct 2026–Present)</li>
-              <li>Directs agent systems across 230+ open-source repos</li>
-              <li>Certified: PSM I, PSPO I, Security+, A+, Six Sigma BB</li>
-            </ul>
-          </div>
-
-          <div class="side-card">
-            <div class="side-card-header gold">PAST LABS &amp; SILICON SLOPES</div>
-            <div class="side-card-title">Frontier AI Safety + Studio Art</div>
-            <ul class="side-card-list">
-              <li>Past roles: Meta (22–23), OpenAI (23–24), Nous (26)</li>
-              <li>Helped 100s of founders navigate Silicon Slopes</li>
-              <li>Built heav3ns-censor v4.0 in production Rust</li>
-            </ul>
-          </div>
-        </aside>
-      </div>
-
-      <div class="teleprompter-box">
-        <div class="teleprompter-meta">SYNCHRONIZED VOICE-OVER TELEPROMPTER &nbsp;·&nbsp; 00:13 – 00:27 &nbsp;·&nbsp; WILLIAM ANDREW CRUZ (144.5 WPM)</div>
-        <div class="teleprompter-script">"I'm William Andrew Cruz, founder of HEAV3NS. After past roles at OpenAI, Meta, and Nous Research, plus directing over two hundred open-source repositories, I built HEAV3NS."</div>
-      </div>
-    </section>
-
-    <!-- ================================================================== -->
-    <!-- SCENE 03 OF 09: THE PROBLEM (SLIDE-03.PNG CURLY BRACE DIAGRAM)     -->
-    <!-- ================================================================== -->
-    <section class="slide-scene" data-act="ACT II · PROBLEM, SOLUTION & ENGINE" data-duration="13" data-elapsed="00:27">
-      <div class="scene-header">
-        <div class="scene-meta">SCENE 03 OF 09 · ELEMENT 3: THE INDUSTRY BOTTLENECK — THE BROKEN BINARY</div>
-        <h1 class="scene-title">The Problem: Why Current AI Curation Destroys Visual Datasets</h1>
-      </div>
-
-      <div class="workspace-grid">
-        <div class="left-canvas canvas-ivory">
-          <div style="text-align: center; padding-top: 8px;">
-            <h2 class="canvas-h1-serif">THE INDUSTRY BOTTLENECK:<br/>THE BROKEN BINARY IN AI DATA</h2>
-          </div>
-
-          <div class="s3-brace-stage">
-            <div class="s3-wing">
-              <div class="s3-wing-title">15–40% False-Positive<br/>Sample Purge</div>
-              <div class="s3-wing-desc">Binary NSFW classifiers delete classical art, anatomy, and dramatic lighting wholesale</div>
-            </div>
-
-            <!-- Left Curly Brace SVG -->
-            <svg width="70" height="240" viewBox="0 0 70 240" fill="none">
-              <path d="M5 10 H35 Q48 10 48 25 V105 Q48 120 65 120 Q48 120 48 135 V215 Q48 230 35 230 H5" stroke="#c89d32" stroke-width="5" stroke-linecap="round"/>
-            </svg>
-
-            <div class="s3-center-ring">
-              <div class="s3-ring-title">THE BROKEN<br/>BINARY</div>
-              <div class="s3-ring-sub">Drop the entire image or poison every pixel with inpainting</div>
-            </div>
-
-            <!-- Right Curly Brace SVG -->
-            <svg width="70" height="240" viewBox="0 0 70 240" fill="none">
-              <path d="M65 10 H35 Q22 10 22 25 V105 Q22 120 5 120 Q22 120 22 135 V215 Q22 230 35 230 H65" stroke="#c89d32" stroke-width="5" stroke-linecap="round"/>
-            </svg>
-
-            <div class="s3-wing">
-              <div class="s3-wing-title">100% Pixel Drift via<br/>Diffusion Inpainting</div>
-              <div class="s3-wing-desc">Generative scrubbing re-encodes the entire image, corrupting lighting and alpha layers</div>
-            </div>
-          </div>
-        </div>
-
-        <aside class="right-sidebar">
-          <div class="kpi-row">
-            <div class="kpi-box">
-              <div class="kpi-value">15–40% LOST</div>
-              <div class="kpi-label">FALSE-POSITIVE DROP</div>
-            </div>
-            <div class="kpi-box gold">
-              <div class="kpi-value">100% DRIFT</div>
-              <div class="kpi-label">VAE RE-ENCODING</div>
-            </div>
-            <div class="kpi-box">
-              <div class="kpi-value">0 DPO PAIRS</div>
-              <div class="kpi-label">DELETED SAMPLES</div>
-            </div>
-          </div>
-
-          <div class="side-card">
-            <div class="side-card-header">FAILURE MODE A: SAMPLE DROPPING</div>
-            <div class="side-card-title">Biased Classifiers Delete Human Art</div>
-            <ul class="side-card-list">
-              <li>Binary safety filters purge 15–40% of valid art</li>
-              <li>Erases figure drawing, sculpture &amp; skin tones</li>
-              <li>Causes catastrophic anatomical hallucinations</li>
-            </ul>
-          </div>
-
-          <div class="side-card">
-            <div class="side-card-header gold">FAILURE MODE B: INPAINTING DRIFT</div>
-            <div class="side-card-title">Generative Scrubbing Corrupts Data</div>
-            <ul class="side-card-list">
-              <li>VAE decoding mutates 100% of background pixels</li>
-              <li>Destroys ground-truth lighting and alpha layers</li>
-              <li>Leaves zero contrastive signal for safety DPO</li>
-            </ul>
-          </div>
-        </aside>
-      </div>
-
-      <div class="teleprompter-box">
-        <div class="teleprompter-meta">SYNCHRONIZED VOICE-OVER TELEPROMPTER &nbsp;·&nbsp; 00:27 – 00:40 &nbsp;·&nbsp; WILLIAM ANDREW CRUZ (144.5 WPM)</div>
-        <div class="teleprompter-script">"Today's AI data pipelines face a broken binary: either drop up to forty percent of valid artwork via false-positive filters, or corrupt every pixel with generative inpainting."</div>
-      </div>
-    </section>
-
-    <!-- ================================================================== -->
-    <!-- SCENE 04 OF 09: THE SOLUTION (SLIDE-04.PNG 3-STEP CHEVRON FLOW)    -->
-    <!-- ================================================================== -->
-    <section class="slide-scene" data-act="ACT II · PROBLEM, SOLUTION & ENGINE" data-duration="14" data-elapsed="00:40">
-      <div class="scene-header">
-        <div class="scene-meta">SCENE 04 OF 09 · ELEMENT 4: THE HEAV3NS SOLUTION — PRESERVATION-AWARE TRIAGE</div>
-        <h1 class="scene-title">The Solution: Turning False Positives Into High-Signal Training Data</h1>
-      </div>
-
-      <div class="workspace-grid">
-        <div class="left-canvas canvas-ivory">
-          <div>
-            <div class="canvas-eyebrow">BRIDGING DATA PRESERVATION &amp; MODEL SAFETY</div>
-            <h2 class="canvas-h1">PRESERVATION-AWARE CURATION: FROM FALSE POSITIVES TO DPO SIGNAL</h2>
-            <div class="canvas-subtitle">Replacing Crude Whole-Image Deletion With Deterministic 3-Way Sub-Pixel Triage</div>
-          </div>
-
-          <div class="s4-flow">
-            <div class="s4-card">
-              <div class="s4-card-title">1 · BENIGN &amp; ARTISTIC<br/>PASS</div>
-              <div class="s4-pill">CLASS 0 · HARD NEGATIVES</div>
-              <ul class="s4-list">
-                <li>Classical art, silhouettes, and figure studies pass 100% untouched</li>
-                <li>Cryptographic SHA-256 original preservation in ledger</li>
-                <li>Tagged as verified Hard Negatives to cure false positives</li>
+            <div class="side-card">
+              <div class="side-card-header">WHAT WE DO · 49 CHARACTERS</div>
+              <div class="side-card-title">The Roboflow for AI Safety &amp; Visual Curation</div>
+              <ul class="side-card-list">
+                <li>Replaces binary NSFW sample-dropping</li>
+                <li>Preserves 99.2% of ground-truth pixels</li>
+                <li>Exports ready-to-train VLM &amp; DPO datasets</li>
               </ul>
             </div>
 
-            <div class="s4-arrow">&#10095;</div>
-
-            <div class="s4-card gold-top">
-              <div class="s4-card-title">2 · SURGICAL SUB-PIXEL<br/>INTERVENTION</div>
-              <div class="s4-pill">CLASS 1 · 98.4% BIT-EXACT</div>
-              <ul class="s4-list">
-                <li><strong>Mask:</strong> Rotated pill, ellipse &amp; rect Signed Distance Fields</li>
-                <li><strong>Preserve:</strong> 98.4% of non-masked pixels stay 100% bit-identical</li>
-                <li><strong>Verify:</strong> Dual mean &amp; p95 JPEG check at 1080p and 540p</li>
+            <div class="side-card">
+              <div class="side-card-header gold">WHY IT MATTERS FOR AI LABS</div>
+              <div class="side-card-title">Fixing the Visual AI Data Bottleneck</div>
+              <ul class="side-card-list">
+                <li>15–40% of human art is falsely deleted today</li>
+                <li>Diffusion inpainting poisons non-masked pixels</li>
+                <li>MIT Rust engine + 15-tool native MCP server</li>
               </ul>
             </div>
-
-            <div class="s4-arrow">&#10095;</div>
-
-            <div class="s4-card">
-              <div class="s4-card-title">3 · CONTRASTIVE DPO<br/>ALIGNMENT EXPORT</div>
-              <div class="s4-pill">CHOSEN VS. REJECTED PAIRS</div>
-              <ul class="s4-list">
-                <li>Pairs untouched originals with surgical interventions</li>
-                <li>Emits non-degenerate VLM safety preference triples</li>
-                <li>Trains models on exact boundaries without over-refusal</li>
-              </ul>
-            </div>
-          </div>
-
-          <div class="canvas-footer-banner">
-            Turning discarded datasets into <span class="gold-text">contrastive alignment gold</span> with 99.2% pixel preservation.
-          </div>
+          </aside>
         </div>
 
-        <aside class="right-sidebar">
-          <div class="kpi-row">
-            <div class="kpi-box">
-              <div class="kpi-value">100% INTACT</div>
-              <div class="kpi-label">NON-MASKED PIXELS</div>
-            </div>
-            <div class="kpi-box gold">
-              <div class="kpi-value">99.2% MEAN</div>
-              <div class="kpi-label">CORPUS PRESERVED</div>
-            </div>
-            <div class="kpi-box">
-              <div class="kpi-value">3-WAY TRIAGE</div>
-              <div class="kpi-label">PASS · MASK · ESCALATE</div>
-            </div>
-          </div>
+        <div class="teleprompter-box">
+          <div class="teleprompter-meta">SYNCHRONIZED VOICE-OVER TELEPROMPTER &nbsp;·&nbsp; 00:00 – 00:13 &nbsp;·&nbsp; WILLIAM ANDREW CRUZ (144.5 WPM)</div>
+          <div class="teleprompter-script">"Y Combinator partners: HEAV3NS builds preservation-aware visual dataset curation for AI—eliminating the false-positive purge that deletes up to forty percent of human art."</div>
+        </div>
+      </section>
 
-          <div class="side-card">
-            <div class="side-card-header">CRYPTOGRAPHIC PIXEL INVARIANCE</div>
-            <div class="side-card-title">Zero Generative Hallucination</div>
-            <ul class="side-card-list">
-              <li>100% bit-exact outside declared SDF masks</li>
-              <li>Alpha &amp; background lighting remain untouched</li>
-              <li>Verified automatically on every single run</li>
-            </ul>
-          </div>
-
-          <div class="side-card">
-            <div class="side-card-header gold">CONTRASTIVE ALIGNMENT SIGNAL</div>
-            <div class="side-card-title">Fixing VLM Over-Refusal</div>
-            <ul class="side-card-list">
-              <li>Hard negatives stop benign art over-refusal</li>
-              <li>Paired masks teach sub-pixel safety boundaries</li>
-              <li>Escalations route edge cases to human review</li>
-            </ul>
-          </div>
-        </aside>
-      </div>
-
-      <div class="teleprompter-box">
-        <div class="teleprompter-meta">SYNCHRONIZED VOICE-OVER TELEPROMPTER &nbsp;·&nbsp; 00:40 – 00:54 &nbsp;·&nbsp; WILLIAM ANDREW CRUZ (144.5 WPM)</div>
-        <div class="teleprompter-script">"HEAV3NS replaces whole-image deletion with deterministic three-way triage: preserving benign art as hard negatives, applying sub-pixel SDF masks, and exporting contrastive DPO pairs."</div>
-      </div>
-    </section>
-
-    <!-- ================================================================== -->
-    <!-- SCENE 05 OF 09: THE 5-PILLAR RUST ENGINE (SLIDE-05.PNG STYLE)      -->
-    <!-- ================================================================== -->
-    <section class="slide-scene" data-act="ACT II · PROBLEM, SOLUTION & ENGINE" data-duration="14" data-elapsed="00:54">
-      <div class="scene-header">
-        <div class="scene-meta">SCENE 05 OF 09 · THE 5-PILLAR HEAV3NS-CENSOR v4.0 RUST ENGINE</div>
-        <h1 class="scene-title">What We Built: The 5-Pillar Deterministic Rust &amp; MCP Engine</h1>
-      </div>
-
-      <div class="workspace-grid">
-        <div class="left-canvas canvas-ivory">
-          <div>
-            <div class="canvas-eyebrow">SHIPPED TODAY IN PRODUCTION RUST (MIT LICENSE · 13/13 TESTS PASSING)</div>
-            <h2 class="canvas-h1">HEAV3NS-CENSOR v4.0: DETERMINISTIC VISUAL CURATION ENGINE</h2>
-            <div class="canvas-subtitle">Five Core Technical Pillars Powering Sub-Pixel Curation and Agentic Automation</div>
-          </div>
-
-          <div class="cols-5">
-            <div class="pillar-card">
-              <div class="pillar-num">01</div>
-              <div class="pillar-title">ROTATED SDF<br/>PRIMITIVES</div>
-              <div class="pillar-icon">
-                <svg width="42" height="42" viewBox="0 0 24 24" fill="none" stroke="#0b412c" stroke-width="1.8"><rect x="3" y="8" width="18" height="8" rx="4" transform="rotate(-18 12 12)"/></svg>
-              </div>
-              <div class="pillar-desc">Arbitrary-angle rect, ellipse, and pill masks with zero bounding-box waste.</div>
-            </div>
-
-            <div class="pillar-card">
-              <div class="pillar-num">02</div>
-              <div class="pillar-title">540P THUMBNAIL<br/>SURVIVABILITY</div>
-              <div class="pillar-icon">
-                <svg width="42" height="42" viewBox="0 0 24 24" fill="none" stroke="#0b412c" stroke-width="1.8"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/></svg>
-              </div>
-              <div class="pillar-desc">Dual mean and p95 JPEG downscale verification across 1080p and 540p.</div>
-            </div>
-
-            <div class="pillar-card">
-              <div class="pillar-num">03</div>
-              <div class="pillar-title">HARDNESS &amp;<br/>NMS SCORING</div>
-              <div class="pillar-icon">
-                <svg width="42" height="42" viewBox="0 0 24 24" fill="none" stroke="#0b412c" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3"/></svg>
-              </div>
-              <div class="pillar-desc">Automated candidate hotspot IoU clustering and false-positive hardness telemetry.</div>
-            </div>
-
-            <div class="pillar-card">
-              <div class="pillar-num">04</div>
-              <div class="pillar-title">15-TOOL NATIVE<br/>MCP SERVER</div>
-              <div class="pillar-icon">
-                <svg width="42" height="42" viewBox="0 0 24 24" fill="none" stroke="#0b412c" stroke-width="1.8"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M8 10l3 3-3 3M13 16h3"/></svg>
-              </div>
-              <div class="pillar-desc">Zero-glue JSON-RPC stdio server for autonomous VLM and agentic triage.</div>
-            </div>
-
-            <div class="pillar-card">
-              <div class="pillar-num">05</div>
-              <div class="pillar-title">5-FORMAT ML<br/>EXPORTER</div>
-              <div class="pillar-icon">
-                <svg width="42" height="42" viewBox="0 0 24 24" fill="none" stroke="#0b412c" stroke-width="1.8"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-              </div>
-              <div class="pillar-desc">One-command export to COCO, YOLO, WebDataset, VLM DPO, and HuggingFace.</div>
-            </div>
-          </div>
-
-          <div class="canvas-footer-banner">
-            Not a fragile Python wrapper—a zero-dependency, cryptographically audited Rust engine.
-          </div>
+      <!-- ================================================================== -->
+      <!-- SCENE 02 OF 09: FOUNDER PROFILE (SLIDE-02.PNG STYLE)               -->
+      <!-- ================================================================== -->
+      <section class="slide-scene" data-act="ACT I · IDENTITY & FOUNDER" data-duration="14" data-elapsed="00:13">
+        <div class="scene-header">
+          <div class="scene-meta">SCENE 02 OF 09 · ELEMENT 2: FOUNDING INDEPENDENT INDUSTRY OPERATOR — HEAV3NS</div>
+          <h1 class="scene-title">The Person Behind the Work: William Andrew Cruz (EGG)</h1>
         </div>
 
-        <aside class="right-sidebar">
-          <div class="kpi-row">
-            <div class="kpi-box">
-              <div class="kpi-value">5 PILLARS</div>
-              <div class="kpi-label">RUST v4.0 ENGINE</div>
-            </div>
-            <div class="kpi-box gold">
-              <div class="kpi-value">15 TOOLS</div>
-              <div class="kpi-label">NATIVE MCP SERVER</div>
-            </div>
-            <div class="kpi-box">
-              <div class="kpi-value">5 FORMATS</div>
-              <div class="kpi-label">COCO · YOLO · DPO</div>
-            </div>
-          </div>
-
-          <div class="side-card">
-            <div class="side-card-header">PILLARS 01 – 03: GEOMETRY &amp; QC</div>
-            <div class="side-card-title">Sub-Pixel SDFs &amp; Downscale Gate</div>
-            <ul class="side-card-list">
-              <li>01 Rotated SDFs: Tight pill, ellipse &amp; rect masks</li>
-              <li>02 540p Gate: Prevents JPEG thumbnail bleed</li>
-              <li>03 Hardness + NMS: Quantifies boundary risk</li>
-            </ul>
-          </div>
-
-          <div class="side-card">
-            <div class="side-card-header gold">PILLARS 04 – 05: MCP &amp; ML EXPORT</div>
-            <div class="side-card-title">Agentic Control &amp; Training Exports</div>
-            <ul class="side-card-list">
-              <li>04 MCP Server: 15 native tools over JSON-RPC</li>
-              <li>05 ML Export: COCO, YOLO, WebDataset &amp; DPO</li>
-              <li>13/13 unit tests &amp; 11/11 doctor checks passing</li>
-            </ul>
-          </div>
-        </aside>
-      </div>
-
-      <div class="teleprompter-box">
-        <div class="teleprompter-meta">SYNCHRONIZED VOICE-OVER TELEPROMPTER &nbsp;·&nbsp; 00:54 – 01:08 &nbsp;·&nbsp; WILLIAM ANDREW CRUZ (144.5 WPM)</div>
-        <div class="teleprompter-script">"Everything you see is shipped in Rust today: rotated SDF masks, thumbnail survivability gates, hardness scoring, a fifteen-tool MCP server, and five ML export formats."</div>
-      </div>
-    </section>
-
-    <!-- ================================================================== -->
-    <!-- SCENE 06 OF 09: OPERATING ARCHITECTURE (SLIDE-06.PNG STYLE)        -->
-    <!-- ================================================================== -->
-    <section class="slide-scene" data-act="ACT III · ARCHITECTURE & PIPELINE" data-duration="14" data-elapsed="01:08">
-      <div class="scene-header">
-        <div class="scene-meta">SCENE 06 OF 09 · THE OPERATING ARCHITECTURE ACROSS THE AI DATA SUPPLY CHAIN</div>
-        <h1 class="scene-title">The Architecture: Raw Visual Corpora, HEAV3NS &amp; Frontier AI Labs</h1>
-      </div>
-
-      <div class="workspace-grid">
-        <div class="left-canvas canvas-ivory">
-          <div style="text-align: center;">
-            <div class="canvas-eyebrow">AI TRAINING DATA INFRASTRUCTURE</div>
-            <h2 class="canvas-h1-serif">THE OPERATING ARCHITECTURE &amp; SUPPLY CHAIN</h2>
-            <div class="canvas-subtitle">HEAV3NS Is the Deterministic Curation Layer Connecting Visual Corpora to Model Training</div>
-          </div>
-
-          <div class="arch-diagram">
-            <div class="arch-node">
-              <div class="arch-badge-top">UPSTREAM DATA SOURCES</div>
-              <div>
-                <div class="arch-node-title">RAW CORPORA</div>
-                <div class="arch-node-sub">(S3 · HF · STUDIOS)</div>
-              </div>
-              <div style="display:flex;flex-direction:column;gap:14px;font-size:14.5px;padding:4px 6px;flex:1;justify-content:center;">
-                <div>&#128451; Web-Scale Image Buckets</div>
-                <div>&#127912; Fine Art &amp; Photography</div>
-                <div>&#128214; Manga &amp; Game Studios</div>
-                <div>&#127963; Licensed Stock Archives</div>
-              </div>
+        <div class="workspace-grid">
+          <div class="left-canvas canvas-ivory">
+            <div>
+              <h2 class="canvas-h1">THE PERSON BEHIND THE WORK: WILLIAM ANDREW CRUZ</h2>
+              <div class="canvas-subtitle">Founding Independent Industry Operator — HEAV3NS · AI Safety Researcher &amp; Principal Artist</div>
             </div>
 
-            <div class="arch-arrows">
-              <span>&#8594;</span>
-              <span>&#8592;</span>
-            </div>
-
-            <div class="arch-node center-node">
-              <div class="arch-badge-top">DETERMINISTIC CURATION LAYER</div>
-              <div>
-                <div class="arch-node-title">HEAV3NS</div>
-                <div class="arch-node-sub">Rust Engine + 15-Tool MCP Server</div>
-              </div>
-              <div class="arch-inner-grid">
-                <div class="arch-inner-pill">Rotated SDF<br/>Masks</div>
-                <div class="arch-inner-pill">15-Tool MCP<br/>Server</div>
-                <div class="arch-inner-pill">540p JPEG<br/>QC Gate</div>
-                <div class="arch-inner-pill">Hardness &amp;<br/>NMS Scoring</div>
-                <div class="arch-inner-pill">SHA-256 Audit<br/>Ledger</div>
-                <div class="arch-inner-pill">5-Format ML<br/>Exporter</div>
-              </div>
-            </div>
-
-            <div class="arch-arrows">
-              <span>&#8594;</span>
-              <span>&#8592;</span>
-            </div>
-
-            <div class="arch-node right-node">
-              <div class="arch-badge-top gold">DOWNSTREAM CONSUMERS</div>
-              <div>
-                <div class="arch-node-title">FRONTIER AI LABS</div>
-                <div class="arch-node-sub">(TRAINING &amp; SAFETY)</div>
-              </div>
-              <div style="display:flex;flex-direction:column;gap:12px;font-size:14.5px;padding:4px 6px;flex:1;justify-content:center;">
-                <div><span class="gold-text">•</span> Diffusion Pre-Training</div>
-                <div><span class="gold-text">•</span> VLM Safety Alignment</div>
-                <div><span class="gold-text">•</span> Contrastive DPO Tuning</div>
-                <div><span class="gold-text">•</span> EU AI Act Provenance</div>
-                <div><span class="gold-text">•</span> Broadcast Publication</div>
-              </div>
-            </div>
-          </div>
-
-          <div class="canvas-quote-pill">
-            'The objective is not to delete sensitive visual data—it is to make 100% of visual corpora safe to train on.'
-          </div>
-        </div>
-
-        <aside class="right-sidebar">
-          <div class="kpi-row">
-            <div class="kpi-box">
-              <div class="kpi-value">RAW CORPORA</div>
-              <div class="kpi-label">S3 &amp; HF BUCKETS</div>
-            </div>
-            <div class="kpi-box gold">
-              <div class="kpi-value">HEAV3NS</div>
-              <div class="kpi-label">RUST + MCP LAYER</div>
-            </div>
-            <div class="kpi-box">
-              <div class="kpi-value">AI LABS</div>
-              <div class="kpi-label">VLM &amp; DIFFUSION</div>
-            </div>
-          </div>
-
-          <div class="side-card">
-            <div class="side-card-header">UPSTREAM TO HEAV3NS ENGINE</div>
-            <div class="side-card-title">Zero-Copy Local or Cloud Curation</div>
-            <ul class="side-card-list">
-              <li>Connects to S3, GCS, R2 &amp; HuggingFace Hub</li>
-              <li>Preserves 100% of untouched original assets</li>
-              <li>Runs locally via CLI/MCP or managed cloud</li>
-            </ul>
-          </div>
-
-          <div class="side-card">
-            <div class="side-card-header gold">DOWNSTREAM TO MODEL TRAINING</div>
-            <div class="side-card-title">Ready for Pre-Training &amp; Alignment</div>
-            <ul class="side-card-list">
-              <li>Feeds Diffusion &amp; DiT pre-training pipelines</li>
-              <li>Supplies VLM safety &amp; DPO preference pairs</li>
-              <li>Generates cryptographic EU AI Act audit logs</li>
-            </ul>
-          </div>
-        </aside>
-      </div>
-
-      <div class="teleprompter-box">
-        <div class="teleprompter-meta">SYNCHRONIZED VOICE-OVER TELEPROMPTER &nbsp;·&nbsp; 01:08 – 01:22 &nbsp;·&nbsp; WILLIAM ANDREW CRUZ (144.5 WPM)</div>
-        <div class="teleprompter-script">"In the AI supply chain, HEAV3NS sits between raw visual corpora and frontier model training—turning noisy image buckets into verified, training-ready datasets."</div>
-      </div>
-    </section>
-
-    <!-- ================================================================== -->
-    <!-- SCENE 07 OF 09: THE 5-STAGE PIPELINE (SLIDE-07.PNG STYLE)          -->
-    <!-- ================================================================== -->
-    <section class="slide-scene" data-act="ACT III · ARCHITECTURE & PIPELINE" data-duration="14" data-elapsed="01:22">
-      <div class="scene-header">
-        <div class="scene-meta">SCENE 07 OF 09 · THE 5-STAGE DETERMINISTIC DATASET CURATION PIPELINE</div>
-        <h1 class="scene-title">The Curation Pipeline: Ingest, Ground, Curate, Audit, Export</h1>
-      </div>
-
-      <div class="workspace-grid">
-        <div class="left-canvas canvas-ivory">
-          <div style="text-align: center;">
-            <h2 class="canvas-h1">THE DATASET CURATION PIPELINE: FROM BUCKET TO DPO</h2>
-            <div class="canvas-subtitle">A Repeatable 5-Stage Pathway Turning Raw Visual Corpora Into Verified Training Datasets</div>
-          </div>
-
-          <div class="cols-5">
-            <div class="stage-card">
-              <div class="stage-header">1 · INGEST</div>
-              <div class="stage-body">
-                <svg width="42" height="42" viewBox="0 0 24 24" fill="none" stroke="#0b412c" stroke-width="1.8"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
-                <div class="pillar-desc">Hash originals with SHA-256 and render dual-axis coordinate grids.</div>
-              </div>
-            </div>
-
-            <div class="stage-card">
-              <div class="stage-header">2 · GROUND</div>
-              <div class="stage-body">
-                <svg width="42" height="42" viewBox="0 0 24 24" fill="none" stroke="#0b412c" stroke-width="1.8"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
-                <div class="pillar-desc">Cluster hotspots with IoU NMS and 3x sub-pixel zoom crops.</div>
-              </div>
-            </div>
-
-            <div class="stage-card">
-              <div class="stage-header">3 · CURATE</div>
-              <div class="stage-body">
-                <svg width="42" height="42" viewBox="0 0 24 24" fill="none" stroke="#0b412c" stroke-width="1.8"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
-                <div class="pillar-desc">Approve benign hard negatives or apply rotated SDF masks.</div>
-              </div>
-            </div>
-
-            <div class="stage-card">
-              <div class="stage-header">4 · AUDIT</div>
-              <div class="stage-body">
-                <svg width="42" height="42" viewBox="0 0 24 24" fill="none" stroke="#0b412c" stroke-width="1.8"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
-                <div class="pillar-desc">Verify bit-exact non-masked pixels and 540p JPEG survivability.</div>
-              </div>
-            </div>
-
-            <div class="stage-card">
-              <div class="stage-header">5 · EXPORT</div>
-              <div class="stage-body">
-                <svg width="42" height="42" viewBox="0 0 24 24" fill="none" stroke="#0b412c" stroke-width="1.8"><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"/><path d="m12 15-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"/></svg>
-                <div class="pillar-desc">Emit COCO, YOLO, WebDataset, and VLM DPO training manifests.</div>
-              </div>
-            </div>
-          </div>
-
-          <div class="vs-ribbon">
-            <div class="vs-left">Beyond Binary NSFW Filters &amp;<br/>Destructive Diffusion Inpainting</div>
-            <div class="vs-center">VS.</div>
-            <div class="vs-right">99.2% Pixel Preservation · Bit-Exact Proofs<br/>Contrastive DPO Exports · 540p JPEG Gate</div>
-          </div>
-        </div>
-
-        <aside class="right-sidebar">
-          <div class="kpi-row">
-            <div class="kpi-box">
-              <div class="kpi-value">5 STAGES</div>
-              <div class="kpi-label">INGEST TO EXPORT</div>
-            </div>
-            <div class="kpi-box gold">
-              <div class="kpi-value">&lt; 15 MS</div>
-              <div class="kpi-label">RUST NATIVE SPEED</div>
-            </div>
-            <div class="kpi-box">
-              <div class="kpi-value">100% AUDIT</div>
-              <div class="kpi-label">SHA-256 PROVENANCE</div>
-            </div>
-          </div>
-
-          <div class="side-card">
-            <div class="side-card-header">STAGES 1 TO 3: INGEST, GROUND &amp; CURATE</div>
-            <div class="side-card-title">Coarse-to-Fine Agentic Triage</div>
-            <ul class="side-card-list">
-              <li>1. Ingest: SHA-256 lock &amp; coordinate grid</li>
-              <li>2. Ground: IoU NMS &amp; 3x zoom inspection</li>
-              <li>3. Curate: Benign pass or rotated SDF mask</li>
-            </ul>
-          </div>
-
-          <div class="side-card">
-            <div class="side-card-header gold">STAGES 4 TO 5: AUDIT &amp; EXPORT</div>
-            <div class="side-card-title">Cryptographic QC to ML Formats</div>
-            <ul class="side-card-list">
-              <li>4. Audit: 100% bit-exact &amp; 540p JPEG check</li>
-              <li>5. Export: COCO, YOLO, WebDataset &amp; DPO</li>
-              <li>Full provenance stored in immutable ledger</li>
-            </ul>
-          </div>
-        </aside>
-      </div>
-
-      <div class="teleprompter-box">
-        <div class="teleprompter-meta">SYNCHRONIZED VOICE-OVER TELEPROMPTER &nbsp;·&nbsp; 01:22 – 01:36 &nbsp;·&nbsp; WILLIAM ANDREW CRUZ (144.5 WPM)</div>
-        <div class="teleprompter-script">"Every image moves through five deterministic stages: SHA-256 ingestion, coordinate grounding, sub-pixel curation, cryptographic downscale auditing, and multi-format machine learning export."</div>
-      </div>
-    </section>
-
-    <!-- ================================================================== -->
-    <!-- SCENE 08 OF 09: WHY YC-SHAPED (SLIDE-08.PNG STYLE)                 -->
-    <!-- ================================================================== -->
-    <section class="slide-scene" data-act="ACT IV · YC THESIS & 90-DAY ASK" data-duration="13" data-elapsed="01:36">
-      <div class="scene-header">
-        <div class="scene-meta">SCENE 08 OF 09 · WHY HEAV3NS IS A BREAKOUT Y COMBINATOR COMPANY</div>
-        <h1 class="scene-title">Why This Is YC-Shaped: Wedge, Data Moat &amp; $14.8B Market</h1>
-      </div>
-
-      <div class="workspace-grid">
-        <div class="left-canvas canvas-ivory">
-          <div style="text-align: center;">
-            <h2 class="canvas-h1" style="border-bottom: 2px solid #c5a044; padding-bottom: 8px; display: inline-block;">WHY HEAV3NS IS BUILT FOR BREAKOUT SCALE</h2>
-            <div class="canvas-subtitle">Three Compounding Advantages Across Distribution, Data Moat &amp; Revenue</div>
-          </div>
-
-          <div class="cols-3" style="margin-bottom: 14px;">
-            <div class="ivory-card">
-              <div class="card-banner" style="border: 1.5px solid var(--gold-accent);">1 · FRICTIONLESS<br/>OPEN-SOURCE WEDGE</div>
-              <ul class="s8-bullet-list">
-                <li>Mirrors <strong>Roboflow</strong> and <strong>Astral (Ruff/uv)</strong>: an MIT Rust CLI and MCP server adopted in 30 seconds.</li>
-                <li>Zero-config local curation drives bottom-up pull inside AI labs before enterprise sales begin.</li>
-              </ul>
-            </div>
-
-            <div class="ivory-card">
-              <div class="card-banner" style="border: 1.5px solid var(--gold-accent);">2 · PROPRIETARY DPO<br/>ALIGNMENT MOAT</div>
-              <ul class="s8-bullet-list">
-                <li>The only dataset engine producing paired <strong>(Original, Surgical Mask, Hard-Negative)</strong> triples.</li>
-                <li>Every curated corpus compounds our benchmark moat for VLM safety and refusal reduction.</li>
-              </ul>
-            </div>
-
-            <div class="ivory-card">
-              <div class="card-banner" style="border: 1.5px solid var(--gold-accent);">3 · CLEAR OPEN-CORE<br/>CLOUD MONETIZATION</div>
-              <ul class="s8-bullet-list">
-                <li>Captures a <strong>$14.8B AI Data Curation &amp; Safety</strong> market across AI labs, enterprises, and studios.</li>
-                <li>Scales from <strong>$0 MIT CLI</strong> to <strong>$499/mo Pro Cloud</strong> ($0.002/img) and <strong>$100k+ Enterprise VPC</strong>.</li>
-              </ul>
-            </div>
-          </div>
-
-          <div class="canvas-footer-banner">
-            Bottom-up developer adoption meets enterprise compliance: <span class="gold-text">MIT Rust CLI</span> &#8594; <span class="gold-text">Managed Cloud API</span> &#8594; <span class="gold-text">Enterprise VPC</span>.
-          </div>
-        </div>
-
-        <aside class="right-sidebar">
-          <div class="kpi-row">
-            <div class="kpi-box">
-              <div class="kpi-value">MIT WEDGE</div>
-              <div class="kpi-label">ZERO-FRICTION CLI</div>
-            </div>
-            <div class="kpi-box gold">
-              <div class="kpi-value">DPO MOAT</div>
-              <div class="kpi-label">PAIRED ALIGNMENT</div>
-            </div>
-            <div class="kpi-box">
-              <div class="kpi-value">$14.8B TAM</div>
-              <div class="kpi-label">AI DATA &amp; SAFETY</div>
-            </div>
-          </div>
-
-          <div class="side-card">
-            <div class="side-card-header">ADVANTAGES 1 &amp; 2: WEDGE &amp; DATA MOAT</div>
-            <div class="side-card-title">Developer Pull + Compounding Data</div>
-            <ul class="side-card-list">
-              <li>1. Wedge: Instant cargo &amp; MCP adoption</li>
-              <li>2. Moat: Paired contrastive VLM DPO triples</li>
-              <li>Solves both pre-training &amp; safety alignment</li>
-            </ul>
-          </div>
-
-          <div class="side-card">
-            <div class="side-card-header gold">ADVANTAGE 3: OPEN-CORE REVENUE MODEL</div>
-            <div class="side-card-title">From Open Source to Enterprise VPC</div>
-            <ul class="side-card-list">
-              <li>Tier 1: MIT Open-Source CLI &amp; MCP ($0)</li>
-              <li>Tier 2: Pro Cloud Curation API ($499/mo+)</li>
-              <li>Tier 3: Enterprise VPC &amp; Compliance ($100k+)</li>
-            </ul>
-          </div>
-        </aside>
-      </div>
-
-      <div class="teleprompter-box">
-        <div class="teleprompter-meta">SYNCHRONIZED VOICE-OVER TELEPROMPTER &nbsp;·&nbsp; 01:36 – 01:49 &nbsp;·&nbsp; WILLIAM ANDREW CRUZ (144.5 WPM)</div>
-        <div class="teleprompter-script">"HEAV3NS combines a zero-friction MIT Rust wedge with a proprietary contrastive DPO data moat, scaling cleanly from open-source adoption to enterprise cloud contracts."</div>
-      </div>
-    </section>
-
-    <!-- ================================================================== -->
-    <!-- SCENE 09 OF 09: THE 90-DAY YC ASK (SLIDE-09.PNG STYLE)             -->
-    <!-- ================================================================== -->
-    <section class="slide-scene" data-act="ACT IV · YC THESIS & 90-DAY ASK" data-duration="11" data-elapsed="01:49">
-      <div class="scene-header">
-        <div class="scene-meta">SCENE 09 OF 09 · CLEAR ACTIONABLE NEXT STEPS: OUR 90-DAY YC BATCH PLAN</div>
-        <h1 class="scene-title">Clear Actionable Steps Forward: Our 90-Day YC Batch Plan</h1>
-      </div>
-
-      <div class="workspace-grid">
-        <div class="left-canvas canvas-ivory">
-          <div>
-            <div class="canvas-eyebrow">EXECUTION ROADMAP · $500K YC STANDARD DEAL</div>
-            <h2 class="canvas-h1">CLEAR ACTIONABLE NEXT STEPS: HOW WE SCALE</h2>
-            <div class="canvas-subtitle">Y Combinator × Founding Independent Industry Operator (HEAV3NS)</div>
-          </div>
-
-          <div class="cols-3" style="margin-bottom: 14px;">
-            <div class="s9-card">
-              <div class="s9-card-header">STEP 1 · PUBLISH 100K OPEN<br/>VLM SAFETY BENCHMARK</div>
-              <div class="s9-card-body">
-                <div class="s9-card-text">Release <strong>heav3ns-safety-bench-100k</strong> on HuggingFace Hub during Weeks 1–3 to establish the open standard for false-positive reduction.</div>
-                <div class="s9-card-icon">
-                  <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#0b412c" stroke-width="1.6"><circle cx="12" cy="8" r="4"/><path d="M6 20v-2a6 6 0 0 1 12 0v2"/></svg>
+            <div class="cols-3">
+              <div class="ivory-card">
+                <div class="card-banner">ACTIVE ROLE · FOUNDER &amp; OPERATOR</div>
+                <div class="icon-bullet-list">
+                  <div class="icon-bullet">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#0b412c" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 4-6 8-6s8 2 8 6"/></svg>
+                    <div><strong>Founding Operator — HEAV3NS</strong> (Oct 2026–Present, Salt Lake City, UT)</div>
+                  </div>
+                  <div class="icon-bullet">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#0b412c" stroke-width="2"><rect x="3" y="4" width="18" height="14" rx="2"/><path d="M8 20h8M12 18v2"/></svg>
+                    <div>Directs agent systems &amp; developer tooling across <strong>230+ open-source repositories</strong></div>
+                  </div>
+                  <div class="icon-bullet">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#0b412c" stroke-width="2"><path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="9"/></svg>
+                    <div><strong>Verified Credentials:</strong> PSM I · PSPO I · CompTIA Security+ · A+ · Six Sigma Black Belt</div>
+                  </div>
                 </div>
               </div>
-            </div>
 
-            <div class="s9-card">
-              <div class="s9-card-header">STEP 2 · LAUNCH MANAGED<br/>S3 &amp; HF CLOUD API</div>
-              <div class="s9-card-body">
-                <div class="s9-card-text">Ship zero-copy cloud workers in Weeks 4–7 to curate 10M+ image buckets with automated 4-panel QC slates and EU AI Act ledgers.</div>
-                <div class="s9-card-icon">
-                  <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#0b412c" stroke-width="1.6"><rect x="3" y="4" width="18" height="14" rx="2"/><path d="M9 9l-2 2 2 2M15 9l2 2-2 2"/></svg>
+              <div class="ivory-card">
+                <div class="card-banner gold">PAST LABS &amp; SILICON SLOPES MENTOR</div>
+                <div class="icon-bullet-list">
+                  <div class="icon-bullet">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#9c7a23" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg>
+                    <div><strong>OpenAI</strong> (AI Safety Researcher Intern, 2023–2024) &amp; <strong>Meta</strong> (AI Intern, 2022–2023)</div>
+                  </div>
+                  <div class="icon-bullet">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#9c7a23" stroke-width="2"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/></svg>
+                    <div><strong>Nous Research</strong> (May–Aug 2026): Completed Past DevRel / Community Lead SLC</div>
+                  </div>
+                  <div class="icon-bullet">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#9c7a23" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+                    <div><strong>Silicon Slopes Mentor:</strong> Guided hundreds of startup founders across Utah</div>
+                  </div>
                 </div>
               </div>
-            </div>
 
-            <div class="s9-card">
-              <div class="s9-card-header">STEP 3 · CLOSE 5 PAID AI LAB<br/>&amp; STUDIO PILOTS</div>
-              <div class="s9-card-body">
-                <div class="s9-card-text">Convert open-source adopters into 5 paid enterprise design partners in Weeks 8–12 to reach <strong>$25k+ MRR ($300k–$500k ARR)</strong> by Demo Day.</div>
-                <div class="s9-card-icon">
-                  <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#0b412c" stroke-width="1.6"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="M15 8h2M15 12h2M7 16h10"/></svg>
+              <div class="ivory-card">
+                <div class="card-banner slate">WHY THIS FOUNDER WINS</div>
+                <div class="icon-bullet-list">
+                  <div class="icon-bullet">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#0b412c" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+                    <div><strong>Principal Artist (EGG):</strong> Experienced false-positive dataset purges firsthand</div>
+                  </div>
+                  <div class="icon-bullet">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#0b412c" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+                    <div>Architected <strong>heav3ns-censor v4.0</strong> in Rust (3,600+ LOC, 13/13 tests passing)</div>
+                  </div>
+                  <div class="icon-bullet">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#0b412c" stroke-width="2"><path d="M3 21h18M5 21V7l7-4 7 4v14"/></svg>
+                    <div>Partnered with Executive Chair <strong>MAJO</strong> to unite studio art and AI safety</div>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
 
-          <div class="canvas-footer-banner" style="font-size: 14.5px;">
-            <span class="gold-text">&#10003;</span> Production Rust v4.0 Shipped Today &nbsp;|&nbsp; <span class="gold-text">&#10003;</span> 99.2% Verified Pixel Preservation &nbsp;|&nbsp; <span class="gold-text">&#10003;</span> Target $300k–$500k ARR by YC Demo Day
-          </div>
+          <aside class="right-sidebar">
+            <div class="kpi-row">
+              <div class="kpi-box">
+                <div class="kpi-value">OPENAI · META</div>
+                <div class="kpi-label">PAST LAB INTERNS</div>
+              </div>
+              <div class="kpi-box gold">
+                <div class="kpi-value">100s GUIDED</div>
+                <div class="kpi-label">FOUNDER MENTOR</div>
+              </div>
+              <div class="kpi-box">
+                <div class="kpi-value">230+ REPOS</div>
+                <div class="kpi-label">AGENTIC SYSTEMS</div>
+              </div>
+            </div>
+
+            <div class="side-card">
+              <div class="side-card-header">ACTIVE ROLE: FOUNDER &amp; OPERATOR</div>
+              <div class="side-card-title">Founding Independent Industry Operator</div>
+              <ul class="side-card-list">
+                <li>Full-time Founder of HEAV3NS (Oct 2026–Present)</li>
+                <li>Directs agent systems across 230+ open-source repos</li>
+                <li>Certified: PSM I, PSPO I, Security+, A+, Six Sigma BB</li>
+              </ul>
+            </div>
+
+            <div class="side-card">
+              <div class="side-card-header gold">PAST LABS &amp; SILICON SLOPES</div>
+              <div class="side-card-title">Frontier AI Safety + Studio Art</div>
+              <ul class="side-card-list">
+                <li>Past roles: Meta (22–23), OpenAI (23–24), Nous (26)</li>
+                <li>Helped 100s of founders navigate Silicon Slopes</li>
+                <li>Built heav3ns-censor v4.0 in production Rust</li>
+              </ul>
+            </div>
+          </aside>
         </div>
 
-        <aside class="right-sidebar">
-          <div class="kpi-row">
-            <div class="kpi-box">
-              <div class="kpi-value">STEP 1</div>
-              <div class="kpi-label">100K HF BENCHMARK</div>
+        <div class="teleprompter-box">
+          <div class="teleprompter-meta">SYNCHRONIZED VOICE-OVER TELEPROMPTER &nbsp;·&nbsp; 00:13 – 00:27 &nbsp;·&nbsp; WILLIAM ANDREW CRUZ (144.5 WPM)</div>
+          <div class="teleprompter-script">"I'm William Andrew Cruz, founder of HEAV3NS. After past roles at OpenAI, Meta, and Nous Research, plus directing over two hundred open-source repositories, I built HEAV3NS."</div>
+        </div>
+      </section>
+
+      <!-- ================================================================== -->
+      <!-- SCENE 03 OF 09: THE PROBLEM (SLIDE-03.PNG CURLY BRACE DIAGRAM)     -->
+      <!-- ================================================================== -->
+      <section class="slide-scene" data-act="ACT II · PROBLEM, SOLUTION & ENGINE" data-duration="13" data-elapsed="00:27">
+        <div class="scene-header">
+          <div class="scene-meta">SCENE 03 OF 09 · ELEMENT 3: THE INDUSTRY BOTTLENECK — THE BROKEN BINARY</div>
+          <h1 class="scene-title">The Problem: Why Current AI Curation Destroys Visual Datasets</h1>
+        </div>
+
+        <div class="workspace-grid">
+          <div class="left-canvas canvas-ivory">
+            <div style="text-align: center; padding-top: 12px;">
+              <h2 class="canvas-h1-serif">THE INDUSTRY BOTTLENECK:<br/>THE BROKEN BINARY IN AI DATA</h2>
             </div>
-            <div class="kpi-box gold">
-              <div class="kpi-value">STEP 2</div>
-              <div class="kpi-label">CLOUD S3/HF API</div>
-            </div>
-            <div class="kpi-box">
-              <div class="kpi-value">STEP 3</div>
-              <div class="kpi-label">$500K DEMO DAY ARR</div>
+
+            <div class="s3-brace-stage">
+              <div class="s3-wing">
+                <div class="s3-wing-title">15–40% False-Positive<br/>Sample Purge</div>
+                <div class="s3-wing-desc">Binary NSFW classifiers delete classical art, anatomy, and dramatic lighting wholesale</div>
+              </div>
+
+              <!-- Left Curly Brace SVG -->
+              <svg width="80" height="270" viewBox="0 0 80 270" fill="none">
+                <path d="M6 12 H40 Q55 12 55 30 V118 Q55 135 74 135 Q55 135 55 152 V240 Q55 258 40 258 H6" stroke="#c89d32" stroke-width="5.5" stroke-linecap="round"/>
+              </svg>
+
+              <div class="s3-center-ring">
+                <div class="s3-ring-title">THE BROKEN<br/>BINARY</div>
+                <div class="s3-ring-sub">Drop the entire image or poison every pixel with inpainting</div>
+              </div>
+
+              <!-- Right Curly Brace SVG -->
+              <svg width="80" height="270" viewBox="0 0 80 270" fill="none">
+                <path d="M74 12 H40 Q25 12 25 30 V118 Q25 135 6 135 Q25 135 25 152 V240 Q25 258 40 258 H74" stroke="#c89d32" stroke-width="5.5" stroke-linecap="round"/>
+              </svg>
+
+              <div class="s3-wing">
+                <div class="s3-wing-title">100% Pixel Drift via<br/>Diffusion Inpainting</div>
+                <div class="s3-wing-desc">Generative scrubbing re-encodes the entire image, corrupting lighting and alpha layers</div>
+              </div>
             </div>
           </div>
 
-          <div class="side-card">
-            <div class="side-card-header">THREE CONCRETE STEPS IN THE YC BATCH</div>
-            <div class="side-card-title">From Open Benchmark to Paid Pilots</div>
-            <ul class="side-card-list">
-              <li>Step 1: 100K contrastive DPO dataset on HF</li>
-              <li>Step 2: Managed S3/GCS/HF Cloud API launch</li>
-              <li>Step 3: 5 paid AI lab pilots ($25k+ MRR)</li>
-            </ul>
+          <aside class="right-sidebar">
+            <div class="kpi-row">
+              <div class="kpi-box">
+                <div class="kpi-value">15–40% LOST</div>
+                <div class="kpi-label">FALSE-POSITIVE DROP</div>
+              </div>
+              <div class="kpi-box gold">
+                <div class="kpi-value">100% DRIFT</div>
+                <div class="kpi-label">VAE RE-ENCODING</div>
+              </div>
+              <div class="kpi-box">
+                <div class="kpi-value">0 DPO PAIRS</div>
+                <div class="kpi-label">DELETED SAMPLES</div>
+              </div>
+            </div>
+
+            <div class="side-card">
+              <div class="side-card-header">FAILURE MODE A: SAMPLE DROPPING</div>
+              <div class="side-card-title">Biased Classifiers Delete Human Art</div>
+              <ul class="side-card-list">
+                <li>Binary safety filters purge 15–40% of valid art</li>
+                <li>Erases figure drawing, sculpture &amp; skin tones</li>
+                <li>Causes catastrophic anatomical hallucinations</li>
+              </ul>
+            </div>
+
+            <div class="side-card">
+              <div class="side-card-header gold">FAILURE MODE B: INPAINTING DRIFT</div>
+              <div class="side-card-title">Generative Scrubbing Corrupts Data</div>
+              <ul class="side-card-list">
+                <li>VAE decoding mutates 100% of background pixels</li>
+                <li>Destroys ground-truth lighting and alpha layers</li>
+                <li>Leaves zero contrastive signal for safety DPO</li>
+              </ul>
+            </div>
+          </aside>
+        </div>
+
+        <div class="teleprompter-box">
+          <div class="teleprompter-meta">SYNCHRONIZED VOICE-OVER TELEPROMPTER &nbsp;·&nbsp; 00:27 – 00:40 &nbsp;·&nbsp; WILLIAM ANDREW CRUZ (144.5 WPM)</div>
+          <div class="teleprompter-script">"Today's AI data pipelines face a broken binary: either drop up to forty percent of valid artwork via false-positive filters, or corrupt every pixel with generative inpainting."</div>
+        </div>
+      </section>
+
+      <!-- ================================================================== -->
+      <!-- SCENE 04 OF 09: THE SOLUTION (SLIDE-04.PNG 3-STEP CHEVRON FLOW)    -->
+      <!-- ================================================================== -->
+      <section class="slide-scene" data-act="ACT II · PROBLEM, SOLUTION & ENGINE" data-duration="14" data-elapsed="00:40">
+        <div class="scene-header">
+          <div class="scene-meta">SCENE 04 OF 09 · ELEMENT 4: THE HEAV3NS SOLUTION — PRESERVATION-AWARE TRIAGE</div>
+          <h1 class="scene-title">The Solution: Turning False Positives Into High-Signal Training Data</h1>
+        </div>
+
+        <div class="workspace-grid">
+          <div class="left-canvas canvas-ivory">
+            <div>
+              <div class="canvas-eyebrow">BRIDGING DATA PRESERVATION &amp; MODEL SAFETY</div>
+              <h2 class="canvas-h1">PRESERVATION-AWARE CURATION: FROM FALSE POSITIVES TO DPO SIGNAL</h2>
+              <div class="canvas-subtitle">Replacing Crude Whole-Image Deletion With Deterministic 3-Way Sub-Pixel Triage</div>
+            </div>
+
+            <div class="s4-flow">
+              <div class="s4-card">
+                <div class="s4-card-title">1 · BENIGN &amp; ARTISTIC<br/>PASS</div>
+                <div class="s4-pill">CLASS 0 · HARD NEGATIVES</div>
+                <ul class="s4-list">
+                  <li>Classical art, silhouettes, and figure studies pass 100% untouched</li>
+                  <li>Cryptographic SHA-256 original preservation in ledger</li>
+                  <li>Tagged as verified Hard Negatives to cure false positives</li>
+                </ul>
+              </div>
+
+              <div class="s4-arrow">&#10095;</div>
+
+              <div class="s4-card gold-top">
+                <div class="s4-card-title">2 · SURGICAL SUB-PIXEL<br/>INTERVENTION</div>
+                <div class="s4-pill">CLASS 1 · 98.4% BIT-EXACT</div>
+                <ul class="s4-list">
+                  <li><strong>Mask:</strong> Rotated pill, ellipse &amp; rect Signed Distance Fields</li>
+                  <li><strong>Preserve:</strong> 98.4% of non-masked pixels stay 100% bit-identical</li>
+                  <li><strong>Verify:</strong> Dual mean &amp; p95 JPEG check at 1080p and 540p</li>
+                </ul>
+              </div>
+
+              <div class="s4-arrow">&#10095;</div>
+
+              <div class="s4-card">
+                <div class="s4-card-title">3 · CONTRASTIVE DPO<br/>ALIGNMENT EXPORT</div>
+                <div class="s4-pill">CHOSEN VS. REJECTED PAIRS</div>
+                <ul class="s4-list">
+                  <li>Pairs untouched originals with surgical interventions</li>
+                  <li>Emits non-degenerate VLM safety preference triples</li>
+                  <li>Trains models on exact boundaries without over-refusal</li>
+                </ul>
+              </div>
+            </div>
+
+            <div class="canvas-footer-banner">
+              Turning discarded datasets into <span class="gold-text">contrastive alignment gold</span> with 99.2% pixel preservation.
+            </div>
           </div>
 
-          <div class="side-card">
-            <div class="side-card-header gold">DIRECT CONTACT FOR PARTNER INTERVIEW</div>
-            <div class="side-card-title">William Andrew Cruz — HEAV3NS</div>
-            <ul class="side-card-list">
-              <li>Email: commission@heav3ns.com</li>
-              <li>Web: https://heav3ns.com | github.com/CardSorting</li>
-              <li>Salt Lake City, UT (Ready for YC Batch)</li>
-            </ul>
+          <aside class="right-sidebar">
+            <div class="kpi-row">
+              <div class="kpi-box">
+                <div class="kpi-value">100% INTACT</div>
+                <div class="kpi-label">NON-MASKED PIXELS</div>
+              </div>
+              <div class="kpi-box gold">
+                <div class="kpi-value">99.2% MEAN</div>
+                <div class="kpi-label">CORPUS PRESERVED</div>
+              </div>
+              <div class="kpi-box">
+                <div class="kpi-value">3-WAY TRIAGE</div>
+                <div class="kpi-label">PASS · MASK · ESCALATE</div>
+              </div>
+            </div>
+
+            <div class="side-card">
+              <div class="side-card-header">CRYPTOGRAPHIC PIXEL INVARIANCE</div>
+              <div class="side-card-title">Zero Generative Hallucination</div>
+              <ul class="side-card-list">
+                <li>100% bit-exact outside declared SDF masks</li>
+                <li>Alpha &amp; background lighting remain untouched</li>
+                <li>Verified automatically on every single run</li>
+              </ul>
+            </div>
+
+            <div class="side-card">
+              <div class="side-card-header gold">CONTRASTIVE ALIGNMENT SIGNAL</div>
+              <div class="side-card-title">Fixing VLM Over-Refusal</div>
+              <ul class="side-card-list">
+                <li>Hard negatives stop benign art over-refusal</li>
+                <li>Paired masks teach sub-pixel safety boundaries</li>
+                <li>Escalations route edge cases to human review</li>
+              </ul>
+            </div>
+          </aside>
+        </div>
+
+        <div class="teleprompter-box">
+          <div class="teleprompter-meta">SYNCHRONIZED VOICE-OVER TELEPROMPTER &nbsp;·&nbsp; 00:40 – 00:54 &nbsp;·&nbsp; WILLIAM ANDREW CRUZ (144.5 WPM)</div>
+          <div class="teleprompter-script">"HEAV3NS replaces whole-image deletion with deterministic three-way triage: preserving benign art as hard negatives, applying sub-pixel SDF masks, and exporting contrastive DPO pairs."</div>
+        </div>
+      </section>
+
+      <!-- ================================================================== -->
+      <!-- SCENE 05 OF 09: THE 5-PILLAR RUST ENGINE (SLIDE-05.PNG STYLE)      -->
+      <!-- ================================================================== -->
+      <section class="slide-scene" data-act="ACT II · PROBLEM, SOLUTION & ENGINE" data-duration="14" data-elapsed="00:54">
+        <div class="scene-header">
+          <div class="scene-meta">SCENE 05 OF 09 · THE 5-PILLAR HEAV3NS-CENSOR v4.0 RUST ENGINE</div>
+          <h1 class="scene-title">What We Built: The 5-Pillar Deterministic Rust &amp; MCP Engine</h1>
+        </div>
+
+        <div class="workspace-grid">
+          <div class="left-canvas canvas-ivory">
+            <div>
+              <div class="canvas-eyebrow">SHIPPED TODAY IN PRODUCTION RUST (MIT LICENSE · 13/13 TESTS PASSING)</div>
+              <h2 class="canvas-h1">HEAV3NS-CENSOR v4.0: DETERMINISTIC VISUAL CURATION ENGINE</h2>
+              <div class="canvas-subtitle">Five Core Technical Pillars Powering Sub-Pixel Curation and Agentic Automation</div>
+            </div>
+
+            <div class="cols-5">
+              <div class="pillar-card">
+                <div class="pillar-num">01</div>
+                <div class="pillar-title">ROTATED SDF<br/>PRIMITIVES</div>
+                <div class="pillar-icon">
+                  <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#0b412c" stroke-width="1.8"><rect x="3" y="8" width="18" height="8" rx="4" transform="rotate(-18 12 12)"/></svg>
+                </div>
+                <div class="pillar-desc">Arbitrary-angle rect, ellipse, and pill masks with zero bounding-box waste.</div>
+              </div>
+
+              <div class="pillar-card">
+                <div class="pillar-num">02</div>
+                <div class="pillar-title">540P THUMBNAIL<br/>SURVIVABILITY</div>
+                <div class="pillar-icon">
+                  <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#0b412c" stroke-width="1.8"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/></svg>
+                </div>
+                <div class="pillar-desc">Dual mean and p95 JPEG downscale verification across 1080p and 540p.</div>
+              </div>
+
+              <div class="pillar-card">
+                <div class="pillar-num">03</div>
+                <div class="pillar-title">HARDNESS &amp;<br/>NMS SCORING</div>
+                <div class="pillar-icon">
+                  <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#0b412c" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3"/></svg>
+                </div>
+                <div class="pillar-desc">Automated candidate hotspot IoU clustering and false-positive hardness telemetry.</div>
+              </div>
+
+              <div class="pillar-card">
+                <div class="pillar-num">04</div>
+                <div class="pillar-title">15-TOOL NATIVE<br/>MCP SERVER</div>
+                <div class="pillar-icon">
+                  <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#0b412c" stroke-width="1.8"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M8 10l3 3-3 3M13 16h3"/></svg>
+                </div>
+                <div class="pillar-desc">Zero-glue JSON-RPC stdio server for autonomous VLM and agentic triage.</div>
+              </div>
+
+              <div class="pillar-card">
+                <div class="pillar-num">05</div>
+                <div class="pillar-title">5-FORMAT ML<br/>EXPORTER</div>
+                <div class="pillar-icon">
+                  <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#0b412c" stroke-width="1.8"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                </div>
+                <div class="pillar-desc">One-command export to COCO, YOLO, WebDataset, VLM DPO, and HuggingFace.</div>
+              </div>
+            </div>
+
+            <div class="canvas-footer-banner">
+              Not a fragile Python wrapper—a zero-dependency, cryptographically audited Rust engine.
+            </div>
           </div>
-        </aside>
+
+          <aside class="right-sidebar">
+            <div class="kpi-row">
+              <div class="kpi-box">
+                <div class="kpi-value">5 PILLARS</div>
+                <div class="kpi-label">RUST v4.0 ENGINE</div>
+              </div>
+              <div class="kpi-box gold">
+                <div class="kpi-value">15 TOOLS</div>
+                <div class="kpi-label">NATIVE MCP SERVER</div>
+              </div>
+              <div class="kpi-box">
+                <div class="kpi-value">5 FORMATS</div>
+                <div class="kpi-label">COCO · YOLO · DPO</div>
+              </div>
+            </div>
+
+            <div class="side-card">
+              <div class="side-card-header">PILLARS 01 – 03: GEOMETRY &amp; QC</div>
+              <div class="side-card-title">Sub-Pixel SDFs &amp; Downscale Gate</div>
+              <ul class="side-card-list">
+                <li>01 Rotated SDFs: Tight pill, ellipse &amp; rect masks</li>
+                <li>02 540p Gate: Prevents JPEG thumbnail bleed</li>
+                <li>03 Hardness + NMS: Quantifies boundary risk</li>
+              </ul>
+            </div>
+
+            <div class="side-card">
+              <div class="side-card-header gold">PILLARS 04 – 05: MCP &amp; ML EXPORT</div>
+              <div class="side-card-title">Agentic Control &amp; Training Exports</div>
+              <ul class="side-card-list">
+                <li>04 MCP Server: 15 native tools over JSON-RPC</li>
+                <li>05 ML Export: COCO, YOLO, WebDataset &amp; DPO</li>
+                <li>13/13 unit tests &amp; 11/11 doctor checks passing</li>
+              </ul>
+            </div>
+          </aside>
+        </div>
+
+        <div class="teleprompter-box">
+          <div class="teleprompter-meta">SYNCHRONIZED VOICE-OVER TELEPROMPTER &nbsp;·&nbsp; 00:54 – 01:08 &nbsp;·&nbsp; WILLIAM ANDREW CRUZ (144.5 WPM)</div>
+          <div class="teleprompter-script">"Everything you see is shipped in Rust today: rotated SDF masks, thumbnail survivability gates, hardness scoring, a fifteen-tool MCP server, and five ML export formats."</div>
+        </div>
+      </section>
+
+      <!-- ================================================================== -->
+      <!-- SCENE 06 OF 09: OPERATING ARCHITECTURE (SLIDE-06.PNG STYLE)        -->
+      <!-- ================================================================== -->
+      <section class="slide-scene" data-act="ACT III · ARCHITECTURE & PIPELINE" data-duration="14" data-elapsed="01:08">
+        <div class="scene-header">
+          <div class="scene-meta">SCENE 06 OF 09 · THE OPERATING ARCHITECTURE ACROSS THE AI DATA SUPPLY CHAIN</div>
+          <h1 class="scene-title">The Architecture: Raw Visual Corpora, HEAV3NS &amp; Frontier AI Labs</h1>
+        </div>
+
+        <div class="workspace-grid">
+          <div class="left-canvas canvas-ivory">
+            <div style="text-align: center;">
+              <div class="canvas-eyebrow">AI TRAINING DATA INFRASTRUCTURE</div>
+              <h2 class="canvas-h1-serif">THE OPERATING ARCHITECTURE &amp; SUPPLY CHAIN</h2>
+              <div class="canvas-subtitle">HEAV3NS Is the Deterministic Curation Layer Connecting Visual Corpora to Model Training</div>
+            </div>
+
+            <div class="arch-diagram">
+              <div class="arch-node">
+                <div class="arch-badge-top">UPSTREAM DATA SOURCES</div>
+                <div>
+                  <div class="arch-node-title">RAW CORPORA</div>
+                  <div class="arch-node-sub">(S3 · HF · STUDIOS)</div>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:22px;font-size:18px;padding:8px 8px 0 8px;flex:1;justify-content:flex-start;">
+                  <div>&#128451; Web-Scale Image Buckets</div>
+                  <div>&#127912; Fine Art &amp; Photography</div>
+                  <div>&#128214; Manga &amp; Game Studios</div>
+                  <div>&#127963; Licensed Stock Archives</div>
+                </div>
+              </div>
+
+              <div class="arch-arrows">
+                <span>&#8594;</span>
+                <span>&#8592;</span>
+              </div>
+
+              <div class="arch-node center-node">
+                <div class="arch-badge-top">DETERMINISTIC CURATION LAYER</div>
+                <div>
+                  <div class="arch-node-title">HEAV3NS</div>
+                  <div class="arch-node-sub">Rust Engine + 15-Tool MCP Server</div>
+                </div>
+                <div class="arch-inner-grid">
+                  <div class="arch-inner-pill">Rotated SDF<br/>Masks</div>
+                  <div class="arch-inner-pill">15-Tool MCP<br/>Server</div>
+                  <div class="arch-inner-pill">540p JPEG<br/>QC Gate</div>
+                  <div class="arch-inner-pill">Hardness &amp;<br/>NMS Scoring</div>
+                  <div class="arch-inner-pill">SHA-256 Audit<br/>Ledger</div>
+                  <div class="arch-inner-pill">5-Format ML<br/>Exporter</div>
+                </div>
+              </div>
+
+              <div class="arch-arrows">
+                <span>&#8594;</span>
+                <span>&#8592;</span>
+              </div>
+
+              <div class="arch-node right-node">
+                <div class="arch-badge-top gold">DOWNSTREAM CONSUMERS</div>
+                <div>
+                  <div class="arch-node-title">FRONTIER AI LABS</div>
+                  <div class="arch-node-sub">(TRAINING &amp; SAFETY)</div>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:18px;font-size:18px;padding:8px 8px 0 8px;flex:1;justify-content:flex-start;">
+                  <div><span class="gold-text">•</span> Diffusion Pre-Training</div>
+                  <div><span class="gold-text">•</span> VLM Safety Alignment</div>
+                  <div><span class="gold-text">•</span> Contrastive DPO Tuning</div>
+                  <div><span class="gold-text">•</span> EU AI Act Provenance</div>
+                  <div><span class="gold-text">•</span> Broadcast Publication</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="canvas-quote-pill">
+              'The objective is not to delete sensitive visual data—it is to make 100% of visual corpora safe to train on.'
+            </div>
+          </div>
+
+          <aside class="right-sidebar">
+            <div class="kpi-row">
+              <div class="kpi-box">
+                <div class="kpi-value">RAW CORPORA</div>
+                <div class="kpi-label">S3 &amp; HF BUCKETS</div>
+              </div>
+              <div class="kpi-box gold">
+                <div class="kpi-value">HEAV3NS</div>
+                <div class="kpi-label">RUST + MCP LAYER</div>
+              </div>
+              <div class="kpi-box">
+                <div class="kpi-value">AI LABS</div>
+                <div class="kpi-label">VLM &amp; DIFFUSION</div>
+              </div>
+            </div>
+
+            <div class="side-card">
+              <div class="side-card-header">UPSTREAM TO HEAV3NS ENGINE</div>
+              <div class="side-card-title">Zero-Copy Local or Cloud Curation</div>
+              <ul class="side-card-list">
+                <li>Connects to S3, GCS, R2 &amp; HuggingFace Hub</li>
+                <li>Preserves 100% of untouched original assets</li>
+                <li>Runs locally via CLI/MCP or managed cloud</li>
+              </ul>
+            </div>
+
+            <div class="side-card">
+              <div class="side-card-header gold">DOWNSTREAM TO MODEL TRAINING</div>
+              <div class="side-card-title">Ready for Pre-Training &amp; Alignment</div>
+              <ul class="side-card-list">
+                <li>Feeds Diffusion &amp; DiT pre-training pipelines</li>
+                <li>Supplies VLM safety &amp; DPO preference pairs</li>
+                <li>Generates cryptographic EU AI Act audit logs</li>
+              </ul>
+            </div>
+          </aside>
+        </div>
+
+        <div class="teleprompter-box">
+          <div class="teleprompter-meta">SYNCHRONIZED VOICE-OVER TELEPROMPTER &nbsp;·&nbsp; 01:08 – 01:22 &nbsp;·&nbsp; WILLIAM ANDREW CRUZ (144.5 WPM)</div>
+          <div class="teleprompter-script">"In the AI supply chain, HEAV3NS sits between raw visual corpora and frontier model training—turning noisy image buckets into verified, training-ready datasets."</div>
+        </div>
+      </section>
+
+      <!-- ================================================================== -->
+      <!-- SCENE 07 OF 09: THE 5-STAGE PIPELINE (SLIDE-07.PNG STYLE)          -->
+      <!-- ================================================================== -->
+      <section class="slide-scene" data-act="ACT III · ARCHITECTURE & PIPELINE" data-duration="14" data-elapsed="01:22">
+        <div class="scene-header">
+          <div class="scene-meta">SCENE 07 OF 09 · THE 5-STAGE DETERMINISTIC DATASET CURATION PIPELINE</div>
+          <h1 class="scene-title">The Curation Pipeline: Ingest, Ground, Curate, Audit, Export</h1>
+        </div>
+
+        <div class="workspace-grid">
+          <div class="left-canvas canvas-ivory">
+            <div style="text-align: center;">
+              <h2 class="canvas-h1">THE DATASET CURATION PIPELINE: FROM BUCKET TO DPO</h2>
+              <div class="canvas-subtitle">A Repeatable 5-Stage Pathway Turning Raw Visual Corpora Into Verified Training Datasets</div>
+            </div>
+
+            <div class="cols-5">
+              <div class="stage-card">
+                <div class="stage-header">1 · INGEST</div>
+                <div class="stage-body">
+                  <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#0b412c" stroke-width="1.8"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+                  <div class="pillar-desc">Hash originals with SHA-256 and render dual-axis coordinate grids.</div>
+                </div>
+              </div>
+
+              <div class="stage-card">
+                <div class="stage-header">2 · GROUND</div>
+                <div class="stage-body">
+                  <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#0b412c" stroke-width="1.8"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
+                  <div class="pillar-desc">Cluster hotspots with IoU NMS and 3x sub-pixel zoom crops.</div>
+                </div>
+              </div>
+
+              <div class="stage-card">
+                <div class="stage-header">3 · CURATE</div>
+                <div class="stage-body">
+                  <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#0b412c" stroke-width="1.8"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+                  <div class="pillar-desc">Approve benign hard negatives or apply rotated SDF masks.</div>
+                </div>
+              </div>
+
+              <div class="stage-card">
+                <div class="stage-header">4 · AUDIT</div>
+                <div class="stage-body">
+                  <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#0b412c" stroke-width="1.8"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+                  <div class="pillar-desc">Verify bit-exact non-masked pixels and 540p JPEG survivability.</div>
+                </div>
+              </div>
+
+              <div class="stage-card">
+                <div class="stage-header">5 · EXPORT</div>
+                <div class="stage-body">
+                  <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#0b412c" stroke-width="1.8"><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"/><path d="m12 15-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"/></svg>
+                  <div class="pillar-desc">Emit COCO, YOLO, WebDataset, and VLM DPO training manifests.</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="vs-ribbon">
+              <div class="vs-left">Beyond Binary NSFW Filters &amp;<br/>Destructive Diffusion Inpainting</div>
+              <div class="vs-center">VS.</div>
+              <div class="vs-right">99.2% Pixel Preservation · Bit-Exact Proofs<br/>Contrastive DPO Exports · 540p JPEG Gate</div>
+            </div>
+          </div>
+
+          <aside class="right-sidebar">
+            <div class="kpi-row">
+              <div class="kpi-box">
+                <div class="kpi-value">5 STAGES</div>
+                <div class="kpi-label">INGEST TO EXPORT</div>
+              </div>
+              <div class="kpi-box gold">
+                <div class="kpi-value">&lt; 15 MS</div>
+                <div class="kpi-label">RUST NATIVE SPEED</div>
+              </div>
+              <div class="kpi-box">
+                <div class="kpi-value">100% AUDIT</div>
+                <div class="kpi-label">SHA-256 PROVENANCE</div>
+              </div>
+            </div>
+
+            <div class="side-card">
+              <div class="side-card-header">STAGES 1 TO 3: INGEST, GROUND &amp; CURATE</div>
+              <div class="side-card-title">Coarse-to-Fine Agentic Triage</div>
+              <ul class="side-card-list">
+                <li>1. Ingest: SHA-256 lock &amp; coordinate grid</li>
+                <li>2. Ground: IoU NMS &amp; 3x zoom inspection</li>
+                <li>3. Curate: Benign pass or rotated SDF mask</li>
+              </ul>
+            </div>
+
+            <div class="side-card">
+              <div class="side-card-header gold">STAGES 4 TO 5: AUDIT &amp; EXPORT</div>
+              <div class="side-card-title">Cryptographic QC to ML Formats</div>
+              <ul class="side-card-list">
+                <li>4. Audit: 100% bit-exact &amp; 540p JPEG check</li>
+                <li>5. Export: COCO, YOLO, WebDataset &amp; DPO</li>
+                <li>Full provenance stored in immutable ledger</li>
+              </ul>
+            </div>
+          </aside>
+        </div>
+
+        <div class="teleprompter-box">
+          <div class="teleprompter-meta">SYNCHRONIZED VOICE-OVER TELEPROMPTER &nbsp;·&nbsp; 01:22 – 01:36 &nbsp;·&nbsp; WILLIAM ANDREW CRUZ (144.5 WPM)</div>
+          <div class="teleprompter-script">"Every image moves through five deterministic stages: SHA-256 ingestion, coordinate grounding, sub-pixel curation, cryptographic downscale auditing, and multi-format machine learning export."</div>
+        </div>
+      </section>
+
+      <!-- ================================================================== -->
+      <!-- SCENE 08 OF 09: WHY YC-SHAPED (SLIDE-08.PNG STYLE)                 -->
+      <!-- ================================================================== -->
+      <section class="slide-scene" data-act="ACT IV · YC THESIS & 90-DAY ASK" data-duration="13" data-elapsed="01:36">
+        <div class="scene-header">
+          <div class="scene-meta">SCENE 08 OF 09 · WHY HEAV3NS IS A BREAKOUT Y COMBINATOR COMPANY</div>
+          <h1 class="scene-title">Why This Is YC-Shaped: Wedge, Data Moat &amp; $14.8B Market</h1>
+        </div>
+
+        <div class="workspace-grid">
+          <div class="left-canvas canvas-ivory">
+            <div style="text-align: center;">
+              <h2 class="canvas-h1" style="border-bottom: 2.5px solid #c5a044; padding-bottom: 8px; display: inline-block;">WHY HEAV3NS IS BUILT FOR BREAKOUT SCALE</h2>
+              <div class="canvas-subtitle">Three Compounding Advantages Across Distribution, Data Moat &amp; Revenue</div>
+            </div>
+
+            <div class="cols-3" style="margin-bottom: 16px;">
+              <div class="ivory-card">
+                <div class="card-banner" style="border: 1.5px solid var(--gold-accent);">1 · FRICTIONLESS<br/>OPEN-SOURCE WEDGE</div>
+                <ul class="s8-bullet-list">
+                  <li>Mirrors <strong>Roboflow</strong> and <strong>Astral (Ruff/uv)</strong>: an MIT Rust CLI and MCP server adopted in 30 seconds.</li>
+                  <li>Zero-config local curation drives bottom-up pull inside AI labs before enterprise sales begin.</li>
+                </ul>
+              </div>
+
+              <div class="ivory-card">
+                <div class="card-banner" style="border: 1.5px solid var(--gold-accent);">2 · PROPRIETARY DPO<br/>ALIGNMENT MOAT</div>
+                <ul class="s8-bullet-list">
+                  <li>The only dataset engine producing paired <strong>(Original, Surgical Mask, Hard-Negative)</strong> triples.</li>
+                  <li>Every curated corpus compounds our benchmark moat for VLM safety and refusal reduction.</li>
+                </ul>
+              </div>
+
+              <div class="ivory-card">
+                <div class="card-banner" style="border: 1.5px solid var(--gold-accent);">3 · CLEAR OPEN-CORE<br/>CLOUD MONETIZATION</div>
+                <ul class="s8-bullet-list">
+                  <li>Captures a <strong>$14.8B AI Data Curation &amp; Safety</strong> market across AI labs, enterprises, and studios.</li>
+                  <li>Scales from <strong>$0 MIT CLI</strong> to <strong>$499/mo Pro Cloud</strong> ($0.002/img) and <strong>$100k+ Enterprise VPC</strong>.</li>
+                </ul>
+              </div>
+            </div>
+
+            <div class="canvas-footer-banner">
+              Bottom-up developer adoption meets enterprise compliance: <span class="gold-text">MIT Rust CLI</span> &#8594; <span class="gold-text">Managed Cloud API</span> &#8594; <span class="gold-text">Enterprise VPC</span>.
+            </div>
+          </div>
+
+          <aside class="right-sidebar">
+            <div class="kpi-row">
+              <div class="kpi-box">
+                <div class="kpi-value">MIT WEDGE</div>
+                <div class="kpi-label">ZERO-FRICTION CLI</div>
+              </div>
+              <div class="kpi-box gold">
+                <div class="kpi-value">DPO MOAT</div>
+                <div class="kpi-label">PAIRED ALIGNMENT</div>
+              </div>
+              <div class="kpi-box">
+                <div class="kpi-value">$14.8B TAM</div>
+                <div class="kpi-label">AI DATA &amp; SAFETY</div>
+              </div>
+            </div>
+
+            <div class="side-card">
+              <div class="side-card-header">ADVANTAGES 1 &amp; 2: WEDGE &amp; DATA MOAT</div>
+              <div class="side-card-title">Developer Pull + Compounding Data</div>
+              <ul class="side-card-list">
+                <li>1. Wedge: Instant cargo &amp; MCP adoption</li>
+                <li>2. Moat: Paired contrastive VLM DPO triples</li>
+                <li>Solves both pre-training &amp; safety alignment</li>
+              </ul>
+            </div>
+
+            <div class="side-card">
+              <div class="side-card-header gold">ADVANTAGE 3: OPEN-CORE REVENUE MODEL</div>
+              <div class="side-card-title">From Open Source to Enterprise VPC</div>
+              <ul class="side-card-list">
+                <li>Tier 1: MIT Open-Source CLI &amp; MCP ($0)</li>
+                <li>Tier 2: Pro Cloud Curation API ($499/mo+)</li>
+                <li>Tier 3: Enterprise VPC &amp; Compliance ($100k+)</li>
+              </ul>
+            </div>
+          </aside>
+        </div>
+
+        <div class="teleprompter-box">
+          <div class="teleprompter-meta">SYNCHRONIZED VOICE-OVER TELEPROMPTER &nbsp;·&nbsp; 01:36 – 01:49 &nbsp;·&nbsp; WILLIAM ANDREW CRUZ (144.5 WPM)</div>
+          <div class="teleprompter-script">"HEAV3NS combines a zero-friction MIT Rust wedge with a proprietary contrastive DPO data moat, scaling cleanly from open-source adoption to enterprise cloud contracts."</div>
+        </div>
+      </section>
+
+      <!-- ================================================================== -->
+      <!-- SCENE 09 OF 09: THE 90-DAY YC ASK (SLIDE-09.PNG STYLE)             -->
+      <!-- ================================================================== -->
+      <section class="slide-scene" data-act="ACT IV · YC THESIS & 90-DAY ASK" data-duration="11" data-elapsed="01:49">
+        <div class="scene-header">
+          <div class="scene-meta">SCENE 09 OF 09 · CLEAR ACTIONABLE NEXT STEPS: OUR 90-DAY YC BATCH PLAN</div>
+          <h1 class="scene-title">Clear Actionable Steps Forward: Our 90-Day YC Batch Plan</h1>
+        </div>
+
+        <div class="workspace-grid">
+          <div class="left-canvas canvas-ivory">
+            <div>
+              <div class="canvas-eyebrow">EXECUTION ROADMAP · $500K YC STANDARD DEAL</div>
+              <h2 class="canvas-h1">CLEAR ACTIONABLE NEXT STEPS: HOW WE SCALE</h2>
+              <div class="canvas-subtitle">Y Combinator × Founding Independent Industry Operator (HEAV3NS)</div>
+            </div>
+
+            <div class="cols-3" style="margin-bottom: 16px;">
+              <div class="s9-card">
+                <div class="s9-card-header">STEP 1 · PUBLISH 100K OPEN<br/>VLM SAFETY BENCHMARK</div>
+                <div class="s9-card-body">
+                  <div class="s9-card-text">Release <strong>heav3ns-safety-bench-100k</strong> on HuggingFace Hub during Weeks 1–3 to establish the open standard for false-positive reduction.</div>
+                  <div class="s9-card-icon">
+                    <svg width="46" height="46" viewBox="0 0 24 24" fill="none" stroke="#0b412c" stroke-width="1.6"><circle cx="12" cy="8" r="4"/><path d="M6 20v-2a6 6 0 0 1 12 0v2"/></svg>
+                  </div>
+                </div>
+              </div>
+
+              <div class="s9-card">
+                <div class="s9-card-header">STEP 2 · LAUNCH MANAGED<br/>S3 &amp; HF CLOUD API</div>
+                <div class="s9-card-body">
+                  <div class="s9-card-text">Ship zero-copy cloud workers in Weeks 4–7 to curate 10M+ image buckets with automated 4-panel QC slates and EU AI Act ledgers.</div>
+                  <div class="s9-card-icon">
+                    <svg width="46" height="46" viewBox="0 0 24 24" fill="none" stroke="#0b412c" stroke-width="1.6"><rect x="3" y="4" width="18" height="14" rx="2"/><path d="M9 9l-2 2 2 2M15 9l2 2-2 2"/></svg>
+                  </div>
+                </div>
+              </div>
+
+              <div class="s9-card">
+                <div class="s9-card-header">STEP 3 · CLOSE 5 PAID AI LAB<br/>&amp; STUDIO PILOTS</div>
+                <div class="s9-card-body">
+                  <div class="s9-card-text">Convert open-source adopters into 5 paid enterprise design partners in Weeks 8–12 to reach <strong>$25k+ MRR ($300k–$500k ARR)</strong> by Demo Day.</div>
+                  <div class="s9-card-icon">
+                    <svg width="46" height="46" viewBox="0 0 24 24" fill="none" stroke="#0b412c" stroke-width="1.6"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="M15 8h2M15 12h2M7 16h10"/></svg>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="canvas-footer-banner" style="font-size: 16.5px;">
+              <span class="gold-text">&#10003;</span> Production Rust v4.0 Shipped Today &nbsp;|&nbsp; <span class="gold-text">&#10003;</span> 99.2% Verified Pixel Preservation &nbsp;|&nbsp; <span class="gold-text">&#10003;</span> Target $300k–$500k ARR by YC Demo Day
+            </div>
+          </div>
+
+          <aside class="right-sidebar">
+            <div class="kpi-row">
+              <div class="kpi-box">
+                <div class="kpi-value">STEP 1</div>
+                <div class="kpi-label">100K HF BENCHMARK</div>
+              </div>
+              <div class="kpi-box gold">
+                <div class="kpi-value">STEP 2</div>
+                <div class="kpi-label">CLOUD S3/HF API</div>
+              </div>
+              <div class="kpi-box">
+                <div class="kpi-value">STEP 3</div>
+                <div class="kpi-label">$500K DEMO DAY ARR</div>
+              </div>
+            </div>
+
+            <div class="side-card">
+              <div class="side-card-header">THREE CONCRETE STEPS IN THE YC BATCH</div>
+              <div class="side-card-title">From Open Benchmark to Paid Pilots</div>
+              <ul class="side-card-list">
+                <li>Step 1: 100K contrastive DPO dataset on HF</li>
+                <li>Step 2: Managed S3/GCS/HF Cloud API launch</li>
+                <li>Step 3: 5 paid AI lab pilots ($25k+ MRR)</li>
+              </ul>
+            </div>
+
+            <div class="side-card">
+              <div class="side-card-header gold">DIRECT CONTACT FOR PARTNER INTERVIEW</div>
+              <div class="side-card-title">William Andrew Cruz — HEAV3NS</div>
+              <ul class="side-card-list">
+                <li>Email: commission@heav3ns.com</li>
+                <li>Web: https://heav3ns.com | github.com/CardSorting</li>
+                <li>Salt Lake City, UT (Ready for YC Batch)</li>
+              </ul>
+            </div>
+          </aside>
+        </div>
+
+        <div class="teleprompter-box">
+          <div class="teleprompter-meta">SYNCHRONIZED VOICE-OVER TELEPROMPTER &nbsp;·&nbsp; 01:49 – 02:00 &nbsp;·&nbsp; WILLIAM ANDREW CRUZ (144.5 WPM)</div>
+          <div class="teleprompter-script">"During the YC batch, we will publish our hundred-thousand-image benchmark, launch our managed S3 cloud API, and close five paid lab pilots before Demo Day. Thank you."</div>
+        </div>
+      </section>
+
+      <!-- 9-SEGMENT PROGRESS BAR -->
+      <div class="progress-track" id="progress-track">
+        <div class="progress-segment active" onclick="goToSlide(0)" title="Scene 01: Title & 49-Char Hook"></div>
+        <div class="progress-segment" onclick="goToSlide(1)" title="Scene 02: Founder William Andrew Cruz"></div>
+        <div class="progress-segment" onclick="goToSlide(2)" title="Scene 03: The Broken Binary Problem"></div>
+        <div class="progress-segment" onclick="goToSlide(3)" title="Scene 04: Preservation-Aware Solution"></div>
+        <div class="progress-segment" onclick="goToSlide(4)" title="Scene 05: The 5-Pillar Rust Engine"></div>
+        <div class="progress-segment" onclick="goToSlide(5)" title="Scene 06: Supply Chain Architecture"></div>
+        <div class="progress-segment" onclick="goToSlide(6)" title="Scene 07: The 5-Stage Pipeline"></div>
+        <div class="progress-segment" onclick="goToSlide(7)" title="Scene 08: Why HEAV3NS Is YC-Shaped"></div>
+        <div class="progress-segment" onclick="goToSlide(8)" title="Scene 09: The 90-Day YC Batch Plan"></div>
       </div>
-
-      <div class="teleprompter-box">
-        <div class="teleprompter-meta">SYNCHRONIZED VOICE-OVER TELEPROMPTER &nbsp;·&nbsp; 01:49 – 02:00 &nbsp;·&nbsp; WILLIAM ANDREW CRUZ (144.5 WPM)</div>
-        <div class="teleprompter-script">"During the YC batch, we will publish our hundred-thousand-image benchmark, launch our managed S3 cloud API, and close five paid lab pilots before Demo Day. Thank you."</div>
-      </div>
-    </section>
-
-    <!-- 9-SEGMENT PROGRESS BAR -->
-    <div class="progress-track" id="progress-track">
-      <div class="progress-segment active" onclick="goToSlide(0)" title="Scene 01: Title & 49-Char Hook"></div>
-      <div class="progress-segment" onclick="goToSlide(1)" title="Scene 02: Founder William Andrew Cruz"></div>
-      <div class="progress-segment" onclick="goToSlide(2)" title="Scene 03: The Broken Binary Problem"></div>
-      <div class="progress-segment" onclick="goToSlide(3)" title="Scene 04: Preservation-Aware Solution"></div>
-      <div class="progress-segment" onclick="goToSlide(4)" title="Scene 05: The 5-Pillar Rust Engine"></div>
-      <div class="progress-segment" onclick="goToSlide(5)" title="Scene 06: Supply Chain Architecture"></div>
-      <div class="progress-segment" onclick="goToSlide(6)" title="Scene 07: The 5-Stage Pipeline"></div>
-      <div class="progress-segment" onclick="goToSlide(7)" title="Scene 08: Why HEAV3NS Is YC-Shaped"></div>
-      <div class="progress-segment" onclick="goToSlide(8)" title="Scene 09: The 90-Day YC Batch Plan"></div>
     </div>
   </div>
 
   <script>
+    const stageScaler = document.getElementById('stage-scaler');
     const scenes = Array.from(document.querySelectorAll('.slide-scene'));
     const segments = Array.from(document.querySelectorAll('.progress-segment'));
     const actBadge = document.getElementById('act-badge');
@@ -1967,6 +2019,13 @@
     let autoPlay = false;
     let timerInterval = null;
     let remainingSec = 13;
+
+    function fitStageToViewport() {
+      const vw = window.innerWidth || document.documentElement.clientWidth;
+      const vh = window.innerHeight || document.documentElement.clientHeight;
+      const scale = Math.min(vw / 1920, vh / 1080);
+      stageScaler.style.transform = `scale(${scale})`;
+    }
 
     function renderSlide(idx) {
       currentIdx = (idx + scenes.length) % scenes.length;
@@ -1982,6 +2041,17 @@
       remainingSec = parseInt(activeScene.getAttribute('data-duration'), 10) || 13;
       countdownEl.textContent = remainingSec;
       elapsedEl.textContent = activeScene.getAttribute('data-elapsed') || '00:00';
+      if (history.replaceState) {
+        history.replaceState(null, '', '#' + (currentIdx + 1));
+      }
+    }
+
+    function initFromHash() {
+      const h = window.location.hash.replace('#', '');
+      const n = parseInt(h, 10);
+      if (!isNaN(n) && n >= 1 && n <= scenes.length) {
+        renderSlide(n - 1);
+      }
     }
 
     function nextSlide() { renderSlide(currentIdx + 1); }
@@ -2012,6 +2082,8 @@
       }
     }
 
+    window.addEventListener('resize', fitStageToViewport);
+    window.addEventListener('hashchange', initFromHash);
     window.addEventListener('keydown', (e) => {
       if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') {
         e.preventDefault();
@@ -2026,6 +2098,9 @@
         goToSlide(parseInt(e.key, 10) - 1);
       }
     });
+
+    fitStageToViewport();
+    initFromHash();
   </script>
 </body>
 </html>
