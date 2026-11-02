@@ -65,3 +65,15 @@ Welcome to the complete engineering, operational, and academic documentation sui
 - **[`PM-003`: Downscaled 540p Fractional Mosaic Grid Misalignment](postmortems/PM-003-downscaled-540p-fractional-mosaic-grid-misalignment.md)**
 - **[`PM-004`: In-Place Canvas Mutation & Zero-Sample Verification False Positives](postmortems/PM-004-in-place-canvas-mutation-and-zero-sample-false-positives.md)**
 
+---
+
+## 7. Y Combinator Diligence, Application, & Seed Pitch Package ([`docs/yc/`](yc/README.md))
+
+- **[`docs/yc/README.md`: Executive Index & YC Fit Verdict (`8.8 / 10`)](yc/README.md)**
+- **[`01-YC-VIABILITY-AND-PARTNER-DILIGENCE-REPORT.md`: Candid YC Partner Investment Memo & 7-Pillar Rubric](yc/01-YC-VIABILITY-AND-PARTNER-DILIGENCE-REPORT.md)**
+- **[`02-YC-SEED-PITCH-DECK.md`: 12-Slide YC Seed & Demo Day Pitch Deck (Markdown)](yc/02-YC-SEED-PITCH-DECK.md)**
+- **[`pitch_deck.html`: Interactive Browser Presentation Deck (Zero-Dependency HTML/JS)](yc/pitch_deck.html)**
+- **[`03-YC-APPLICATION-BLUEPRINT.md`: Official `ycombinator.com/apply` Application Answers & 10-Minute Interview Prep](yc/03-YC-APPLICATION-BLUEPRINT.md)**
+- **[`04-GTM-BUSINESS-MODEL-AND-MOAT.md`: Open-Core Monetization, Pricing Tiers, & Defensibility Moat](yc/04-GTM-BUSINESS-MODEL-AND-MOAT.md)**
+
+
